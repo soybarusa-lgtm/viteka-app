@@ -234,7 +234,7 @@ export default function App() {
         assigned_technician_id: session.user.id,
         name: projectData.name,
         status: 'active',
-        notes: projectData.notes,
+        notes: projectData.notes || '',
       })
 
     if (error) {
@@ -250,7 +250,12 @@ export default function App() {
   async function updateProject(projectId, projectData) {
     const { error } = await supabase
       .from('projects')
-      .update(projectData)
+      .update({
+        name: projectData.name,
+        client_id: projectData.client_id,
+        status: projectData.status,
+        notes: projectData.notes || '',
+      })
       .eq('id', projectId)
 
     if (error) {
@@ -667,10 +672,11 @@ export default function App() {
       <>
         {currentPage === 'dashboard' && (
           <Dashboard
-            clients={clients}
-            projects={projects}
-            templates={templates}
-          />
+  clients={clients}
+  projects={projects}
+  templates={templates}
+  checklists={executedChecklists}
+/>
         )}
 
         {currentPage === 'clients' && (
