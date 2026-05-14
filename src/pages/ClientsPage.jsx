@@ -23,118 +23,129 @@ export default function ClientsPage({
     })
   }, [clients, search])
 
+  const withEmail = clients.filter(client => client.email).length
+  const withPhone = clients.filter(client => client.phone).length
+
   return (
     <div>
-      <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">
+          <h1 className="text-5xl font-black tracking-tight text-[#0F172A]">
             Clientes
           </h1>
 
-          <p className="mt-2 text-[#8AAA96] font-medium">
-            Gestión de clientes registrados.
+          <p className="mt-3 text-base font-semibold text-[#64748B]">
+            Gestión de clientes, contactos y datos operativos.
           </p>
         </div>
 
         <button
           type="button"
           onClick={onCreateClient}
-          className="rounded-xl bg-[#005643] px-5 py-3 text-white font-bold hover:bg-[#0E7A60]"
+          className="rounded-2xl bg-gradient-to-br from-[#00684F] to-[#009B73] px-6 py-4 text-sm font-black text-white shadow-sm hover:opacity-95"
         >
-          Nuevo cliente
+          + Nuevo cliente
         </button>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <StatCard label="Clientes" value={clients.length} />
-        <StatCard label="Con email" value={clients.filter(client => client.email).length} />
-        <StatCard label="Con teléfono" value={clients.filter(client => client.phone).length} />
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+        <StatCard title="Total clientes" value={clients.length} />
+        <StatCard title="Con email" value={withEmail} />
+        <StatCard title="Con teléfono" value={withPhone} />
       </div>
 
-      <div className="mb-6 rounded-2xl bg-white border border-[#DCE7E1] p-4">
+      <div className="mt-7 rounded-3xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full rounded-xl border border-[#DCE7E1] px-4 py-3 outline-none focus:border-[#005643]"
-          placeholder="Buscar por cliente, email, teléfono o notas..."
+          className="w-full rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4 text-sm font-semibold outline-none focus:border-[#005643]"
+          placeholder="Buscar cliente, email, teléfono o notas..."
         />
       </div>
 
-      <div className="rounded-2xl bg-white border border-[#DCE7E1] shadow-sm overflow-hidden">
-        <div className="hidden lg:grid grid-cols-5 border-b border-[#DCE7E1] bg-[#F7FAF8] px-6 py-4 font-bold text-sm text-[#4A6B58]">
-          <div>Cliente</div>
-          <div>Email</div>
-          <div>Teléfono</div>
-          <div>Estado</div>
-          <div>Acciones</div>
+      <div className="mt-7 overflow-hidden rounded-3xl border border-[#E2E8F0] bg-white shadow-sm">
+        <div className="hidden grid-cols-[1.2fr_1fr_1fr_1.4fr_1fr] border-b border-[#E2E8F0] bg-[#F8FAFC] px-7 py-5 xl:grid">
+          <div className="text-xs font-black uppercase tracking-wide text-[#64748B]">
+            Cliente
+          </div>
+
+          <div className="text-xs font-black uppercase tracking-wide text-[#64748B]">
+            Email
+          </div>
+
+          <div className="text-xs font-black uppercase tracking-wide text-[#64748B]">
+            Teléfono
+          </div>
+
+          <div className="text-xs font-black uppercase tracking-wide text-[#64748B]">
+            Notas
+          </div>
+
+          <div className="text-xs font-black uppercase tracking-wide text-[#64748B]">
+            Acciones
+          </div>
         </div>
 
         {filteredClients.length === 0 ? (
-          <div className="px-6 py-8 text-[#8AAA96]">
+          <div className="px-7 py-10 text-sm font-semibold text-[#64748B]">
             No hay clientes que coincidan con la búsqueda.
           </div>
         ) : (
           filteredClients.map(client => (
             <div
               key={client.id}
-              className="grid grid-cols-1 gap-3 border-b border-[#EEF4F0] px-6 py-5 lg:grid-cols-5"
+              className="grid grid-cols-1 gap-5 border-b border-[#F1F5F9] px-7 py-6 xl:grid-cols-[1.2fr_1fr_1fr_1.4fr_1fr]"
             >
               <div>
-                <p className="text-xs font-bold uppercase text-[#8AAA96] lg:hidden">
+                <p className="text-xs font-black uppercase text-[#94A3B8] xl:hidden">
                   Cliente
                 </p>
 
-                <p className="font-bold">
+                <p className="font-black text-[#0F172A]">
                   {client.name}
                 </p>
-
-                {client.notes && (
-                  <p className="mt-1 text-sm text-[#8AAA96] lg:hidden">
-                    {client.notes}
-                  </p>
-                )}
               </div>
 
               <div>
-                <p className="text-xs font-bold uppercase text-[#8AAA96] lg:hidden">
+                <p className="text-xs font-black uppercase text-[#94A3B8] xl:hidden">
                   Email
                 </p>
 
-                <p className="text-[#6E8B7B]">
+                <p className="text-sm font-semibold text-[#64748B]">
                   {client.email || 'Sin email'}
                 </p>
               </div>
 
               <div>
-                <p className="text-xs font-bold uppercase text-[#8AAA96] lg:hidden">
+                <p className="text-xs font-black uppercase text-[#94A3B8] xl:hidden">
                   Teléfono
                 </p>
 
-                <p className="text-[#6E8B7B]">
+                <p className="text-sm font-semibold text-[#64748B]">
                   {client.phone || 'Sin teléfono'}
                 </p>
               </div>
 
               <div>
-                <p className="text-xs font-bold uppercase text-[#8AAA96] lg:hidden">
-                  Estado
+                <p className="text-xs font-black uppercase text-[#94A3B8] xl:hidden">
+                  Notas
                 </p>
 
-                <span className="inline-block rounded-full bg-[#E5F3EC] px-3 py-1 text-xs font-bold text-[#005643]">
-                  Activo
-                </span>
+                <p className="text-sm font-semibold text-[#64748B]">
+                  {client.notes || 'Sin notas'}
+                </p>
               </div>
 
               <div>
-                <p className="text-xs font-bold uppercase text-[#8AAA96] lg:hidden">
+                <p className="text-xs font-black uppercase text-[#94A3B8] xl:hidden">
                   Acciones
                 </p>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3">
                   <button
                     type="button"
                     onClick={() => onEditClient(client)}
-                    className="rounded-xl border border-[#DCE7E1] px-4 py-2 text-sm font-bold text-[#005643] hover:bg-[#F5FAF6]"
+                    className="rounded-2xl border border-[#E2E8F0] bg-white px-5 py-3 text-sm font-black text-[#0F172A] hover:bg-[#F8FAFC]"
                   >
                     Editar
                   </button>
@@ -142,7 +153,7 @@ export default function ClientsPage({
                   <button
                     type="button"
                     onClick={() => onDeleteClient(client.id)}
-                    className="rounded-xl border border-red-200 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50"
+                    className="rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-black text-red-600 hover:bg-red-100"
                   >
                     Eliminar
                   </button>
@@ -156,14 +167,17 @@ export default function ClientsPage({
   )
 }
 
-function StatCard({ label, value }) {
+function StatCard({
+  title,
+  value,
+}) {
   return (
-    <div className="rounded-2xl bg-white border border-[#DCE7E1] p-5">
-      <p className="text-xs font-bold uppercase tracking-wide text-[#8AAA96]">
-        {label}
+    <div className="rounded-3xl border border-[#E2E8F0] bg-white p-7 shadow-sm">
+      <p className="text-sm font-bold text-[#64748B]">
+        {title}
       </p>
 
-      <strong className="mt-2 block text-3xl">
+      <strong className="mt-3 block text-5xl font-black text-[#0F172A]">
         {value}
       </strong>
     </div>

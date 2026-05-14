@@ -6,6 +6,9 @@ export default function Dashboard({
 }) {
   const activeProjects = projects.filter(project => project.status === 'active')
   const completedProjects = projects.filter(project => project.status === 'completed')
+  const draftProjects = projects.filter(project => project.status === 'draft')
+  const cancelledProjects = projects.filter(project => project.status === 'cancelled')
+
   const activeChecklists = checklists.filter(checklist => checklist.status !== 'completed')
   const completedChecklists = checklists.filter(checklist => checklist.status === 'completed')
 
@@ -19,13 +22,13 @@ export default function Dashboard({
     0
   )
 
-  const blockedTasks = checklists.reduce(
-    (total, checklist) => total + (checklist.stats?.blocked || 0),
+  const pendingTasks = checklists.reduce(
+    (total, checklist) => total + (checklist.stats?.pending || 0),
     0
   )
 
-  const pendingTasks = checklists.reduce(
-    (total, checklist) => total + (checklist.stats?.pending || 0),
+  const blockedTasks = checklists.reduce(
+    (total, checklist) => total + (checklist.stats?.blocked || 0),
     0
   )
 
@@ -34,152 +37,183 @@ export default function Dashboard({
       ? Math.round((completedTasks / totalTasks) * 100)
       : 0
 
-  const recentChecklists = checklists.slice(0, 6)
   const recentProjects = projects.slice(0, 5)
+  const recentChecklists = checklists.slice(0, 5)
 
   return (
     <div>
-      <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <span className="inline-flex rounded-full bg-[#E5F3EC] px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-[#005643]">
-            Plataforma operativa
-          </span>
-
-          <h1 className="mt-4 text-4xl font-black tracking-tight text-[#052E26]">
-            Dashboard técnico
+          <h1 className="text-5xl font-black tracking-tight text-[#0F172A]">
+            Dashboard
           </h1>
 
-          <p className="mt-2 text-base font-medium text-[#6E8B7B]">
-            Control de clientes, proyectos, checklists y progreso operativo.
+          <p className="mt-3 text-base font-semibold text-[#64748B]">
+            Resumen general de tu actividad técnica.
           </p>
+        </div>
+
+        <div className="flex flex-wrap gap-4">
+          <button
+            type="button"
+            className="rounded-2xl border border-[#E2E8F0] bg-white px-6 py-4 text-sm font-black text-[#0F172A] shadow-sm hover:bg-[#F8FAFC]"
+          >
+            📅 Este mes⌄
+          </button>
+
+          <button
+            type="button"
+            className="rounded-2xl bg-gradient-to-br from-[#00684F] to-[#009B73] px-6 py-4 text-sm font-black text-white shadow-sm hover:opacity-95"
+          >
+            ▥ Ver informes
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-5">
-        <StatCard
-          icon="👥"
-          title="Clientes"
-          value={clients.length}
-          subtitle="Total registrados"
-        />
-
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 2xl:grid-cols-4">
         <StatCard
           icon="▣"
           title="Proyectos activos"
           value={activeProjects.length}
-          subtitle={`${projects.length} proyectos totales`}
+          trend="+2 este mes"
+        />
+
+        <StatCard
+          icon="👥"
+          title="Clientes"
+          value={clients.length}
+          trend="+1 este mes"
         />
 
         <StatCard
           icon="✓"
-          title="Checklists activos"
-          value={activeChecklists.length}
-          subtitle={`${completedChecklists.length} finalizados`}
+          title="Checklists completados"
+          value={`${globalProgress}%`}
+          trend="+8% este mes"
         />
 
         <StatCard
           icon="📄"
-          title="Plantillas"
-          value={templates.length}
-          subtitle="Disponibles"
-        />
-
-        <StatCard
-          icon="◎"
-          title="Progreso global"
-          value={`${globalProgress}%`}
-          subtitle="Tareas completadas"
+          title="Informes generados"
+          value={completedChecklists.length}
+          trend="+6 este mes"
         />
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 2xl:grid-cols-[1.1fr_1fr]">
-        <div className="rounded-3xl border border-[#DCE7E1] bg-white p-6 shadow-sm">
-          <div className="mb-6">
-            <h2 className="text-xl font-black text-[#052E26]">
-              Progreso global de checklists
+      <div className="mt-7 grid grid-cols-1 gap-7 2xl:grid-cols-[1.2fr_400px_420px]">
+        <div className="rounded-3xl border border-[#E2E8F0] bg-white p-7 shadow-sm">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-xl font-black text-[#0F172A]">
+              Actividad de proyectos
             </h2>
 
-            <p className="mt-1 text-sm font-medium text-[#6E8B7B]">
-              Porcentaje de tareas completadas en todas las ejecuciones.
-            </p>
+            <button
+              type="button"
+              className="rounded-2xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-black text-[#334155] hover:bg-[#F8FAFC]"
+            >
+              Este mes⌄
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr] lg:items-center">
-            <div className="relative mx-auto flex h-64 w-64 items-center justify-center rounded-full bg-[#E5EFEA]">
-              <div
-                className="absolute inset-0 rounded-full"
-                style={{
-                  background: `conic-gradient(#005643 ${globalProgress * 3.6}deg, #E5EFEA 0deg)`,
-                }}
+          <div className="relative h-80 overflow-hidden rounded-3xl bg-white">
+            <div className="absolute left-0 right-0 top-10 border-t border-[#E2E8F0]" />
+            <div className="absolute left-0 right-0 top-24 border-t border-[#E2E8F0]" />
+            <div className="absolute left-0 right-0 top-40 border-t border-[#E2E8F0]" />
+            <div className="absolute left-0 right-0 top-56 border-t border-[#E2E8F0]" />
+
+            <svg
+              viewBox="0 0 800 260"
+              className="relative z-10 h-full w-full"
+              preserveAspectRatio="none"
+            >
+              <defs>
+                <linearGradient id="projectArea" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor="#009B73" stopOpacity="0.26" />
+                  <stop offset="100%" stopColor="#009B73" stopOpacity="0.02" />
+                </linearGradient>
+              </defs>
+
+              <path
+                d="M0 210 C80 160, 120 150, 180 158 C260 168, 290 112, 360 128 C430 145, 455 78, 530 88 C610 100, 645 50, 800 38 L800 260 L0 260 Z"
+                fill="url(#projectArea)"
               />
 
-              <div className="relative flex h-44 w-44 flex-col items-center justify-center rounded-full bg-white shadow-inner">
-                <strong className="text-5xl font-black text-[#052E26]">
-                  {globalProgress}%
-                </strong>
-
-                <span className="mt-1 text-sm font-bold text-[#6E8B7B]">
-                  Completado
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <ProgressRow
-                label="Completadas"
-                value={completedTasks}
-                dot="bg-[#005643]"
+              <path
+                d="M0 210 C80 160, 120 150, 180 158 C260 168, 290 112, 360 128 C430 145, 455 78, 530 88 C610 100, 645 50, 800 38"
+                fill="none"
+                stroke="#007A5E"
+                strokeWidth="5"
+                strokeLinecap="round"
               />
 
-              <ProgressRow
-                label="Pendientes / en curso"
-                value={pendingTasks}
-                dot="bg-[#F59E0B]"
-              />
+              <circle cx="800" cy="38" r="8" fill="#007A5E" />
+            </svg>
 
-              <ProgressRow
-                label="Bloqueadas"
-                value={blockedTasks}
-                dot="bg-[#EF4444]"
-              />
+            <div className="absolute right-8 top-20 rounded-2xl border border-[#E2E8F0] bg-white px-5 py-4 shadow-sm">
+              <p className="text-lg font-black text-[#0F172A]">
+                {activeProjects.length}
+              </p>
 
-              <ProgressRow
-                label="Total de tareas"
-                value={totalTasks}
-                dot="bg-[#94A3B8]"
-              />
-
-              <div className="mt-6 rounded-2xl bg-[#E5F3EC] px-5 py-4 text-sm font-extrabold text-[#005643]">
-                Total de tareas: {totalTasks}
-              </div>
+              <p className="text-xs font-semibold text-[#64748B]">
+                Proyectos activos
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-3xl border border-[#DCE7E1] bg-white p-6 shadow-sm">
+        <div className="rounded-3xl border border-[#E2E8F0] bg-white p-7 shadow-sm">
+          <h2 className="text-xl font-black text-[#0F172A]">
+            Proyectos por estado
+          </h2>
+
+          <div className="mt-8 flex justify-center">
+            <div className="relative flex h-52 w-52 items-center justify-center rounded-full bg-[#E2E8F0]">
+              <div
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background:
+                    'conic-gradient(#005643 0deg 210deg, #4ADE80 210deg 300deg, #FBBF24 300deg 340deg, #EF4444 340deg 360deg)',
+                }}
+              />
+
+              <div className="relative h-32 w-32 rounded-full bg-white" />
+            </div>
+          </div>
+
+          <div className="mt-8 space-y-4">
+            <LegendRow label="Activos" value={activeProjects.length} dot="bg-[#005643]" />
+            <LegendRow label="Completados" value={completedProjects.length} dot="bg-[#4ADE80]" />
+            <LegendRow label="En revisión" value={draftProjects.length} dot="bg-[#FBBF24]" />
+            <LegendRow label="Cancelados" value={cancelledProjects.length} dot="bg-[#EF4444]" />
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-[#E2E8F0] bg-white p-7 shadow-sm">
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-black text-[#052E26]">
+            <h2 className="text-xl font-black text-[#0F172A]">
               Actividad reciente
             </h2>
 
-            <span className="rounded-full bg-[#E5F3EC] px-3 py-1 text-xs font-extrabold text-[#005643]">
-              En vivo
-            </span>
+            <button
+              type="button"
+              className="text-sm font-black text-[#005643]"
+            >
+              Ver todo
+            </button>
           </div>
 
           {recentChecklists.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-[#DCE7E1] p-8 text-center font-medium text-[#8AAA96]">
-              No hay actividad registrada todavía.
+            <div className="rounded-2xl border border-dashed border-[#E2E8F0] p-8 text-center text-sm font-semibold text-[#64748B]">
+              No hay actividad registrada.
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-5">
               {recentChecklists.map(checklist => (
                 <ActivityItem
                   key={checklist.id}
                   title={checklist.title}
                   subtitle={`Proyecto: ${checklist.projects?.name || 'Sin proyecto'}`}
-                  status={checklist.status}
-                  progress={checklist.stats?.progress || 0}
+                  time={checklist.status === 'completed' ? 'Completado' : 'Activo'}
                 />
               ))}
             </div>
@@ -187,86 +221,84 @@ export default function Dashboard({
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 2xl:grid-cols-[1fr_380px]">
-        <div className="rounded-3xl border border-[#DCE7E1] bg-white shadow-sm">
-          <div className="border-b border-[#DCE7E1] px-6 py-5">
-            <h2 className="text-xl font-black text-[#052E26]">
-              Ejecuciones recientes
+      <div className="mt-7 grid grid-cols-1 gap-7 2xl:grid-cols-[1fr_420px]">
+        <div className="rounded-3xl border border-[#E2E8F0] bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-[#E2E8F0] px-7 py-6">
+            <h2 className="text-xl font-black text-[#0F172A]">
+              Proyectos recientes
             </h2>
+
+            <button
+              type="button"
+              className="text-sm font-black text-[#005643]"
+            >
+              Ver todos
+            </button>
           </div>
 
-          {recentChecklists.length === 0 ? (
-            <div className="px-6 py-10 text-[#8AAA96]">
-              No hay ejecuciones todavía.
+          {recentProjects.length === 0 ? (
+            <div className="px-7 py-10 text-sm font-semibold text-[#64748B]">
+              No hay proyectos todavía.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px] text-left">
                 <thead>
-                  <tr className="border-b border-[#EEF4F0] text-xs font-black uppercase tracking-wide text-[#6E8B7B]">
-                    <th className="px-6 py-4">
-                      Título
-                    </th>
-
-                    <th className="px-6 py-4">
-                      Proyecto
-                    </th>
-
-                    <th className="px-6 py-4">
-                      Estado
-                    </th>
-
-                    <th className="px-6 py-4">
-                      Progreso
-                    </th>
-
-                    <th className="px-6 py-4">
-                      Tareas
-                    </th>
+                  <tr className="border-b border-[#F1F5F9] text-xs font-black uppercase tracking-wide text-[#64748B]">
+                    <th className="px-7 py-4">Proyecto</th>
+                    <th className="px-7 py-4">Cliente</th>
+                    <th className="px-7 py-4">Estado</th>
+                    <th className="px-7 py-4">Progreso</th>
+                    <th className="px-7 py-4">Última actividad</th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {recentChecklists.map(checklist => (
+                  {recentProjects.map(project => (
                     <tr
-                      key={checklist.id}
-                      className="border-b border-[#EEF4F0]"
+                      key={project.id}
+                      className="border-b border-[#F1F5F9]"
                     >
-                      <td className="px-6 py-5 font-extrabold text-[#052E26]">
-                        {checklist.title}
+                      <td className="px-7 py-5 font-black text-[#0F172A]">
+                        {project.name}
                       </td>
 
-                      <td className="px-6 py-5 text-sm font-medium text-[#6E8B7B]">
-                        {checklist.projects?.name || 'Sin proyecto'}
+                      <td className="px-7 py-5 text-sm font-semibold text-[#64748B]">
+                        {project.clients?.name || 'Sin cliente'}
                       </td>
 
-                      <td className="px-6 py-5">
-                        <StatusBadge status={checklist.status} blocked={checklist.stats?.blocked || 0} />
+                      <td className="px-7 py-5">
+                        <StatusBadge status={project.status} />
                       </td>
 
-                      <td className="px-6 py-5">
+                      <td className="px-7 py-5">
                         <div className="flex items-center gap-3">
-                          <div className="h-2 w-28 overflow-hidden rounded-full bg-[#E5EFEA]">
+                          <div className="h-2 w-32 overflow-hidden rounded-full bg-[#E2E8F0]">
                             <div
-                              className={
-                                (checklist.stats?.blocked || 0) > 0
-                                  ? 'h-full rounded-full bg-[#B91C1C]'
-                                  : 'h-full rounded-full bg-[#005643]'
-                              }
+                              className="h-full rounded-full bg-[#005643]"
                               style={{
-                                width: `${checklist.stats?.progress || 0}%`,
+                                width:
+                                  project.status === 'completed'
+                                    ? '100%'
+                                    : project.status === 'active'
+                                      ? '75%'
+                                      : '35%',
                               }}
                             />
                           </div>
 
-                          <span className="text-sm font-extrabold">
-                            {checklist.stats?.progress || 0}%
+                          <span className="text-sm font-black text-[#334155]">
+                            {project.status === 'completed'
+                              ? '100%'
+                              : project.status === 'active'
+                                ? '75%'
+                                : '35%'}
                           </span>
                         </div>
                       </td>
 
-                      <td className="px-6 py-5 text-sm font-bold text-[#6E8B7B]">
-                        {checklist.stats?.completed || 0} / {checklist.stats?.total || 0}
+                      <td className="px-7 py-5 text-sm font-semibold text-[#64748B]">
+                        Hace 1 día
                       </td>
                     </tr>
                   ))}
@@ -276,27 +308,47 @@ export default function Dashboard({
           )}
         </div>
 
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-[#DCE7E1] bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-black text-[#052E26]">
-              Estado operativo
+        <div className="rounded-3xl border border-[#E2E8F0] bg-white p-7 shadow-sm">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-xl font-black text-[#0F172A]">
+              Tareas pendientes
             </h2>
 
-            <div className="mt-5 space-y-3">
-              <SystemIndicator label="Supabase" status="online" />
-              <SystemIndicator label="Autenticación" status="online" />
-              <SystemIndicator label="Storage evidencias" status="online" />
-              <SystemIndicator label="Frontend" status="online" />
-            </div>
+            <button
+              type="button"
+              className="text-sm font-black text-[#005643]"
+            >
+              Ver todas
+            </button>
           </div>
 
-          <div className="rounded-3xl bg-[#005643] p-6 text-white shadow-sm">
-            <h2 className="text-xl font-black">
-              Estado del producto
-            </h2>
+          <div className="space-y-5">
+            <TaskItem
+              title="Revisar checklist de seguridad"
+              subtitle="Instalación técnica"
+              date="Hoy"
+            />
 
-            <p className="mt-3 text-sm font-medium leading-relaxed text-white/80">
-              El MVP ya cubre clientes, proyectos, plantillas, ejecuciones técnicas, evidencias y progreso operativo.
+            <TaskItem
+              title="Subir evidencias fotográficas"
+              subtitle="Proyecto activo"
+              date="Mañana"
+            />
+
+            <TaskItem
+              title="Generar informe mensual"
+              subtitle="Todos los proyectos"
+              date="30 May"
+            />
+
+            <TaskItem
+              title="Reunión con cliente"
+              subtitle="Cliente activo"
+              date="31 May"
+            />
+
+            <p className="pt-2 text-sm font-black text-[#005643]">
+              + {pendingTasks} tareas pendientes · {blockedTasks} bloqueadas
             </p>
           </div>
         </div>
@@ -305,144 +357,118 @@ export default function Dashboard({
   )
 }
 
-function StatCard({
-  icon,
-  title,
-  value,
-  subtitle,
-}) {
+function StatCard({ icon, title, value, trend }) {
   return (
-    <div className="rounded-3xl border border-[#DCE7E1] bg-white p-6 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E5F3EC] text-2xl">
+    <div className="rounded-3xl border border-[#E2E8F0] bg-white p-7 shadow-sm">
+      <div className="flex items-center gap-6">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#E6F7F0] text-2xl text-[#005643]">
           {icon}
         </div>
 
-        <span className="rounded-full bg-[#F7FAF8] px-3 py-1 text-xs font-bold text-[#6E8B7B]">
-          KPI
-        </span>
-      </div>
-
-      <p className="mt-5 text-sm font-bold text-[#6E8B7B]">
-        {title}
-      </p>
-
-      <strong className="mt-1 block text-4xl font-black text-[#052E26]">
-        {value}
-      </strong>
-
-      <p className="mt-3 text-sm font-medium text-[#8AAA96]">
-        {subtitle}
-      </p>
-    </div>
-  )
-}
-
-function ProgressRow({
-  label,
-  value,
-  dot,
-}) {
-  return (
-    <div className="flex items-center justify-between rounded-2xl border border-[#EEF4F0] px-4 py-3">
-      <div className="flex items-center gap-3">
-        <span className={`h-3 w-3 rounded-full ${dot}`} />
-
-        <span className="font-bold text-[#052E26]">
-          {label}
-        </span>
-      </div>
-
-      <strong className="font-black">
-        {value}
-      </strong>
-    </div>
-  )
-}
-
-function ActivityItem({
-  title,
-  subtitle,
-  status,
-  progress,
-}) {
-  return (
-    <div className="rounded-2xl border border-[#EEF4F0] p-4">
-      <div className="flex items-start gap-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E5F3EC] font-black text-[#005643]">
-          ✓
-        </div>
-
-        <div className="flex-1">
-          <p className="font-extrabold text-[#052E26]">
+        <div>
+          <p className="text-sm font-bold text-[#475569]">
             {title}
           </p>
 
-          <p className="mt-1 text-sm font-medium text-[#6E8B7B]">
-            {subtitle}
+          <strong className="mt-2 block text-4xl font-black text-[#0F172A]">
+            {value}
+          </strong>
+
+          <p className="mt-3 text-sm font-semibold text-[#64748B]">
+            {trend} ↗
           </p>
-
-          <div className="mt-3 flex items-center gap-3">
-            <StatusBadge status={status} />
-
-            <span className="text-xs font-bold text-[#8AAA96]">
-              {progress}% completado
-            </span>
-          </div>
         </div>
       </div>
     </div>
   )
 }
 
-function StatusBadge({
-  status,
-  blocked = 0,
-}) {
-  if (blocked > 0) {
-    return (
-      <span className="rounded-full bg-[#FEE2E2] px-3 py-1 text-xs font-black text-[#B91C1C]">
-        Bloqueado
-      </span>
-    )
-  }
-
-  if (status === 'completed') {
-    return (
-      <span className="rounded-full bg-[#DCFCE7] px-3 py-1 text-xs font-black text-[#166534]">
-        Completado
-      </span>
-    )
-  }
-
+function LegendRow({ label, value, dot }) {
   return (
-    <span className="rounded-full bg-[#FEF3C7] px-3 py-1 text-xs font-black text-[#92400E]">
-      En progreso
-    </span>
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <span className={`h-3 w-3 rounded-full ${dot}`} />
+        <span className="font-bold text-[#334155]">{label}</span>
+      </div>
+
+      <strong className="font-black text-[#0F172A]">
+        {value}
+      </strong>
+    </div>
   )
 }
 
-function SystemIndicator({
-  label,
-  status,
-}) {
-  const isOnline = status === 'online'
-
+function ActivityItem({ title, subtitle, time }) {
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-[#EEF4F0] p-4">
-      <span className="font-extrabold text-[#052E26]">
-        {label}
-      </span>
+    <div className="flex items-start gap-4">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E6F7F0] text-lg font-black text-[#005643]">
+        ✓
+      </div>
 
-      <span
-        className={
-          isOnline
-            ? 'rounded-full bg-[#DCFCE7] px-3 py-1 text-xs font-black text-[#166534]'
-            : 'rounded-full bg-[#FEE2E2] px-3 py-1 text-xs font-black text-[#B91C1C]'
-        }
-      >
-        {isOnline ? 'ONLINE' : 'OFFLINE'}
+      <div className="min-w-0 flex-1">
+        <p className="font-black text-[#0F172A]">
+          {title}
+        </p>
+
+        <p className="mt-1 text-sm font-semibold text-[#64748B]">
+          {subtitle}
+        </p>
+      </div>
+
+      <span className="text-xs font-bold text-[#64748B]">
+        {time}
       </span>
     </div>
+  )
+}
+
+function TaskItem({ title, subtitle, date }) {
+  return (
+    <div className="flex items-start gap-4">
+      <div className="mt-1 h-6 w-6 rounded-md border border-[#CBD5E1]" />
+
+      <div className="flex-1">
+        <p className="font-black text-[#0F172A]">
+          {title}
+        </p>
+
+        <p className="mt-1 text-sm font-semibold text-[#64748B]">
+          {subtitle}
+        </p>
+      </div>
+
+      <span className="text-sm font-black text-[#EF4444]">
+        {date}
+      </span>
+    </div>
+  )
+}
+
+function StatusBadge({ status }) {
+  const config = {
+    draft: {
+      label: 'En revisión',
+      className: 'bg-[#FEF3C7] text-[#92400E]',
+    },
+    active: {
+      label: 'Activo',
+      className: 'bg-[#DCFCE7] text-[#166534]',
+    },
+    completed: {
+      label: 'Completado',
+      className: 'bg-[#DBEAFE] text-[#1D4ED8]',
+    },
+    cancelled: {
+      label: 'Cancelado',
+      className: 'bg-[#FEE2E2] text-[#B91C1C]',
+    },
+  }
+
+  const current = config[status] || config.active
+
+  return (
+    <span className={`rounded-full px-3 py-1 text-xs font-black ${current.className}`}>
+      {current.label}
+    </span>
   )
 }

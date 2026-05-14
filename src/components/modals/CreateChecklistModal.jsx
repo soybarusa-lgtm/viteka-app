@@ -7,15 +7,20 @@ export default function CreateChecklistModal({
   projects = [],
   templates = [],
 }) {
+  const [title, setTitle] = useState('')
   const [projectId, setProjectId] = useState('')
   const [templateId, setTemplateId] = useState('')
-  const [title, setTitle] = useState('')
   const [loading, setLoading] = useState(false)
 
   if (!isOpen) return null
 
   async function submit(e) {
     e.preventDefault()
+
+    if (!title.trim()) {
+      alert('El título es obligatorio.')
+      return
+    }
 
     if (!projectId) {
       alert('Selecciona un proyecto.')
@@ -27,51 +32,57 @@ export default function CreateChecklistModal({
       return
     }
 
-    const selectedTemplate = templates.find(template => template.id === templateId)
-
     setLoading(true)
 
     await onCreate({
+      title,
       project_id: projectId,
       template_id: templateId,
-      title: title || selectedTemplate?.name || 'Checklist técnico',
     })
 
     setLoading(false)
+
+    setTitle('')
     setProjectId('')
     setTemplateId('')
-    setTitle('')
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6">
-      <div className="w-full max-w-lg rounded-2xl bg-white border border-[#DCE7E1] shadow-xl">
-        <div className="flex items-center justify-between border-b border-[#DCE7E1] px-6 py-5">
-          <div>
-            <h2 className="text-xl font-extrabold">Nuevo checklist</h2>
-            <p className="mt-1 text-sm text-[#8AAA96] font-medium">
-              Crea una ejecución real desde una plantilla.
-            </p>
-          </div>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-6">
+      <div className="w-full max-w-xl rounded-3xl border border-[#E2E8F0] bg-white shadow-xl">
+        <div className="border-b border-[#E2E8F0] px-7 py-6">
+          <h2 className="text-2xl font-black text-[#0F172A]">
+            Nuevo checklist
+          </h2>
 
-          <button
-            onClick={onClose}
-            className="rounded-lg px-3 py-2 font-bold text-[#4A6B58] hover:bg-[#F5FAF6]"
-          >
-            ✕
-          </button>
+          <p className="mt-2 text-sm font-semibold text-[#64748B]">
+            Crea una nueva ejecución técnica desde una plantilla.
+          </p>
         </div>
 
-        <form onSubmit={submit} className="p-6 space-y-4">
+        <form onSubmit={submit} className="space-y-5 p-7">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-[#4A6B58] mb-2">
+            <label className="mb-2 block text-xs font-black uppercase tracking-wide text-[#64748B]">
+              Título
+            </label>
+
+            <input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              className="w-full rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4 text-sm font-semibold outline-none focus:border-[#005643]"
+              placeholder="Checklist instalación..."
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-xs font-black uppercase tracking-wide text-[#64748B]">
               Proyecto
             </label>
 
             <select
               value={projectId}
               onChange={e => setProjectId(e.target.value)}
-              className="w-full rounded-xl border border-[#DCE7E1] px-4 py-3 outline-none focus:border-[#005643]"
+              className="w-full rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4 text-sm font-black outline-none focus:border-[#005643]"
             >
               <option value="">Seleccionar proyecto</option>
 
@@ -84,14 +95,14 @@ export default function CreateChecklistModal({
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-[#4A6B58] mb-2">
+            <label className="mb-2 block text-xs font-black uppercase tracking-wide text-[#64748B]">
               Plantilla
             </label>
 
             <select
               value={templateId}
               onChange={e => setTemplateId(e.target.value)}
-              className="w-full rounded-xl border border-[#DCE7E1] px-4 py-3 outline-none focus:border-[#005643]"
+              className="w-full rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4 text-sm font-black outline-none focus:border-[#005643]"
             >
               <option value="">Seleccionar plantilla</option>
 
@@ -103,24 +114,11 @@ export default function CreateChecklistModal({
             </select>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-[#4A6B58] mb-2">
-              Título opcional
-            </label>
-
-            <input
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              className="w-full rounded-xl border border-[#DCE7E1] px-4 py-3 outline-none focus:border-[#005643]"
-              placeholder="Si lo dejas vacío se usará el nombre de la plantilla"
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex justify-end gap-4 pt-3">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-[#DCE7E1] px-5 py-3 font-bold hover:bg-[#F5FAF6]"
+              className="rounded-2xl border border-[#E2E8F0] bg-white px-6 py-4 text-sm font-black text-[#0F172A] hover:bg-[#F8FAFC]"
             >
               Cancelar
             </button>
@@ -128,7 +126,7 @@ export default function CreateChecklistModal({
             <button
               type="submit"
               disabled={loading}
-              className="rounded-xl bg-[#005643] px-5 py-3 text-white font-bold hover:bg-[#0E7A60] disabled:opacity-60"
+              className="rounded-2xl bg-gradient-to-br from-[#00684F] to-[#009B73] px-6 py-4 text-sm font-black text-white shadow-sm hover:opacity-95 disabled:opacity-60"
             >
               {loading ? 'Creando...' : 'Crear checklist'}
             </button>

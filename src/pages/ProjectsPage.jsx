@@ -44,49 +44,64 @@ export default function ProjectsPage({
 
   return (
     <div>
-      <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">
+          <h1 className="text-5xl font-black tracking-tight text-[#0F172A]">
             Proyectos
           </h1>
 
-          <p className="mt-2 text-[#8AAA96] font-medium">
-            Gestión de instalaciones y trabajos técnicos.
+          <p className="mt-3 text-base font-semibold text-[#64748B]">
+            Gestión técnica de instalaciones y operaciones.
           </p>
         </div>
 
         <button
           type="button"
           onClick={onCreateProject}
-          className="rounded-xl bg-[#005643] px-5 py-3 text-white font-bold hover:bg-[#0E7A60]"
+          className="rounded-2xl bg-gradient-to-br from-[#00684F] to-[#009B73] px-6 py-4 text-sm font-black text-white shadow-sm hover:opacity-95"
         >
-          Nuevo proyecto
+          + Nuevo proyecto
         </button>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Total" value={projects.length} />
-        <StatCard label="Activos" value={activeCount} />
-        <StatCard label="Completados" value={completedCount} />
-        <StatCard label="Cancelados" value={cancelledCount} />
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-4">
+        <StatCard
+          title="Total"
+          value={projects.length}
+        />
+
+        <StatCard
+          title="Activos"
+          value={activeCount}
+        />
+
+        <StatCard
+          title="Completados"
+          value={completedCount}
+        />
+
+        <StatCard
+          title="Cancelados"
+          value={cancelledCount}
+        />
       </div>
 
-      <div className="mb-6 rounded-2xl bg-white border border-[#DCE7E1] p-4">
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1fr_220px]">
+      <div className="mt-7 rounded-3xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_240px]">
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-[#DCE7E1] px-4 py-3 outline-none focus:border-[#005643]"
-            placeholder="Buscar por proyecto, cliente o notas..."
+            className="w-full rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4 text-sm font-semibold outline-none focus:border-[#005643]"
+            placeholder="Buscar proyecto, cliente o notas..."
           />
 
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="w-full rounded-xl border border-[#DCE7E1] px-4 py-3 outline-none focus:border-[#005643]"
+            className="w-full rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4 text-sm font-black outline-none focus:border-[#005643]"
           >
             <option value="all">Todos los estados</option>
-            <option value="draft">Borrador</option>
+            <option value="draft">En revisión</option>
             <option value="active">Activo</option>
             <option value="completed">Completado</option>
             <option value="cancelled">Cancelado</option>
@@ -94,73 +109,87 @@ export default function ProjectsPage({
         </div>
       </div>
 
-      <div className="rounded-2xl bg-white border border-[#DCE7E1] shadow-sm overflow-hidden">
-        <div className="hidden xl:grid grid-cols-[1.4fr_1fr_1fr_1.4fr_1fr] border-b border-[#DCE7E1] bg-[#F7FAF8] px-6 py-4 font-bold text-sm text-[#4A6B58]">
-          <div>Proyecto</div>
-          <div>Cliente</div>
-          <div>Estado</div>
-          <div>Notas</div>
-          <div>Acciones</div>
+      <div className="mt-7 overflow-hidden rounded-3xl border border-[#E2E8F0] bg-white shadow-sm">
+        <div className="hidden grid-cols-[1.4fr_1fr_1fr_1.4fr_1fr] border-b border-[#E2E8F0] bg-[#F8FAFC] px-7 py-5 xl:grid">
+          <div className="text-xs font-black uppercase tracking-wide text-[#64748B]">
+            Proyecto
+          </div>
+
+          <div className="text-xs font-black uppercase tracking-wide text-[#64748B]">
+            Cliente
+          </div>
+
+          <div className="text-xs font-black uppercase tracking-wide text-[#64748B]">
+            Estado
+          </div>
+
+          <div className="text-xs font-black uppercase tracking-wide text-[#64748B]">
+            Notas
+          </div>
+
+          <div className="text-xs font-black uppercase tracking-wide text-[#64748B]">
+            Acciones
+          </div>
         </div>
 
         {filteredProjects.length === 0 ? (
-          <div className="px-6 py-8 text-[#8AAA96]">
-            No hay proyectos que coincidan con los filtros.
+          <div className="px-7 py-10 text-sm font-semibold text-[#64748B]">
+            No hay proyectos disponibles.
           </div>
         ) : (
           filteredProjects.map(project => (
             <div
               key={project.id}
-              className="grid grid-cols-1 gap-4 border-b border-[#EEF4F0] px-6 py-5 xl:grid-cols-[1.4fr_1fr_1fr_1.4fr_1fr]"
+              className="grid grid-cols-1 gap-5 border-b border-[#F1F5F9] px-7 py-6 xl:grid-cols-[1.4fr_1fr_1fr_1.4fr_1fr]"
             >
               <div>
-                <p className="text-xs font-bold uppercase text-[#8AAA96] xl:hidden">
+                <p className="text-xs font-black uppercase text-[#94A3B8] xl:hidden">
                   Proyecto
                 </p>
 
-                <p className="font-bold">
+                <p className="font-black text-[#0F172A]">
                   {project.name}
                 </p>
               </div>
 
               <div>
-                <p className="text-xs font-bold uppercase text-[#8AAA96] xl:hidden">
+                <p className="text-xs font-black uppercase text-[#94A3B8] xl:hidden">
                   Cliente
                 </p>
 
-                <p className="text-[#6E8B7B]">
+                <p className="text-sm font-semibold text-[#64748B]">
                   {project.clients?.name || 'Sin cliente'}
                 </p>
               </div>
 
               <div>
-                <p className="text-xs font-bold uppercase text-[#8AAA96] xl:hidden">
+                <p className="text-xs font-black uppercase text-[#94A3B8] xl:hidden">
                   Estado
                 </p>
 
-                <ProjectStatusBadge status={project.status} />
+                <StatusBadge status={project.status} />
               </div>
 
               <div>
-                <p className="text-xs font-bold uppercase text-[#8AAA96] xl:hidden">
+                <p className="text-xs font-black uppercase text-[#94A3B8] xl:hidden">
                   Notas
                 </p>
 
-                <p className="text-[#6E8B7B]">
+                <p className="text-sm font-semibold text-[#64748B]">
                   {project.notes || 'Sin notas'}
                 </p>
               </div>
 
               <div>
-                <p className="text-xs font-bold uppercase text-[#8AAA96] xl:hidden">
+                <p className="text-xs font-black uppercase text-[#94A3B8] xl:hidden">
                   Acciones
                 </p>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3">
                   <button
                     type="button"
                     onClick={() => onEditProject(project)}
-                    className="rounded-xl border border-[#DCE7E1] px-4 py-2 text-sm font-bold text-[#005643] hover:bg-[#F5FAF6]"
+                    className="rounded-2xl border border-[#E2E8F0] bg-white px-5 py-3 text-sm font-black text-[#0F172A] hover:bg-[#F8FAFC]"
                   >
                     Editar
                   </button>
@@ -168,7 +197,7 @@ export default function ProjectsPage({
                   <button
                     type="button"
                     onClick={() => onDeleteProject(project.id)}
-                    className="rounded-xl border border-red-200 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50"
+                    className="rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-black text-red-600 hover:bg-red-100"
                   >
                     Eliminar
                   </button>
@@ -183,35 +212,35 @@ export default function ProjectsPage({
 }
 
 function StatCard({
-  label,
+  title,
   value,
 }) {
   return (
-    <div className="rounded-2xl bg-white border border-[#DCE7E1] p-5">
-      <p className="text-xs font-bold uppercase tracking-wide text-[#8AAA96]">
-        {label}
+    <div className="rounded-3xl border border-[#E2E8F0] bg-white p-7 shadow-sm">
+      <p className="text-sm font-bold text-[#64748B]">
+        {title}
       </p>
 
-      <strong className="mt-2 block text-3xl">
+      <strong className="mt-3 block text-5xl font-black text-[#0F172A]">
         {value}
       </strong>
     </div>
   )
 }
 
-function ProjectStatusBadge({ status }) {
+function StatusBadge({ status }) {
   const config = {
     draft: {
-      label: 'Borrador',
-      className: 'bg-[#F3F4F6] text-[#374151]',
+      label: 'En revisión',
+      className: 'bg-[#FEF3C7] text-[#92400E]',
     },
     active: {
       label: 'Activo',
-      className: 'bg-[#E5F3EC] text-[#005643]',
+      className: 'bg-[#DCFCE7] text-[#166534]',
     },
     completed: {
       label: 'Completado',
-      className: 'bg-[#DCFCE7] text-[#166534]',
+      className: 'bg-[#DBEAFE] text-[#1D4ED8]',
     },
     cancelled: {
       label: 'Cancelado',
@@ -222,7 +251,7 @@ function ProjectStatusBadge({ status }) {
   const current = config[status] || config.active
 
   return (
-    <span className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${current.className}`}>
+    <span className={`rounded-full px-3 py-1 text-xs font-black ${current.className}`}>
       {current.label}
     </span>
   )

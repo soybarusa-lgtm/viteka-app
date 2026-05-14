@@ -17,7 +17,7 @@ export default function CreateProjectModal({
     e.preventDefault()
 
     if (!name.trim()) {
-      alert('El nombre del proyecto es obligatorio.')
+      alert('El nombre es obligatorio.')
       return
     }
 
@@ -35,61 +35,56 @@ export default function CreateProjectModal({
     })
 
     setLoading(false)
+
     setName('')
     setClientId('')
     setNotes('')
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6">
-      <div className="w-full max-w-lg rounded-2xl bg-white border border-[#DCE7E1] shadow-xl">
-        <div className="flex items-center justify-between border-b border-[#DCE7E1] px-6 py-5">
-          <div>
-            <h2 className="text-xl font-extrabold">
-              Nuevo proyecto
-            </h2>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-6">
+      <div className="w-full max-w-xl rounded-3xl border border-[#E2E8F0] bg-white shadow-xl">
+        <div className="border-b border-[#E2E8F0] px-7 py-6">
+          <h2 className="text-2xl font-black text-[#0F172A]">
+            Nuevo proyecto
+          </h2>
 
-            <p className="mt-1 text-sm text-[#8AAA96] font-medium">
-              Crea un nuevo trabajo técnico.
-            </p>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="rounded-lg px-3 py-2 font-bold text-[#4A6B58] hover:bg-[#F5FAF6]"
-          >
-            ✕
-          </button>
+          <p className="mt-2 text-sm font-semibold text-[#64748B]">
+            Crear un nuevo proyecto técnico.
+          </p>
         </div>
 
-        <form onSubmit={submit} className="p-6 space-y-4">
+        <form onSubmit={submit} className="space-y-5 p-7">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-[#4A6B58] mb-2">
+            <label className="mb-2 block text-xs font-black uppercase tracking-wide text-[#64748B]">
               Nombre del proyecto
             </label>
 
             <input
               value={name}
               onChange={e => setName(e.target.value)}
-              className="w-full rounded-xl border border-[#DCE7E1] px-4 py-3 outline-none focus:border-[#005643]"
-              placeholder="Ej. Instalación cliente A"
+              className="w-full rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4 text-sm font-semibold outline-none focus:border-[#005643]"
+              placeholder="Instalación oficina central..."
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-[#4A6B58] mb-2">
+            <label className="mb-2 block text-xs font-black uppercase tracking-wide text-[#64748B]">
               Cliente
             </label>
 
             <select
               value={clientId}
               onChange={e => setClientId(e.target.value)}
-              className="w-full rounded-xl border border-[#DCE7E1] px-4 py-3 outline-none focus:border-[#005643]"
+              className="w-full rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4 text-sm font-black outline-none focus:border-[#005643]"
             >
               <option value="">Seleccionar cliente</option>
 
               {clients.map(client => (
-                <option key={client.id} value={client.id}>
+                <option
+                  key={client.id}
+                  value={client.id}
+                >
                   {client.name}
                 </option>
               ))}
@@ -97,23 +92,23 @@ export default function CreateProjectModal({
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-[#4A6B58] mb-2">
+            <label className="mb-2 block text-xs font-black uppercase tracking-wide text-[#64748B]">
               Notas
             </label>
 
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              className="min-h-28 w-full rounded-xl border border-[#DCE7E1] px-4 py-3 outline-none focus:border-[#005643]"
-              placeholder="Observaciones iniciales del proyecto"
+              className="min-h-[140px] w-full rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4 text-sm font-semibold outline-none focus:border-[#005643]"
+              placeholder="Detalles técnicos..."
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex justify-end gap-4 pt-3">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-[#DCE7E1] px-5 py-3 font-bold hover:bg-[#F5FAF6]"
+              className="rounded-2xl border border-[#E2E8F0] bg-white px-6 py-4 text-sm font-black text-[#0F172A] hover:bg-[#F8FAFC]"
             >
               Cancelar
             </button>
@@ -121,7 +116,7 @@ export default function CreateProjectModal({
             <button
               type="submit"
               disabled={loading}
-              className="rounded-xl bg-[#005643] px-5 py-3 text-white font-bold hover:bg-[#0E7A60] disabled:opacity-60"
+              className="rounded-2xl bg-gradient-to-br from-[#00684F] to-[#009B73] px-6 py-4 text-sm font-black text-white shadow-sm hover:opacity-95"
             >
               {loading ? 'Creando...' : 'Crear proyecto'}
             </button>
