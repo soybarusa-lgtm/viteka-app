@@ -15,6 +15,7 @@ export default function ProjectsPage({
         project.name,
         project.clients?.name,
         project.notes,
+        project.status,
       ]
         .join(' ')
         .toLowerCase()
@@ -29,9 +30,17 @@ export default function ProjectsPage({
     })
   }, [projects, search, statusFilter])
 
-  const activeCount = projects.filter(project => project.status === 'active').length
-  const completedCount = projects.filter(project => project.status === 'completed').length
-  const cancelledCount = projects.filter(project => project.status === 'cancelled').length
+  const activeCount = projects.filter(
+    project => project.status === 'active'
+  ).length
+
+  const completedCount = projects.filter(
+    project => project.status === 'completed'
+  ).length
+
+  const cancelledCount = projects.filter(
+    project => project.status === 'cancelled'
+  ).length
 
   return (
     <div>
@@ -47,6 +56,7 @@ export default function ProjectsPage({
         </div>
 
         <button
+          type="button"
           onClick={onCreateProject}
           className="rounded-xl bg-[#005643] px-5 py-3 text-white font-bold hover:bg-[#0E7A60]"
         >
@@ -54,7 +64,7 @@ export default function ProjectsPage({
         </button>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total" value={projects.length} />
         <StatCard label="Activos" value={activeCount} />
         <StatCard label="Completados" value={completedCount} />
@@ -62,7 +72,7 @@ export default function ProjectsPage({
       </div>
 
       <div className="mb-6 rounded-2xl bg-white border border-[#DCE7E1] p-4">
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_220px]">
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1fr_220px]">
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -85,7 +95,7 @@ export default function ProjectsPage({
       </div>
 
       <div className="rounded-2xl bg-white border border-[#DCE7E1] shadow-sm overflow-hidden">
-        <div className="hidden lg:grid grid-cols-5 border-b border-[#DCE7E1] bg-[#F7FAF8] px-6 py-4 font-bold text-sm text-[#4A6B58]">
+        <div className="hidden xl:grid grid-cols-[1.4fr_1fr_1fr_1.4fr_1fr] border-b border-[#DCE7E1] bg-[#F7FAF8] px-6 py-4 font-bold text-sm text-[#4A6B58]">
           <div>Proyecto</div>
           <div>Cliente</div>
           <div>Estado</div>
@@ -95,16 +105,16 @@ export default function ProjectsPage({
 
         {filteredProjects.length === 0 ? (
           <div className="px-6 py-8 text-[#8AAA96]">
-            No hay proyectos que coincidan con la búsqueda.
+            No hay proyectos que coincidan con los filtros.
           </div>
         ) : (
           filteredProjects.map(project => (
             <div
               key={project.id}
-              className="grid grid-cols-1 gap-3 border-b border-[#EEF4F0] px-6 py-5 lg:grid-cols-5"
+              className="grid grid-cols-1 gap-4 border-b border-[#EEF4F0] px-6 py-5 xl:grid-cols-[1.4fr_1fr_1fr_1.4fr_1fr]"
             >
               <div>
-                <p className="text-xs font-bold uppercase text-[#8AAA96] lg:hidden">
+                <p className="text-xs font-bold uppercase text-[#8AAA96] xl:hidden">
                   Proyecto
                 </p>
 
@@ -114,7 +124,7 @@ export default function ProjectsPage({
               </div>
 
               <div>
-                <p className="text-xs font-bold uppercase text-[#8AAA96] lg:hidden">
+                <p className="text-xs font-bold uppercase text-[#8AAA96] xl:hidden">
                   Cliente
                 </p>
 
@@ -124,7 +134,7 @@ export default function ProjectsPage({
               </div>
 
               <div>
-                <p className="text-xs font-bold uppercase text-[#8AAA96] lg:hidden">
+                <p className="text-xs font-bold uppercase text-[#8AAA96] xl:hidden">
                   Estado
                 </p>
 
@@ -132,7 +142,7 @@ export default function ProjectsPage({
               </div>
 
               <div>
-                <p className="text-xs font-bold uppercase text-[#8AAA96] lg:hidden">
+                <p className="text-xs font-bold uppercase text-[#8AAA96] xl:hidden">
                   Notas
                 </p>
 
@@ -142,12 +152,13 @@ export default function ProjectsPage({
               </div>
 
               <div>
-                <p className="text-xs font-bold uppercase text-[#8AAA96] lg:hidden">
+                <p className="text-xs font-bold uppercase text-[#8AAA96] xl:hidden">
                   Acciones
                 </p>
 
                 <div className="flex flex-wrap gap-2">
                   <button
+                    type="button"
                     onClick={() => onEditProject(project)}
                     className="rounded-xl border border-[#DCE7E1] px-4 py-2 text-sm font-bold text-[#005643] hover:bg-[#F5FAF6]"
                   >
@@ -155,6 +166,7 @@ export default function ProjectsPage({
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => onDeleteProject(project.id)}
                     className="rounded-xl border border-red-200 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50"
                   >
@@ -170,7 +182,10 @@ export default function ProjectsPage({
   )
 }
 
-function StatCard({ label, value }) {
+function StatCard({
+  label,
+  value,
+}) {
   return (
     <div className="rounded-2xl bg-white border border-[#DCE7E1] p-5">
       <p className="text-xs font-bold uppercase tracking-wide text-[#8AAA96]">

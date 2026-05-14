@@ -1,42 +1,48 @@
 import { useEffect, useState } from 'react'
 
-export default function EditClientModal({
+export default function EditProjectModal({
   isOpen,
-  client,
+  project,
+  clients = [],
   onClose,
   onSave,
 }) {
   const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
+  const [clientId, setClientId] = useState('')
+  const [status, setStatus] = useState('active')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (client) {
-      setName(client.name || '')
-      setEmail(client.email || '')
-      setPhone(client.phone || '')
-      setNotes(client.notes || '')
+    if (project) {
+      setName(project.name || '')
+      setClientId(project.client_id || '')
+      setStatus(project.status || 'active')
+      setNotes(project.notes || '')
     }
-  }, [client])
+  }, [project])
 
-  if (!isOpen || !client) return null
+  if (!isOpen || !project) return null
 
   async function submit(e) {
     e.preventDefault()
 
     if (!name.trim()) {
-      alert('El nombre del cliente es obligatorio.')
+      alert('El nombre del proyecto es obligatorio.')
+      return
+    }
+
+    if (!clientId) {
+      alert('Selecciona un cliente.')
       return
     }
 
     setLoading(true)
 
-    await onSave(client.id, {
+    await onSave(project.id, {
       name,
-      email,
-      phone,
+      client_id: clientId,
+      status,
       notes,
     })
 
@@ -44,16 +50,16 @@ export default function EditClientModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-6">
       <div className="w-full max-w-lg rounded-2xl bg-white border border-[#DCE7E1] shadow-xl">
         <div className="flex items-center justify-between border-b border-[#DCE7E1] px-6 py-5">
           <div>
             <h2 className="text-xl font-extrabold">
-              Editar cliente
+              Editar proyecto
             </h2>
 
             <p className="mt-1 text-sm text-[#8AAA96] font-medium">
-              Actualiza los datos del cliente.
+              Actualiza cliente, estado y notas del proyecto.
             </p>
           </div>
 
@@ -76,34 +82,48 @@ export default function EditClientModal({
               value={name}
               onChange={e => setName(e.target.value)}
               className="w-full rounded-xl border border-[#DCE7E1] px-4 py-3 outline-none focus:border-[#005643]"
-              placeholder="Nombre del cliente"
+              placeholder="Nombre del proyecto"
             />
           </div>
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wide text-[#4A6B58] mb-2">
-              Email
+              Cliente
             </label>
 
-            <input
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+            <select
+              value={clientId}
+              onChange={e => setClientId(e.target.value)}
               className="w-full rounded-xl border border-[#DCE7E1] px-4 py-3 outline-none focus:border-[#005643]"
-              placeholder="email@cliente.com"
-            />
+            >
+              <option value="">Seleccionar cliente</option>
+
+              {clients.map(client => (
+                <option
+                  key={client.id}
+                  value={client.id}
+                >
+                  {client.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wide text-[#4A6B58] mb-2">
-              Teléfono
+              Estado
             </label>
 
-            <input
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
+            <select
+              value={status}
+              onChange={e => setStatus(e.target.value)}
               className="w-full rounded-xl border border-[#DCE7E1] px-4 py-3 outline-none focus:border-[#005643]"
-              placeholder="Teléfono"
-            />
+            >
+              <option value="draft">Borrador</option>
+              <option value="active">Activo</option>
+              <option value="completed">Completado</option>
+              <option value="cancelled">Cancelado</option>
+            </select>
           </div>
 
           <div>
@@ -115,7 +135,7 @@ export default function EditClientModal({
               value={notes}
               onChange={e => setNotes(e.target.value)}
               className="min-h-24 w-full rounded-xl border border-[#DCE7E1] px-4 py-3 outline-none focus:border-[#005643]"
-              placeholder="Notas internas"
+              placeholder="Notas internas del proyecto"
             />
           </div>
 
