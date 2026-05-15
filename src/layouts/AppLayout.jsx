@@ -1,61 +1,147 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import {
+  getCompanyBranding,
+  getDefaultBranding,
+} from '../lib/branding'
+import NotificationBell from '../components/NotificationBell'
+
+const COMPANY_ID = '53d152e5-8459-4996-aa9e-e27ecd97892d'
 
 export default function AppLayout({
   children,
-  onLogout,
   currentPage,
   setCurrentPage,
+  onLogout,
+  profile,
 }) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const [branding, setBranding] = useState(getDefaultBranding())
 
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '⌂' },
-    { id: 'clients', label: 'Clientes', icon: '👥' },
-    { id: 'projects', label: 'Proyectos', icon: '▦' },
-    { id: 'checklists', label: 'Checklists', icon: '✓' },
+  useEffect(() => {
+    loadBranding()
+  }, [])
+
+  async function loadBranding() {
+    const data = await getCompanyBranding(COMPANY_ID)
+
+    if (data) {
+      setBranding({
+        ...getDefaultBranding(),
+        ...data,
+      })
+
+      if (data.favicon) {
+        const favicon = document.querySelector("link[rel='icon']")
+
+        if (favicon) {
+          favicon.href = data.favicon
+        }
+      }
+    }
+  }
+
+  const isAdmin =
+    profile?.role === 'superadmin' ||
+    profile?.role === 'admin'
+
+  const menu = [
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: '◫',
+    },
+    {
+      id: 'clients',
+      label: 'Clientes',
+      icon: '◎',
+    },
+    {
+      id: 'projects',
+      label: 'Proyectos',
+      icon: '▣',
+    },
+    {
+      id: 'checklists',
+      label: 'Checklists',
+      icon: '✓',
+    },
+    {
+      id: 'documents',
+      label: 'Documentación',
+      icon: '≣',
+    },
+    {
+      id: 'timeline',
+      label: 'Timeline',
+      icon: '◌',
+    },
+    ...(isAdmin
+      ? [
+          {
+            id: 'audit',
+            label: 'Auditoría',
+            icon: '☷',
+          },
+        ]
+      : []),
   ]
 
+  function navigateFromNotification(notification) {
+    const routes = {
+      client: 'clients',
+      project: 'projects',
+      checklist: 'checklists',
+      task: 'checklists',
+      evidence: 'checklists',
+      document: 'documents',
+      template: 'checklists',
+    }
+
+    setCurrentPage(routes[notification.entity_type] || 'dashboard')
+  }
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
+    <div className="flex min-h-screen bg-[#F8FAFC] text-[#0F172A]">
       <aside
-        className={
-          collapsed
-            ? 'fixed left-0 top-0 z-40 hidden h-screen w-24 border-r border-[#E2E8F0] bg-white transition-all duration-300 xl:block'
-            : 'fixed left-0 top-0 z-40 hidden h-screen w-80 border-r border-[#E2E8F0] bg-white transition-all duration-300 xl:block'
-        }
+        onMouseEnter={() => setExpanded(true)}
+        onMouseLeave={() => setExpanded(false)}
+        className={`relative flex flex-col border-r border-[#E2E8F0] bg-white transition-all duration-300 ${
+          expanded ? 'w-[280px]' : 'w-[88px]'
+        }`}
       >
-        <div className="flex h-full flex-col">
-          <div className="px-6 py-8">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#00684F] to-[#00A77A] text-3xl font-black text-white shadow-sm">
-                  ✓
-                </div>
-
-                {!collapsed && (
-                  <div>
-                    <h1 className="text-3xl font-black tracking-tight text-[#005643]">
-                      VITEKA
-                    </h1>
-                    <p className="text-sm font-semibold text-[#64748B]">
-                      Plataforma técnica
-                    </p>
-                  </div>
-                )}
+        <div className="flex h-[104px] items-center border-b border-[#E2E8F0] px-5">
+          {!expanded && (
+            <div className="flex w-full justify-center">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#ECFDF5]">
+                <img
+                  src={branding.logo_icon}
+                  alt={branding.company_name}
+                  className="h-9 w-9 object-contain"
+                  onError={event => {
+                    event.currentTarget.style.display = 'none'
+                  }}
+                />
               </div>
-
-              <button
-                type="button"
-                onClick={() => setCollapsed(!collapsed)}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-lg font-black text-[#334155] shadow-sm hover:bg-[#F8FAFC]"
-              >
-                {collapsed ? '›' : '‹'}
-              </button>
             </div>
-          </div>
+          )}
 
-          <nav className="flex-1 space-y-3 px-5">
-            {navItems.map(item => {
+          {expanded && (
+            <div className="flex w-full justify-start">
+              <img
+                src={branding.logo_full_color}
+                alt={branding.company_name}
+                className="h-auto max-h-16 w-auto max-w-[220px] object-contain"
+                onError={event => {
+                  event.currentTarget.style.display = 'none'
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        <nav className="flex-1 px-4 py-6">
+          <div className="space-y-2">
+            {menu.map(item => {
               const active = currentPage === item.id
 
               return (
@@ -63,107 +149,98 @@ export default function AppLayout({
                   key={item.id}
                   type="button"
                   onClick={() => setCurrentPage(item.id)}
-                  title={collapsed ? item.label : undefined}
-                  className={
+                  className={`flex w-full items-center gap-4 rounded-2xl px-4 py-4 transition-all ${
                     active
-                      ? collapsed
-                        ? 'flex w-full items-center justify-center rounded-2xl bg-[#E6F7F0] px-4 py-4 text-xl font-black text-[#005643]'
-                        : 'flex w-full items-center gap-5 rounded-2xl bg-[#E6F7F0] px-5 py-4 text-left font-black text-[#005643]'
-                      : collapsed
-                        ? 'flex w-full items-center justify-center rounded-2xl px-4 py-4 text-xl font-bold text-[#334155] hover:bg-[#F8FAFC] hover:text-[#005643]'
-                        : 'flex w-full items-center gap-5 rounded-2xl px-5 py-4 text-left font-bold text-[#334155] hover:bg-[#F8FAFC] hover:text-[#005643]'
+                      ? 'bg-[#ECFDF5]'
+                      : 'text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0F172A]'
+                  }`}
+                  style={
+                    active
+                      ? {
+                          color: branding.primary_color,
+                        }
+                      : {}
                   }
                 >
-                  <span className="flex h-7 w-7 items-center justify-center text-xl">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg">
                     {item.icon}
-                  </span>
+                  </div>
 
-                  {!collapsed && <span>{item.label}</span>}
+                  <span
+                    className={`overflow-hidden whitespace-nowrap text-[15px] transition-all duration-300 ${
+                      expanded
+                        ? 'max-w-[170px] opacity-100'
+                        : 'max-w-0 opacity-0'
+                    } ${
+                      active
+                        ? 'font-medium'
+                        : 'font-normal'
+                    }`}
+                  >
+                    {item.label}
+                  </span>
                 </button>
               )
             })}
-          </nav>
-
-          <div className="p-5">
-            {collapsed ? (
-              <button
-                type="button"
-                onClick={onLogout}
-                className="flex w-full items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white px-4 py-4 font-black text-[#005643] shadow-sm hover:bg-[#F8FAFC]"
-                title="Cerrar sesión"
-              >
-                ⎋
-              </button>
-            ) : (
-              <div className="rounded-3xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#005643] text-sm font-black text-white">
-                    VT
-                  </div>
-
-                  <div>
-                    <p className="font-black text-[#0F172A]">
-                      Usuario técnico
-                    </p>
-                    <p className="text-sm font-semibold text-[#64748B]">
-                      Sesión activa
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={onLogout}
-                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm font-black text-[#0F172A] hover:bg-[#F8FAFC]"
-                >
-                  ⎋ Cerrar sesión
-                </button>
-              </div>
-            )}
           </div>
+        </nav>
+
+        <div className="border-t border-[#E2E8F0] p-4">
+          <button
+            type="button"
+            onClick={onLogout}
+            className="flex w-full items-center gap-4 rounded-2xl px-4 py-4 text-[#EF4444] transition hover:bg-[#FEF2F2]"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg">
+              ↩
+            </div>
+
+            <span
+              className={`overflow-hidden whitespace-nowrap text-[15px] transition-all duration-300 ${
+                expanded
+                  ? 'max-w-[170px] opacity-100'
+                  : 'max-w-0 opacity-0'
+              }`}
+            >
+              Cerrar sesión
+            </span>
+          </button>
         </div>
       </aside>
 
-      <div
-        className={
-          collapsed
-            ? 'transition-all duration-300 xl:pl-24'
-            : 'transition-all duration-300 xl:pl-80'
-        }
-      >
-        <header className="sticky top-0 z-30 bg-[#F8FAFC]/90 backdrop-blur">
-          <div className="flex h-24 items-center justify-end gap-4 px-5 lg:px-10">
-            <button
-              type="button"
-              className="hidden h-14 w-14 items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white text-xl font-black text-[#334155] shadow-sm hover:bg-[#F8FAFC] md:flex"
-            >
-              ⌕
-            </button>
+      <main className="min-w-0 flex-1">
+        <header className="sticky top-0 z-20 flex h-[88px] items-center justify-between border-b border-[#E2E8F0] bg-white/90 px-10 backdrop-blur">
+          <div>
+            <p className="text-sm text-[#94A3B8]">
+              Plataforma operativa
+            </p>
+          </div>
 
-            <button
-              type="button"
-              className="relative hidden h-14 w-14 items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white text-xl font-black text-[#334155] shadow-sm hover:bg-[#F8FAFC] md:flex"
-            >
-              ♧
-              <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#005643] text-xs font-black text-white">
-                3
-              </span>
-            </button>
+          <div className="flex items-center gap-4">
+            <NotificationBell
+              userId={profile?.id}
+              onNavigate={navigateFromNotification}
+            />
 
-            <button
-              type="button"
-              onClick={onLogout}
-              className="rounded-2xl border border-[#E2E8F0] bg-white px-6 py-4 text-sm font-black text-[#0F172A] shadow-sm hover:bg-[#F8FAFC]"
+            <span className="rounded-full bg-[#F1F5F9] px-4 py-2 text-sm text-[#334155]">
+              {profile?.role || 'usuario'}
+            </span>
+
+            <div
+              className="flex h-11 w-11 items-center justify-center rounded-2xl text-sm text-white font-medium"
+              style={{
+                backgroundColor: branding.secondary_color,
+              }}
             >
-              ⎋ Cerrar sesión
-            </button>
+              VT
+            </div>
           </div>
         </header>
 
-        <main className="px-5 pb-10 lg:px-10">
+        <div className="p-10">
           {children}
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   )
 }

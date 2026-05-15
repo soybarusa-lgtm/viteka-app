@@ -1,49 +1,43 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { createActivityLog } from '../lib/activityLogs'
+import { createNotification } from '../lib/notifications'
 
 const TASK_STATUSES = [
   {
     value: 'pending',
     label: 'Pendiente',
-    color:
-      'bg-[#FFF7E6] text-[#92400E] border-[#F59E0B]',
+    color: 'bg-[#FEF3C7] text-[#92400E]',
   },
   {
     value: 'in_progress',
     label: 'En curso',
-    color:
-      'bg-[#EFF6FF] text-[#1D4ED8] border-[#2563EB]',
+    color: 'bg-[#DBEAFE] text-[#1D4ED8]',
   },
   {
     value: 'blocked',
     label: 'Bloqueada',
-    color:
-      'bg-[#FFF1F1] text-[#B91C1C] border-[#EF4444]',
+    color: 'bg-[#FEE2E2] text-[#B91C1C]',
   },
   {
     value: 'completed',
     label: 'Completada',
-    color:
-      'bg-[#ECFDF5] text-[#166534] border-[#16A34A]',
+    color: 'bg-[#DCFCE7] text-[#166534]',
   },
   {
     value: 'not_applicable',
     label: 'No aplica',
-    color:
-      'bg-[#F3F4F6] text-[#374151] border-[#9CA3AF]',
+    color: 'bg-[#F1F5F9] text-[#475569]',
   },
 ]
 
 function getStatus(statusValue) {
-  return (
-    TASK_STATUSES.find(
-      status => status.value === statusValue
-    ) || TASK_STATUSES[0]
-  )
+  return TASK_STATUSES.find(status => status.value === statusValue) || TASK_STATUSES[0]
 }
 
 export default function ChecklistExecutionPage({
   checklistId,
+  currentUserId,
   onBack,
   onOpenReport,
 }) {
@@ -63,12 +57,11 @@ export default function ChecklistExecutionPage({
   async function loadChecklist() {
     setLoading(true)
 
-    const { data: checklistData, error: checklistError } =
-      await supabase
-        .from('checklists')
-        .select('*')
-        .eq('id', checklistId)
-        .single()
+    const { data: checklistData, error: checklistError } = await supabase
+      .from('checklists')
+      .select('*')
+      .eq('id', checklistId)
+      .single()
 
     if (checklistError) {
       alert(checklistError.message)
@@ -78,14 +71,11 @@ export default function ChecklistExecutionPage({
 
     setChecklist(checklistData)
 
-    const { data: sectionsData, error: sectionsError } =
-      await supabase
-        .from('checklist_sections')
-        .select('*')
-        .eq('checklist_id', checklistId)
-        .order('position', {
-          ascending: true,
-        })
+    const { data: sectionsData, error: sectionsError } = await supabase
+      .from('checklist_sections')
+      .select('*')
+      .eq('checklist_id', checklistId)
+      .order('position', { ascending: true })
 
     if (sectionsError) {
       alert(sectionsError.message)
@@ -95,9 +85,7 @@ export default function ChecklistExecutionPage({
 
     setSections(sectionsData || [])
 
-    const sectionIds = (sectionsData || []).map(
-      section => section.id
-    )
+    const sectionIds = (sectionsData || []).map(section => section.id)
 
     if (sectionIds.length === 0) {
       setTasks([])
@@ -106,14 +94,11 @@ export default function ChecklistExecutionPage({
       return
     }
 
-    const { data: tasksData, error: tasksError } =
-      await supabase
-        .from('checklist_tasks')
-        .select('*')
-        .in('section_id', sectionIds)
-        .order('position', {
-          ascending: true,
-        })
+    const { data: tasksData, error: tasksError } = await supabase
+      .from('checklist_tasks')
+      .select('*')
+      .in('section_id', sectionIds)
+      .order('position', { ascending: true })
 
     if (tasksError) {
       alert(tasksError.message)
@@ -123,9 +108,7 @@ export default function ChecklistExecutionPage({
 
     setTasks(tasksData || [])
 
-    const taskIds = (tasksData || []).map(
-      task => task.id
-    )
+    const taskIds = (tasksData || []).map(task => task.id)
 
     if (taskIds.length === 0) {
       setEvidence([])
@@ -133,10 +116,7 @@ export default function ChecklistExecutionPage({
       return
     }
 
-    const {
-      data: evidenceData,
-      error: evidenceError,
-    } = await supabase
+    const { data: evidenceData, error: evidenceError } = await supabase
       .from('task_evidence')
       .select('*')
       .in('task_id', taskIds)
@@ -148,39 +128,65 @@ export default function ChecklistExecutionPage({
     }
 
     setEvidence(evidenceData || [])
-
     setLoading(false)
   }
 
   async function updateTaskStatus(taskId, status) {
-    const { error } = await supabase
-      .from('checklist_tasks')
-      .update({
-        status,
-      })
-      .eq('id', taskId)
+  const previous = tasks.find(task => task.id === taskId)
 
-    if (error) {
-      alert(error.message)
-      return
-    }
+  const { data, error } = await supabase
+    .from('checklist_tasks')
+    .update({ status })
+    .eq('id', taskId)
+    .select()
+    .single()
 
-    setTasks(prev =>
-      prev.map(task =>
-        task.id === taskId
-          ? {
-              ...task,
-              status,
-            }
-          : task
-      )
-    )
+  if (error) {
+    alert(error.message)
+    return
   }
 
-  async function updateTaskComment(
-    taskId,
-    comments
-  ) {
+  await createActivityLog({
+    userId: currentUserId,
+    entityType: 'task',
+    entityId: taskId,
+    action: 'status_update',
+    oldValue: {
+      status: previous?.status,
+      title: previous?.title,
+      checklist_id: checklistId,
+    },
+    newValue: {
+      status: data.status,
+      title: data.title,
+      checklist_id: checklistId,
+    },
+  })
+
+  await createNotification({
+    userId: currentUserId,
+    title: 'Estado de tarea actualizado',
+    message: `La tarea "${previous?.title || data.title}" cambió de "${previous?.status}" a "${status}".`,
+    type: 'info',
+    entityType: 'task',
+    entityId: taskId,
+  })
+
+  setTasks(prev =>
+    prev.map(task =>
+      task.id === taskId
+        ? {
+            ...task,
+            status,
+          }
+        : task
+    )
+  )
+}
+
+  async function updateTaskComment(taskId, comments) {
+    const previous = tasks.find(task => task.id === taskId)
+
     setTasks(prev =>
       prev.map(task =>
         task.id === taskId
@@ -192,73 +198,95 @@ export default function ChecklistExecutionPage({
       )
     )
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('checklist_tasks')
-      .update({
-        comments,
-      })
+      .update({ comments })
       .eq('id', taskId)
+      .select()
+      .single()
 
     if (error) {
       alert(error.message)
+      return
     }
+
+    await createActivityLog({
+      userId: currentUserId,
+      entityType: 'task',
+      entityId: taskId,
+      action: 'comment_update',
+      oldValue: {
+        comments: previous?.comments || '',
+        title: previous?.title,
+        checklist_id: checklistId,
+      },
+      newValue: {
+        comments: data.comments || '',
+        title: data.title,
+        checklist_id: checklistId,
+      },
+    })
   }
 
   async function uploadEvidence(taskId, file) {
     if (!file) return
 
-    const fileExt = file.name
-      .split('.')
-      .pop()
-
+    const fileExt = file.name.split('.').pop()
     const fileName = `${taskId}-${Date.now()}.${fileExt}`
-
     const filePath = `checklists/${checklistId}/${fileName}`
 
-    const { error: uploadError } =
-      await supabase.storage
-        .from('task-evidence')
-        .upload(filePath, file)
+    const { error: uploadError } = await supabase.storage
+      .from('task-evidence')
+      .upload(filePath, file)
 
     if (uploadError) {
       alert(uploadError.message)
       return
     }
 
-    const { data: publicUrlData } =
-      supabase.storage
-        .from('task-evidence')
-        .getPublicUrl(filePath)
+    const { data: publicUrlData } = supabase.storage
+      .from('task-evidence')
+      .getPublicUrl(filePath)
 
-    const { error: insertError } =
-      await supabase
-        .from('task_evidence')
-        .insert({
-          task_id: taskId,
-          file_name: file.name,
-          file_path: filePath,
-          file_url:
-            publicUrlData.publicUrl,
-          file_type: file.type,
-        })
+    const { data, error: insertError } = await supabase
+      .from('task_evidence')
+      .insert({
+        task_id: taskId,
+        file_name: file.name,
+        file_path: filePath,
+        file_url: publicUrlData.publicUrl,
+        file_type: file.type,
+      })
+      .select()
+      .single()
 
     if (insertError) {
       alert(insertError.message)
       return
     }
 
+    await createActivityLog({
+      userId: currentUserId,
+      entityType: 'evidence',
+      entityId: data.id,
+      action: 'upload',
+      newValue: {
+        task_id: taskId,
+        checklist_id: checklistId,
+        file_name: file.name,
+        file_path: filePath,
+        file_type: file.type,
+      },
+    })
+
     await loadChecklist()
   }
 
-  async function deleteEvidence(
-    evidenceId,
-    filePath
-  ) {
-    const confirmed = window.confirm(
-      '¿Eliminar evidencia?'
-    )
-
+  async function deleteEvidence(evidenceId, filePath) {
+    const confirmed = window.confirm('¿Eliminar evidencia?')
     if (!confirmed) return
+
+    const previous = evidence.find(item => item.id === evidenceId)
 
     if (filePath) {
       await supabase.storage
@@ -276,14 +304,20 @@ export default function ChecklistExecutionPage({
       return
     }
 
+    await createActivityLog({
+      userId: currentUserId,
+      entityType: 'evidence',
+      entityId: evidenceId,
+      action: 'delete',
+      oldValue: previous,
+    })
+
     await loadChecklist()
   }
 
   async function finalizeChecklist() {
     const unresolvedTasks = tasks.filter(task =>
-      ['pending', 'in_progress'].includes(
-        task.status
-      )
+      ['pending', 'in_progress'].includes(task.status)
     )
 
     if (unresolvedTasks.length > 0) {
@@ -293,30 +327,30 @@ export default function ChecklistExecutionPage({
       return
     }
 
-    const blockedWithoutComment =
-      tasks.filter(
-        task =>
-          task.status === 'blocked' &&
-          !task.comments?.trim()
-      )
+    const blockedWithoutComment = tasks.filter(
+      task => task.status === 'blocked' && !task.comments?.trim()
+    )
 
     if (blockedWithoutComment.length > 0) {
       alert(
-        `Hay ${blockedWithoutComment.length} tareas bloqueadas sin comentario técnico.`
+        `Hay ${blockedWithoutComment.length} tareas bloqueadas sin comentario técnico. Añade el motivo antes de finalizar.`
       )
       return
     }
 
     setSaving(true)
 
-    const { error } = await supabase
+    const previous = checklist
+
+    const { data, error } = await supabase
       .from('checklists')
       .update({
         status: 'completed',
-        completed_at:
-          new Date().toISOString(),
+        completed_at: new Date().toISOString(),
       })
       .eq('id', checklistId)
+      .select()
+      .single()
 
     setSaving(false)
 
@@ -324,6 +358,15 @@ export default function ChecklistExecutionPage({
       alert(error.message)
       return
     }
+
+    await createActivityLog({
+      userId: currentUserId,
+      entityType: 'checklist',
+      entityId: checklistId,
+      action: 'complete',
+      oldValue: previous,
+      newValue: data,
+    })
 
     await loadChecklist()
   }
@@ -337,14 +380,12 @@ export default function ChecklistExecutionPage({
         task.status === 'not_applicable'
     ).length
 
-    return Math.round(
-      (completed / tasks.length) * 100
-    )
+    return Math.round((completed / tasks.length) * 100)
   }, [tasks])
 
   if (loading) {
     return (
-      <div className="rounded-2xl bg-white border border-[#DCE7E1] p-8">
+      <div className="rounded-[32px] border border-[#E2E8F0] bg-white p-8 text-[#64748B]">
         Cargando checklist...
       </div>
     )
@@ -352,7 +393,7 @@ export default function ChecklistExecutionPage({
 
   if (!checklist) {
     return (
-      <div className="rounded-2xl bg-white border border-[#DCE7E1] p-8">
+      <div className="rounded-[32px] border border-[#E2E8F0] bg-white p-8 text-[#64748B]">
         Checklist no encontrado.
       </div>
     )
@@ -363,238 +404,185 @@ export default function ChecklistExecutionPage({
       <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <button
+            type="button"
             onClick={onBack}
-            className="mb-4 rounded-xl border border-[#DCE7E1] px-4 py-2 text-sm font-bold text-[#005643] hover:bg-[#F5FAF6]"
+            className="mb-5 rounded-2xl border border-[#E2E8F0] bg-white px-5 py-3 text-sm text-[#334155] shadow-sm hover:bg-[#F8FAFC]"
           >
             ← Volver
           </button>
 
-          <h1 className="text-3xl font-extrabold tracking-tight">
+          <h1 className="text-5xl tracking-[-0.045em] text-[#0F172A] font-medium">
             {checklist.title}
           </h1>
 
-          <p className="mt-2 text-[#8AAA96] font-medium">
-            Estado:
-            {' '}
-            {checklist.status}
+          <p className="mt-3 text-base text-[#64748B] font-normal">
+            Estado: {checklist.status}
           </p>
         </div>
 
         <div className="flex flex-wrap gap-3">
           <button
+            type="button"
             onClick={onOpenReport}
-            className="rounded-xl border border-[#DCE7E1] px-5 py-3 font-bold text-[#005643] hover:bg-[#F5FAF6]"
+            className="rounded-2xl border border-[#E2E8F0] bg-white px-5 py-3 text-sm text-[#334155] shadow-sm hover:bg-[#F8FAFC]"
           >
             Ver informe
           </button>
 
-          {checklist.status !==
-            'completed' && (
+          {checklist.status !== 'completed' && (
             <button
+              type="button"
               onClick={finalizeChecklist}
               disabled={saving}
-              className="rounded-xl bg-[#005643] px-5 py-3 font-bold text-white hover:bg-[#0E7A60]"
+              className="rounded-2xl bg-[#ECFDF5] px-5 py-3 text-sm font-medium text-[#047857] shadow-sm hover:bg-[#D1FAE5] disabled:opacity-60"
             >
-              {saving
-                ? 'Finalizando...'
-                : 'Finalizar checklist'}
+              {saving ? 'Finalizando...' : 'Finalizar checklist'}
             </button>
           )}
         </div>
       </div>
 
-      <div className="mb-8 rounded-2xl bg-white border border-[#DCE7E1] p-6">
+      <div className="mb-8 rounded-[32px] border border-[#E2E8F0] bg-white p-7 shadow-[0_10px_40px_rgba(15,23,42,0.04)]">
         <div className="mb-3 flex items-center justify-between">
-          <span className="text-sm font-bold text-[#4A6B58]">
+          <span className="text-sm text-[#64748B] font-normal">
             Progreso
           </span>
 
-          <span className="text-sm font-bold text-[#005643]">
+          <span className="text-sm text-[#047857] font-medium">
             {progress}%
           </span>
         </div>
 
-        <div className="h-4 overflow-hidden rounded-full bg-[#E5EFEA]">
+        <div className="h-3 overflow-hidden rounded-full bg-[#E2E8F0]">
           <div
-            className="h-full rounded-full bg-[#005643]"
-            style={{
-              width: `${progress}%`,
-            }}
+            className="h-full rounded-full bg-[#059669]"
+            style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-7">
         {sections.map(section => {
-          const sectionTasks = tasks.filter(
-            task =>
-              task.section_id ===
-              section.id
-          )
+          const sectionTasks = tasks.filter(task => task.section_id === section.id)
 
           return (
-            <div
+            <section
               key={section.id}
-              className="rounded-2xl bg-white border border-[#DCE7E1]"
+              className="overflow-hidden rounded-[32px] border border-[#E2E8F0] bg-white shadow-[0_10px_40px_rgba(15,23,42,0.04)]"
             >
-              <div className="border-b border-[#DCE7E1] bg-[#F7FAF8] px-6 py-4">
-                <h2 className="text-xl font-extrabold text-[#005643]">
+              <div className="border-b border-[#E2E8F0] px-7 py-6">
+                <h2 className="text-2xl tracking-[-0.025em] text-[#0F172A] font-medium">
                   {section.title}
                 </h2>
               </div>
 
-              <div className="space-y-5 p-6">
+              <div className="space-y-5 p-7">
                 {sectionTasks.map(task => {
-                  const currentStatus =
-                    getStatus(task.status)
+                  const currentStatus = getStatus(task.status)
 
-                  const taskEvidence =
-                    evidence.filter(
-                      item =>
-                        item.task_id ===
-                        task.id
-                    )
+                  const taskEvidence = evidence.filter(
+                    item => item.task_id === task.id
+                  )
 
                   return (
                     <div
                       key={task.id}
-                      className="rounded-2xl border border-[#DCE7E1] p-5"
+                      className="rounded-[28px] border border-[#E2E8F0] bg-[#F8FAFC] p-6"
                     >
                       <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                         <div className="flex-1">
                           <div className="flex flex-wrap items-center gap-3">
-                            <h3 className="text-lg font-extrabold">
+                            <h3 className="text-xl text-[#0F172A] font-medium">
                               {task.title}
                             </h3>
 
-                            <span
-                              className={`rounded-full border px-3 py-1 text-xs font-bold ${currentStatus.color}`}
-                            >
-                              {
-                                currentStatus.label
-                              }
+                            <span className={`rounded-full px-3 py-1 text-xs font-medium ${currentStatus.color}`}>
+                              {currentStatus.label}
                             </span>
                           </div>
 
                           {task.description && (
-                            <p className="mt-3 text-[#6E8B7B]">
-                              {
-                                task.description
-                              }
+                            <p className="mt-3 text-sm text-[#64748B] font-normal">
+                              {task.description}
                             </p>
                           )}
 
                           <textarea
-                            value={
-                              task.comments ||
-                              ''
-                            }
+                            value={task.comments || ''}
                             onChange={e =>
-                              updateTaskComment(
-                                task.id,
-                                e.target.value
-                              )
+                              updateTaskComment(task.id, e.target.value)
                             }
-                            className="mt-4 min-h-28 w-full rounded-xl border border-[#DCE7E1] px-4 py-3 outline-none focus:border-[#005643]"
+                            className="mt-5 min-h-28 w-full rounded-2xl border border-[#E2E8F0] bg-white px-5 py-4 text-sm font-normal outline-none focus:border-[#059669]"
                             placeholder="Comentarios técnicos..."
                           />
 
                           <div className="mt-5">
-                            <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[#DCE7E1] px-4 py-3 font-bold text-[#005643] hover:bg-[#F5FAF6]">
-                              📷 Subir evidencia
+                            <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-[#E2E8F0] bg-white px-5 py-3 text-sm font-medium text-[#047857] shadow-sm hover:bg-[#F8FAFC]">
+                              Subir evidencia
 
                               <input
                                 type="file"
                                 className="hidden"
                                 accept="image/*,.pdf"
                                 onChange={e =>
-                                  uploadEvidence(
-                                    task.id,
-                                    e.target
-                                      .files[0]
-                                  )
+                                  uploadEvidence(task.id, e.target.files[0])
                                 }
                               />
                             </label>
 
-                            {taskEvidence.length >
-                              0 && (
-                              <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-                                {taskEvidence.map(
-                                  item => (
-                                    <div
-                                      key={
-                                        item.id
-                                      }
-                                      className="overflow-hidden rounded-xl border border-[#DCE7E1]"
-                                    >
-                                      {item.file_type?.startsWith(
-                                        'image/'
-                                      ) ? (
-                                        <img
-                                          src={
-                                            item.file_url
-                                          }
-                                          className="h-32 w-full object-cover"
-                                        />
-                                      ) : (
-                                        <div className="flex h-32 items-center justify-center bg-[#F5F7F9] font-bold">
-                                          PDF
-                                        </div>
-                                      )}
-
-                                      <div className="p-3">
-                                        <button
-                                          onClick={() =>
-                                            deleteEvidence(
-                                              item.id,
-                                              item.file_path
-                                            )
-                                          }
-                                          className="w-full rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50"
-                                        >
-                                          Eliminar
-                                        </button>
+                            {taskEvidence.length > 0 && (
+                              <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-4">
+                                {taskEvidence.map(item => (
+                                  <div
+                                    key={item.id}
+                                    className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white"
+                                  >
+                                    {item.file_type?.startsWith('image/') ? (
+                                      <img
+                                        src={item.file_url}
+                                        className="h-32 w-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="flex h-32 items-center justify-center bg-[#F1F5F9] text-sm text-[#64748B]">
+                                        PDF
                                       </div>
+                                    )}
+
+                                    <div className="p-3">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          deleteEvidence(item.id, item.file_path)
+                                        }
+                                        className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-100"
+                                      >
+                                        Eliminar
+                                      </button>
                                     </div>
-                                  )
-                                )}
+                                  </div>
+                                ))}
                               </div>
                             )}
                           </div>
                         </div>
 
                         <div className="w-full xl:w-72">
-                          <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#4A6B58]">
+                          <label className="mb-2 block text-xs uppercase tracking-wide text-[#64748B] font-medium">
                             Estado
                           </label>
 
                           <select
                             value={task.status}
                             onChange={e =>
-                              updateTaskStatus(
-                                task.id,
-                                e.target.value
-                              )
+                              updateTaskStatus(task.id, e.target.value)
                             }
-                            className="w-full rounded-xl border border-[#DCE7E1] px-4 py-3 font-semibold outline-none focus:border-[#005643]"
+                            className="w-full rounded-2xl border border-[#E2E8F0] bg-white px-5 py-4 text-sm font-normal outline-none focus:border-[#059669]"
                           >
-                            {TASK_STATUSES.map(
-                              status => (
-                                <option
-                                  key={
-                                    status.value
-                                  }
-                                  value={
-                                    status.value
-                                  }
-                                >
-                                  {
-                                    status.label
-                                  }
-                                </option>
-                              )
-                            )}
+                            {TASK_STATUSES.map(status => (
+                              <option key={status.value} value={status.value}>
+                                {status.label}
+                              </option>
+                            ))}
                           </select>
                         </div>
                       </div>
@@ -602,7 +590,7 @@ export default function ChecklistExecutionPage({
                   )
                 })}
               </div>
-            </div>
+            </section>
           )
         })}
       </div>
