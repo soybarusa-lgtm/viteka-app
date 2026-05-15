@@ -46,7 +46,7 @@ export default function ProjectsPage({
     <div>
       <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-5xl font-black tracking-tight text-[#0F172A]">
+          <h1 className="text-5xl tracking-[-0.045em] text-[#0F172A] font-medium">
             Proyectos
           </h1>
 

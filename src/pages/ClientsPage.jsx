@@ -30,8 +30,8 @@ export default function ClientsPage({
     <div>
       <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-5xl font-black tracking-tight text-[#0F172A]">
-            Clientes
+          <h1 className="text-5xl tracking-[-0.045em] text-[#0F172A] font-medium">
+            Farmacias
           </h1>
 
           <p className="mt-3 text-base font-semibold text-[#64748B]">

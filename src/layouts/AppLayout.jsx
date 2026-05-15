@@ -32,56 +32,30 @@ export default function AppLayout({
 
       if (data.favicon) {
         const favicon = document.querySelector("link[rel='icon']")
-
-        if (favicon) {
-          favicon.href = data.favicon
-        }
+        if (favicon) favicon.href = data.favicon
       }
     }
   }
 
   const isAdmin =
-    profile?.role === 'superadmin' ||
+    profile?.role === 'owner' ||
     profile?.role === 'admin'
 
   const menu = [
-    {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: '◫',
-    },
-    {
-      id: 'clients',
-      label: 'Clientes',
-      icon: '◎',
-    },
-    {
-      id: 'projects',
-      label: 'Proyectos',
-      icon: '▣',
-    },
-    {
-      id: 'checklists',
-      label: 'Checklists',
-      icon: '✓',
-    },
-    {
-      id: 'documents',
-      label: 'Documentación',
-      icon: '≣',
-    },
-    {
-      id: 'timeline',
-      label: 'Timeline',
-      icon: '◌',
-    },
+    { id: 'dashboard', label: 'Dashboard', icon: '◫' },
+    { id: 'clients', label: 'Farmacias', icon: '◎' },
+    { id: 'people', label: 'Personas', icon: '👤' },
+    { id: 'projects', label: 'Proyectos', icon: '▣' },
+    { id: 'tasks', label: 'Tareas', icon: '☑' },
+    { id: 'checklists', label: 'Checklists', icon: '✓' },
+    { id: 'incidents', label: 'Incidencias', icon: '⚠' },
+    { id: 'documents', label: 'Documentación', icon: '≣' },
+    { id: 'timeline', label: 'Timeline', icon: '◌' },
     ...(isAdmin
       ? [
-          {
-            id: 'audit',
-            label: 'Auditoría',
-            icon: '☷',
-          },
+          { id: 'users', label: 'Usuarios', icon: '👥' },
+          { id: 'audit', label: 'Auditoría', icon: '☷' },
+          { id: 'settings', label: 'Configuración', icon: '⚙' },
         ]
       : []),
   ]
@@ -89,12 +63,15 @@ export default function AppLayout({
   function navigateFromNotification(notification) {
     const routes = {
       client: 'clients',
+      pharmacy: 'clients',
+      person: 'people',
       project: 'projects',
+      task: 'tasks',
       checklist: 'checklists',
-      task: 'checklists',
       evidence: 'checklists',
       document: 'documents',
       template: 'checklists',
+      incident: 'incidents',
     }
 
     setCurrentPage(routes[notification.entity_type] || 'dashboard')
@@ -154,13 +131,7 @@ export default function AppLayout({
                       ? 'bg-[#ECFDF5]'
                       : 'text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0F172A]'
                   }`}
-                  style={
-                    active
-                      ? {
-                          color: branding.primary_color,
-                        }
-                      : {}
-                  }
+                  style={active ? { color: branding.primary_color } : {}}
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg">
                     {item.icon}
@@ -168,14 +139,8 @@ export default function AppLayout({
 
                   <span
                     className={`overflow-hidden whitespace-nowrap text-[15px] transition-all duration-300 ${
-                      expanded
-                        ? 'max-w-[170px] opacity-100'
-                        : 'max-w-0 opacity-0'
-                    } ${
-                      active
-                        ? 'font-medium'
-                        : 'font-normal'
-                    }`}
+                      expanded ? 'max-w-[170px] opacity-100' : 'max-w-0 opacity-0'
+                    } ${active ? 'font-medium' : 'font-normal'}`}
                   >
                     {item.label}
                   </span>
@@ -197,9 +162,7 @@ export default function AppLayout({
 
             <span
               className={`overflow-hidden whitespace-nowrap text-[15px] transition-all duration-300 ${
-                expanded
-                  ? 'max-w-[170px] opacity-100'
-                  : 'max-w-0 opacity-0'
+                expanded ? 'max-w-[170px] opacity-100' : 'max-w-0 opacity-0'
               }`}
             >
               Cerrar sesión
@@ -212,7 +175,7 @@ export default function AppLayout({
         <header className="sticky top-0 z-20 flex h-[88px] items-center justify-between border-b border-[#E2E8F0] bg-white/90 px-10 backdrop-blur">
           <div>
             <p className="text-sm text-[#94A3B8]">
-              Plataforma operativa
+              Portal interno Viteka
             </p>
           </div>
 

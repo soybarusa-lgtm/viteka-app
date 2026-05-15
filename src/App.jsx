@@ -17,6 +17,11 @@ import ActivityLogsPage from './pages/ActivityLogsPage'
 import ClientPortalPage from './pages/ClientPortalPage'
 import DocumentsPage from './pages/DocumentsPage'
 import TimelinePage from './pages/TimelinePage'
+import ClientDetailPage from './pages/ClientDetailPage'
+import PeoplePage from './pages/PeoplePage'
+import IncidentsPage from './pages/IncidentsPage'
+import TasksPage from './pages/TasksPage'
+import SettingsPage from './pages/SettingsPage'
 
 import CreateClientModal from './components/modals/CreateClientModal'
 import EditClientModal from './components/modals/EditClientModal'
@@ -24,6 +29,7 @@ import CreateProjectModal from './components/modals/CreateProjectModal'
 import EditProjectModal from './components/modals/EditProjectModal'
 import CreateChecklistModal from './components/modals/CreateChecklistModal'
 import CreateTemplateModal from './components/modals/CreateTemplateModal'
+import UsersPage from './pages/UsersPage'
 
 const COMPANY_ID = '53d152e5-8459-4996-aa9e-e27ecd97892d'
 
@@ -44,6 +50,7 @@ export default function App() {
 
   const [selectedChecklistId, setSelectedChecklistId] = useState(null)
   const [selectedTemplateId, setSelectedTemplateId] = useState(null)
+  const [selectedClientId, setSelectedClientId] = useState(null)
 
   const [isCreateClientOpen, setIsCreateClientOpen] = useState(false)
   const [editingClient, setEditingClient] = useState(null)
@@ -78,7 +85,8 @@ export default function App() {
 
   async function loadInitialData() {
     const loadedProfile = await loadProfile()
-
+    console.log('SESSION USER ID:', session?.user?.id)
+console.log('SESSION EMAIL:', session?.user?.email)
     await Promise.all([
       loadClients(),
       loadProjects(loadedProfile),
@@ -88,21 +96,39 @@ export default function App() {
   }
 
   async function loadProfile() {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', session.user.id)
-      .single()
+  const userId = session?.user?.id
+  if (!userId) return null
 
-    if (error) {
-      console.error(error.message)
-      setProfile(null)
-      return null
-    }
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle()
 
-    setProfile(data)
-    return data
+  if (error) {
+    console.error('loadProfile error:', error.message)
+    setProfile({
+      id: userId,
+      full_name: session?.user?.email || 'Usuario',
+      role: 'owner', // fallback temporal
+      portal_type: 'internal',
+    })
+    return null
   }
+
+  if (!data) {
+    setProfile({
+      id: userId,
+      full_name: session?.user?.email || 'Usuario',
+      role: 'owner', // fallback temporal
+      portal_type: 'internal',
+    })
+    return null
+  }
+
+  setProfile(data)
+  return data
+}
 
   function isTechnician(userProfile = profile) {
     return userProfile?.role === 'technician'
@@ -132,6 +158,7 @@ export default function App() {
     setExecutedChecklists([])
     setSelectedChecklistId(null)
     setSelectedTemplateId(null)
+    setSelectedClientId(null)
     setCurrentPage('dashboard')
   }
 
@@ -156,7 +183,8 @@ export default function App() {
         *,
         clients (
           id,
-          name
+          name,
+          pharmacy_name
         )
       `)
       .order('created_at', { ascending: false })
@@ -200,7 +228,8 @@ export default function App() {
           assigned_technician_id,
           clients (
             id,
-            name
+            name,
+            pharmacy_name
           )
         ),
         checklist_sections (
@@ -273,9 +302,25 @@ export default function App() {
       .insert({
         company_id: COMPANY_ID,
         name: clientData.name,
-        email: clientData.email || '',
-        phone: clientData.phone || '',
-        notes: clientData.notes || '',
+        pharmacy_name: clientData.pharmacy_name || clientData.name,
+        pharmacist_owner: clientData.pharmacist_owner || '',
+        province: clientData.province || '',
+        city: clientData.city || '',
+        contact_phone: clientData.contact_phone || clientData.phone || '',
+        contact_email: clientData.contact_email || clientData.email || '',
+        nif_cif: clientData.nif_cif || '',
+        soe_number: clientData.soe_number || '',
+        business_email: clientData.business_email || clientData.email || '',
+        business_phone: clientData.business_phone || clientData.phone || '',
+        address: clientData.address || '',
+        collegiate_data: clientData.collegiate_data || '',
+        company_data: clientData.company_data || '',
+        operators: clientData.operators || '',
+        cip: clientData.cip || '',
+        observations: clientData.observations || clientData.notes || '',
+        email: clientData.email || clientData.contact_email || '',
+        phone: clientData.phone || clientData.contact_phone || '',
+        notes: clientData.notes || clientData.observations || '',
       })
       .select()
       .single()
@@ -295,8 +340,8 @@ export default function App() {
 
     await createNotification({
       userId: session.user.id,
-      title: 'Cliente creado',
-      message: `Se creó el cliente "${clientData.name}".`,
+      title: 'Farmacia creada',
+      message: `Se creó la farmacia "${data.pharmacy_name || data.name}".`,
       type: 'success',
       entityType: 'client',
       entityId: data.id,
@@ -314,9 +359,25 @@ export default function App() {
       .from('clients')
       .update({
         name: clientData.name,
-        email: clientData.email || '',
-        phone: clientData.phone || '',
-        notes: clientData.notes || '',
+        pharmacy_name: clientData.pharmacy_name || clientData.name,
+        pharmacist_owner: clientData.pharmacist_owner || '',
+        province: clientData.province || '',
+        city: clientData.city || '',
+        contact_phone: clientData.contact_phone || clientData.phone || '',
+        contact_email: clientData.contact_email || clientData.email || '',
+        nif_cif: clientData.nif_cif || '',
+        soe_number: clientData.soe_number || '',
+        business_email: clientData.business_email || clientData.email || '',
+        business_phone: clientData.business_phone || clientData.phone || '',
+        address: clientData.address || '',
+        collegiate_data: clientData.collegiate_data || '',
+        company_data: clientData.company_data || '',
+        operators: clientData.operators || '',
+        cip: clientData.cip || '',
+        observations: clientData.observations || clientData.notes || '',
+        email: clientData.email || clientData.contact_email || '',
+        phone: clientData.phone || clientData.contact_phone || '',
+        notes: clientData.notes || clientData.observations || '',
       })
       .eq('id', clientId)
       .select()
@@ -341,7 +402,7 @@ export default function App() {
   }
 
   async function deleteClient(clientId) {
-    const confirmed = window.confirm('¿Eliminar este cliente?')
+    const confirmed = window.confirm('¿Eliminar esta farmacia?')
     if (!confirmed) return
 
     const previous = clients.find(client => client.id === clientId)
@@ -833,6 +894,16 @@ export default function App() {
     await loadExecutedChecklists()
   }
 
+  function openClientDetail(clientId) {
+    setSelectedClientId(clientId)
+    setCurrentPage('client-detail')
+  }
+
+  function backToClients() {
+    setSelectedClientId(null)
+    setCurrentPage('clients')
+  }
+
   function openChecklist(checklistId) {
     setSelectedChecklistId(checklistId)
     setCurrentPage('checklist-execution')
@@ -854,17 +925,36 @@ export default function App() {
   }
 
   function changePage(page) {
-    if (
-      page === 'audit' &&
-      profile?.role !== 'superadmin' &&
-      profile?.role !== 'admin'
-    ) {
-      setCurrentPage('dashboard')
-      return
-    }
-
-    setCurrentPage(page)
+  if (
+    page === 'audit' &&
+    profile?.role !== 'owner' &&
+    profile?.role !== 'admin'
+  ) {
+    setCurrentPage('dashboard')
+    return
   }
+
+  if (
+    page === 'settings' &&
+    profile?.role !== 'owner' &&
+    profile?.role !== 'admin'
+  ) {
+    setCurrentPage('dashboard')
+    return
+  }
+
+  if (
+  page === 'users' &&
+  profile?.role !== 'owner' &&
+  profile?.role !== 'admin'
+) {
+  setCurrentPage('dashboard')
+  return
+}
+
+  setSelectedClientId(null)
+  setCurrentPage(page)
+}
 
   if (!session) {
     return (
@@ -875,14 +965,14 @@ export default function App() {
           </h1>
 
           <p className="mt-2 text-[#64748B] font-normal">
-            Acceso plataforma técnica
+            Acceso portal de soporte técnico
           </p>
 
           <form onSubmit={login} className="mt-8 space-y-4">
             <input
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="w-full rounded-2xl border border-[#E2E8F0] px-4 py-3"
+              className="input"
               placeholder="Email"
             />
 
@@ -890,13 +980,13 @@ export default function App() {
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              className="w-full rounded-2xl border border-[#E2E8F0] px-4 py-3"
+              className="input"
               placeholder="Contraseña"
             />
 
             <button
               type="submit"
-              className="w-full rounded-2xl bg-[#005643] py-3 text-white font-medium"
+              className="btn-primary w-full"
             >
               Entrar
             </button>
@@ -948,8 +1038,37 @@ export default function App() {
             onCreateClient={() => setIsCreateClientOpen(true)}
             onEditClient={setEditingClient}
             onDeleteClient={deleteClient}
+            onOpenClient={openClientDetail}
           />
         )}
+
+        {currentPage === 'client-detail' && selectedClientId && (
+          <ClientDetailPage
+            clientId={selectedClientId}
+            onBack={backToClients}
+          />
+        )}
+
+        {currentPage === 'people' && (
+          <PeoplePage pharmacies={clients} />
+        )}
+
+        {currentPage === 'users' &&
+  (profile?.role === 'owner' || profile?.role === 'admin') && (
+    <UsersPage
+  currentUser={profile}
+  onUserUpdated={async (oldUser, newUser) => {
+    await createActivityLog({
+      userId: session.user.id,
+      entityType: 'profile',
+      entityId: newUser.id,
+      action: 'update',
+      oldValue: oldUser,
+      newValue: newUser,
+    })
+  }}
+/>
+  )}
 
         {currentPage === 'projects' && (
           <ProjectsPage
@@ -958,6 +1077,10 @@ export default function App() {
             onEditProject={setEditingProject}
             onDeleteProject={deleteProject}
           />
+        )}
+
+        {currentPage === 'tasks' && (
+          <TasksPage />
         )}
 
         {currentPage === 'checklists' && (
@@ -972,6 +1095,14 @@ export default function App() {
             onDeleteTemplate={deleteTemplate}
             onDeleteChecklist={deleteChecklist}
             onOpenChecklist={openChecklist}
+          />
+        )}
+
+        {currentPage === 'incidents' && (
+          <IncidentsPage
+            pharmacies={clients}
+            projects={projects}
+            profile={profile}
           />
         )}
 
@@ -1008,9 +1139,15 @@ export default function App() {
         )}
 
         {currentPage === 'audit' &&
-          (profile?.role === 'superadmin' ||
+          (profile?.role === 'owner' ||
             profile?.role === 'admin') && (
             <ActivityLogsPage />
+          )}
+
+        {currentPage === 'settings' &&
+          (profile?.role === 'owner' ||
+            profile?.role === 'admin') && (
+            <SettingsPage />
           )}
       </>
 
