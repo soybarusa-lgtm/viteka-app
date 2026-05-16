@@ -195,7 +195,7 @@ export default function AppLayout({
                 backgroundColor: branding.secondary_color,
               }}
             >
-              VT
+              RLR
             </div>
           </div>
         </header>
