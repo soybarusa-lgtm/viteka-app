@@ -78,46 +78,40 @@ export default function AppLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC] text-[#0F172A]">
+    <div className="flex h-screen overflow-hidden bg-[#F8FAFC] text-[#0F172A]">
       <aside
         onMouseEnter={() => setExpanded(true)}
         onMouseLeave={() => setExpanded(false)}
-        className={`relative flex flex-col border-r border-[#E2E8F0] bg-white transition-all duration-300 ${
+        className={`relative flex h-screen shrink-0 flex-col overflow-hidden border-r border-[#E2E8F0] bg-white transition-all duration-300 ${
           expanded ? 'w-[280px]' : 'w-[88px]'
         }`}
       >
-        <div className="flex h-[104px] items-center border-b border-[#E2E8F0] px-5">
+        <div className="flex h-[96px] shrink-0 items-center justify-center border-b border-[#E2E8F0] px-4">
           {!expanded && (
-            <div className="flex w-full justify-center">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#ECFDF5]">
-                <img
-                  src={branding.logo_icon}
-                  alt={branding.company_name}
-                  className="h-9 w-9 object-contain"
-                  onError={event => {
-                    event.currentTarget.style.display = 'none'
-                  }}
-                />
-              </div>
-            </div>
+            <img
+              src={branding.logo_icon}
+              alt={branding.company_name}
+              className="h-12 w-12 object-contain"
+              onError={event => {
+                event.currentTarget.style.display = 'none'
+              }}
+            />
           )}
 
           {expanded && (
-            <div className="flex w-full justify-start">
-              <img
-                src={branding.logo_full_color}
-                alt={branding.company_name}
-                className="h-auto max-h-16 w-auto max-w-[220px] object-contain"
-                onError={event => {
-                  event.currentTarget.style.display = 'none'
-                }}
-              />
-            </div>
+            <img
+              src={branding.logo_full_color}
+              alt={branding.company_name}
+              className="h-auto max-h-16 w-auto max-w-[220px] object-contain"
+              onError={event => {
+                event.currentTarget.style.display = 'none'
+              }}
+            />
           )}
         </div>
 
-        <nav className="flex-1 px-4 py-6">
-          <div className="space-y-2">
+        <nav className="flex min-h-0 flex-1 items-center px-3 py-4">
+          <div className="flex w-full flex-col items-center justify-center gap-2">
             {menu.map(item => {
               const active = currentPage === item.id
 
@@ -126,20 +120,27 @@ export default function AppLayout({
                   key={item.id}
                   type="button"
                   onClick={() => setCurrentPage(item.id)}
-                  className={`flex w-full items-center gap-4 rounded-2xl px-4 py-4 transition-all ${
+                  title={!expanded ? item.label : undefined}
+                  className={`flex h-12 w-full items-center rounded-2xl transition-all ${
+                    expanded
+                      ? 'justify-start gap-4 px-4'
+                      : 'justify-center px-0'
+                  } ${
                     active
                       ? 'bg-[#ECFDF5]'
                       : 'text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0F172A]'
                   }`}
                   style={active ? { color: branding.primary_color } : {}}
                 >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center text-[18px] leading-none">
                     {item.icon}
-                  </div>
+                  </span>
 
                   <span
                     className={`overflow-hidden whitespace-nowrap text-[15px] transition-all duration-300 ${
-                      expanded ? 'max-w-[170px] opacity-100' : 'max-w-0 opacity-0'
+                      expanded
+                        ? 'max-w-[180px] opacity-100'
+                        : 'max-w-0 opacity-0'
                     } ${active ? 'font-medium' : 'font-normal'}`}
                   >
                     {item.label}
@@ -150,19 +151,26 @@ export default function AppLayout({
           </div>
         </nav>
 
-        <div className="border-t border-[#E2E8F0] p-4">
+        <div className="shrink-0 border-t border-[#E2E8F0] p-3">
           <button
             type="button"
             onClick={onLogout}
-            className="flex w-full items-center gap-4 rounded-2xl px-4 py-4 text-[#EF4444] transition hover:bg-[#FEF2F2]"
+            title={!expanded ? 'Cerrar sesión' : undefined}
+            className={`flex h-12 w-full items-center rounded-2xl text-[#EF4444] transition hover:bg-[#FEF2F2] ${
+              expanded
+                ? 'justify-start gap-4 px-4'
+                : 'justify-center px-0'
+            }`}
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center text-[18px] leading-none">
               ↩
-            </div>
+            </span>
 
             <span
               className={`overflow-hidden whitespace-nowrap text-[15px] transition-all duration-300 ${
-                expanded ? 'max-w-[170px] opacity-100' : 'max-w-0 opacity-0'
+                expanded
+                  ? 'max-w-[180px] opacity-100'
+                  : 'max-w-0 opacity-0'
               }`}
             >
               Cerrar sesión
@@ -171,7 +179,7 @@ export default function AppLayout({
         </div>
       </aside>
 
-      <main className="min-w-0 flex-1">
+      <main className="min-w-0 flex-1 overflow-y-auto">
         <header className="sticky top-0 z-20 flex h-[88px] items-center justify-between border-b border-[#E2E8F0] bg-white/90 px-10 backdrop-blur">
           <div>
             <p className="text-sm text-[#94A3B8]">
@@ -195,7 +203,7 @@ export default function AppLayout({
                 backgroundColor: branding.secondary_color,
               }}
             >
-              RLR
+              VT
             </div>
           </div>
         </header>
