@@ -35,7 +35,7 @@ export default function ClientsPage({
           </h1>
 
           <p className="mt-3 text-base font-semibold text-[#64748B]">
-            Gestión de clientes, contactos y datos operativos.
+            Gestión de Farmacias, contactos y datos operativos.
           </p>
         </div>
 
@@ -44,12 +44,12 @@ export default function ClientsPage({
           onClick={onCreateClient}
           className="rounded-2xl bg-gradient-to-br from-[#00684F] to-[#009B73] px-6 py-4 text-sm font-black text-white shadow-sm hover:opacity-95"
         >
-          + Nuevo cliente
+          + Nueva farmacia
         </button>
       </div>
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-        <StatCard title="Total clientes" value={clients.length} />
+        <StatCard title="Total farmacias" value={clients.length} />
         <StatCard title="Con email" value={withEmail} />
         <StatCard title="Con teléfono" value={withPhone} />
       </div>
@@ -59,14 +59,14 @@ export default function ClientsPage({
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="w-full rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4 text-sm font-semibold outline-none focus:border-[#005643]"
-          placeholder="Buscar cliente, email, teléfono o notas..."
+          placeholder="Buscar farmacia, email, teléfono o notas..."
         />
       </div>
 
       <div className="mt-7 overflow-hidden rounded-3xl border border-[#E2E8F0] bg-white shadow-sm">
         <div className="hidden grid-cols-[1.2fr_1fr_1fr_1.4fr_1fr] border-b border-[#E2E8F0] bg-[#F8FAFC] px-7 py-5 xl:grid">
           <div className="text-xs font-black uppercase tracking-wide text-[#64748B]">
-            Cliente
+            Farmacia
           </div>
 
           <div className="text-xs font-black uppercase tracking-wide text-[#64748B]">
@@ -88,7 +88,7 @@ export default function ClientsPage({
 
         {filteredClients.length === 0 ? (
           <div className="px-7 py-10 text-sm font-semibold text-[#64748B]">
-            No hay clientes que coincidan con la búsqueda.
+            No hay farmacias que coincidan con la búsqueda.
           </div>
         ) : (
           filteredClients.map(client => (
@@ -98,7 +98,7 @@ export default function ClientsPage({
             >
               <div>
                 <p className="text-xs font-black uppercase text-[#94A3B8] xl:hidden">
-                  Cliente
+                  Farmacia
                 </p>
 
                 <p className="font-black text-[#0F172A]">
