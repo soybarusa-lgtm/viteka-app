@@ -203,7 +203,7 @@ export default function AppLayout({
                 backgroundColor: branding.secondary_color,
               }}
             >
-              VT
+              Rafael Lázaro
             </div>
           </div>
         </header>
