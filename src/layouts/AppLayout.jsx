@@ -110,8 +110,8 @@ export default function AppLayout({
           )}
         </div>
 
-        <nav className="flex min-h-0 flex-1 items-center px-3 py-4">
-          <div className="flex w-full flex-col items-center justify-center gap-2">
+       <nav className="flex min-h-0 flex-1 px-3 py-4">
+  <div className="flex w-full flex-col items-center gap-2">
             {menu.map(item => {
               const active = currentPage === item.id
 
