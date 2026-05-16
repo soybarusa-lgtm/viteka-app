@@ -203,7 +203,7 @@ export default function AppLayout({
                 backgroundColor: branding.secondary_color,
               }}
             >
-              Rafael Lázaro
+              RL
             </div>
           </div>
         </header>
