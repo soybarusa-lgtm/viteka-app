@@ -1,62 +1,41 @@
 import { useEffect } from 'react'
 
-export default function Modal({ open, title, onClose, children, footer }) {
-  // Bloquea el scroll del body mientras el modal está abierto
+/**
+ * Modal base reutilizable.
+ * Uso:
+ *   <Modal isOpen={bool} onClose={fn} title="T\u00edtulo" maxWidth="max-w-lg">
+ *     {children}
+ *   </Modal>
+ *
+ * El scroll lo gestiona el overlay (fixed inset-0 overflow-y-auto).
+ * El body queda bloqueado mientras el modal est\u00e1 abierto.
+ */
+export default function Modal({ isOpen, onClose, title, subtitle, children, maxWidth = 'max-w-xl' }) {
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [open])
+    if (isOpen) document.body.style.overflow = 'hidden'
+    else document.body.style.overflow = ''
+    return () => { document.body.style.overflow = '' }
+  }, [isOpen])
 
-  if (!open) return null
+  if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 sm:items-center sm:p-4">
-      {/* Backdrop clickeable */}
-      <button
-        className="absolute inset-0 cursor-default"
-        onClick={onClose}
-        aria-label="Cerrar modal"
-        tabIndex={-1}
-      />
-
-      {/*
-        Contenedor principal del modal:
-        - flex flex-col para que header + body + footer se distribuyan correctamente
-        - max-h calculado para no salir del viewport en móvil ni desktop
-        - El body (children) es el único que hace scroll
-      */}
-      <div className="relative z-10 flex w-full flex-col rounded-t-2xl bg-white shadow-xl sm:max-w-2xl sm:rounded-2xl"
-        style={{ maxHeight: 'min(92dvh, 800px)' }}
-      >
-        {/* Header — fijo, nunca hace scroll */}
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-4 sm:px-6">
-          <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg px-3 py-2 text-sm text-slate-500 hover:bg-slate-100"
-          >
-            Cerrar
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-4">
+      <div className={`mx-auto my-8 w-full ${maxWidth} rounded-3xl border border-[#E2E8F0] bg-white p-6 shadow-xl`}>
+        {/* Header */}
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            {title && <h2 className="text-xl font-semibold text-[#0F172A]">{title}</h2>}
+            {subtitle && <p className="mt-1 text-sm text-[#64748B]">{subtitle}</p>}
+          </div>
+          <button type="button" onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[#94A3B8] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition">
+            \u2715
           </button>
         </div>
 
-        {/* Body — este es el único que hace scroll */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">
-          {children}
-        </div>
-
-        {/* Footer — fijo al fondo, nunca hace scroll */}
-        {footer && (
-          <div className="shrink-0 border-t border-slate-200 px-4 py-4 sm:px-6">
-            {footer}
-          </div>
-        )}
+        {/* Content */}
+        {children}
       </div>
     </div>
   )

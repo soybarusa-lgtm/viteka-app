@@ -1,10 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export default function CreateTemplateTaskModal({ isOpen, onClose, onCreate, sectionTitle }) {
   const [title,       setTitle]       = useState('')
   const [description, setDescription] = useState('')
   const [required,    setRequired]    = useState(false)
   const [loading,     setLoading]     = useState(false)
+
+  useEffect(() => {
+    if (isOpen) document.body.style.overflow = 'hidden'
+    else document.body.style.overflow = ''
+    return () => { document.body.style.overflow = '' }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -18,20 +24,20 @@ export default function CreateTemplateTaskModal({ isOpen, onClose, onCreate, sec
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-[#E8EDF2] bg-white shadow-xl">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-4">
+      <div className="mx-auto my-8 w-full max-w-lg rounded-2xl border border-[#E8EDF2] bg-white shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#F1F5F9] px-6 py-4">
           <div>
             <h2 className="text-[15px] font-semibold text-[#0F172A]">Nueva tarea</h2>
             {sectionTitle
-              ? <p className="text-[12px] text-[#94A3B8]">Sección: <span className="font-medium text-[#334155]">{sectionTitle}</span></p>
-              : <p className="text-[12px] text-[#94A3B8]">Añade una tarea técnica</p>
+              ? <p className="text-[12px] text-[#94A3B8]">Secci\u00f3n: <span className="font-medium text-[#334155]">{sectionTitle}</span></p>
+              : <p className="text-[12px] text-[#94A3B8]">A\u00f1ade una tarea t\u00e9cnica</p>
             }
           </div>
           <button type="button" onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-[#94A3B8] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition">
-            ✕
+            \u2715
           </button>
         </div>
 
@@ -44,10 +50,10 @@ export default function CreateTemplateTaskModal({ isOpen, onClose, onCreate, sec
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#94A3B8]">Descripción</span>
+            <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#94A3B8]">Descripci\u00f3n</span>
             <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3}
               className="w-full resize-none rounded-xl border border-[#E8EDF2] bg-[#F8FAFC] px-4 py-2.5 text-[13px] outline-none focus:border-[#005643] focus:bg-white focus:ring-1 focus:ring-[#005643]/20"
-              placeholder="Instrucciones o detalles técnicos" />
+              placeholder="Instrucciones o detalles t\u00e9cnicos" />
           </label>
 
           <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#E8EDF2] bg-[#F8FAFC] px-4 py-3">
