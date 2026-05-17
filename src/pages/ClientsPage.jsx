@@ -111,7 +111,6 @@ export default function ClientsPage({
   const [province, setProvince]   = useState('')
   const [view, setView]           = useState('table') // 'table' | 'grid'
 
-  // Unique provinces for filter
   const provinces = useMemo(() => {
     const all = clients.map(c => c.province).filter(Boolean)
     return [...new Set(all)].sort()
@@ -132,9 +131,8 @@ export default function ClientsPage({
     })
   }, [clients, search, province])
 
-  // KPIs
-  const withPhone = clients.filter(c => c.phone || c.contact_phone).length
-  const withEmail = clients.filter(c => c.email || c.contact_email).length
+  const withPhone       = clients.filter(c => c.phone || c.contact_phone).length
+  const withEmail       = clients.filter(c => c.email || c.contact_email).length
   const provinces_count = new Set(clients.map(c => c.province).filter(Boolean)).size
 
   return (
@@ -143,15 +141,13 @@ export default function ClientsPage({
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#0F172A]">Farmacias</h1>
-          <p className="mt-1 text-sm text-[#94A3B8]">
-            Gestión de clientes, contactos y datos operativos
-          </p>
+          <h1 className="page-title">Farmacias</h1>
+          <p className="page-subtitle">Gestión de clientes, contactos y datos operativos</p>
         </div>
         <button
           type="button"
           onClick={onCreateClient}
-          className="flex items-center gap-2 rounded-xl bg-[#005643] px-4 py-2.5 text-[13px] font-medium text-white shadow-sm transition hover:bg-[#00442f]"
+          className="btn-primary flex items-center gap-2 text-[13px]"
         >
           <span className="text-base leading-none">+</span>
           Nueva farmacia
@@ -170,14 +166,14 @@ export default function ClientsPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         {/* Search */}
         <div className="relative flex-1">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted)' }}>
             <IconSearch />
           </span>
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar por nombre, email, teléfono, ciudad..."
-            className="w-full rounded-xl border border-[#E8EDF2] bg-white py-2.5 pl-9 pr-4 text-[13px] text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-[#005643] focus:ring-1 focus:ring-[#005643]/20"
+            className="input w-full pl-9"
           />
         </div>
 
@@ -185,7 +181,7 @@ export default function ClientsPage({
         <select
           value={province}
           onChange={e => setProvince(e.target.value)}
-          className="rounded-xl border border-[#E8EDF2] bg-white px-3 py-2.5 text-[13px] text-[#334155] outline-none focus:border-[#005643] sm:w-[180px]"
+          className="input sm:w-[180px]"
         >
           <option value="">Todas las provincias</option>
           {provinces.map(p => (
@@ -194,26 +190,31 @@ export default function ClientsPage({
         </select>
 
         {/* View toggle */}
-        <div className="flex rounded-xl border border-[#E8EDF2] bg-white overflow-hidden">
+        <div
+          className="flex rounded-xl overflow-hidden"
+          style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}
+        >
           <button
             type="button"
             onClick={() => setView('table')}
-            className={`flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-medium transition ${
+            className="flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-medium transition"
+            style={
               view === 'table'
-                ? 'bg-[#005643] text-white'
-                : 'text-[#64748B] hover:bg-[#F8FAFC]'
-            }`}
+                ? { background: 'var(--primary)', color: '#fff' }
+                : { color: 'var(--muted)' }
+            }
           >
             <IconList /> Lista
           </button>
           <button
             type="button"
             onClick={() => setView('grid')}
-            className={`flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-medium transition ${
+            className="flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-medium transition"
+            style={
               view === 'grid'
-                ? 'bg-[#005643] text-white'
-                : 'text-[#64748B] hover:bg-[#F8FAFC]'
-            }`}
+                ? { background: 'var(--primary)', color: '#fff' }
+                : { color: 'var(--muted)' }
+            }
           >
             <IconGrid /> Tarjetas
           </button>
@@ -221,7 +222,7 @@ export default function ClientsPage({
       </div>
 
       {/* Count */}
-      <p className="text-[12px] text-[#94A3B8]">
+      <p className="text-[12px]" style={{ color: 'var(--muted)' }}>
         {filtered.length === clients.length
           ? `${clients.length} farmacias`
           : `${filtered.length} de ${clients.length} farmacias`}
@@ -254,103 +255,96 @@ export default function ClientsPage({
 // ---------------------------------------------------------------------------
 function TableView({ clients, onOpen, onEdit, onDelete }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#E8EDF2] bg-white">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[700px] text-left">
-          <thead>
-            <tr className="border-b border-[#F1F5F9]">
-              {['Farmacia', 'Titular', 'Provincia / Ciudad', 'Contacto', ''].map(h => (
-                <th key={h} className="px-6 py-3 text-[11px] font-medium uppercase tracking-wider text-[#94A3B8]">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#F1F5F9]">
-            {clients.map(client => (
-              <tr
-                key={client.id}
-                className="group transition-colors hover:bg-[#FAFBFC]"
-              >
-                {/* Farmacia */}
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[13px] font-semibold text-white"
-                      style={{ backgroundColor: avatarColor(client.pharmacy_name || client.name) }}
-                    >
-                      {getInitials(client.pharmacy_name || client.name)}
-                    </div>
-                    <div>
-                      <p className="text-[14px] font-medium text-[#0F172A]">
-                        {client.pharmacy_name || client.name}
-                      </p>
-                      {client.name !== client.pharmacy_name && client.name && (
-                        <p className="text-[12px] text-[#94A3B8]">{client.name}</p>
-                      )}
-                    </div>
-                  </div>
-                </td>
-
-                {/* Titular */}
-                <td className="px-6 py-4 text-[13px] text-[#64748B]">
-                  {client.pharmacist_owner || '—'}
-                </td>
-
-                {/* Ubicación */}
-                <td className="px-6 py-4">
-                  {(client.province || client.city) ? (
-                    <div className="flex items-center gap-1.5 text-[13px] text-[#64748B]">
-                      <span className="text-[#94A3B8]"><IconPin /></span>
-                      {[client.city, client.province].filter(Boolean).join(', ')}
-                    </div>
-                  ) : (
-                    <span className="text-[13px] text-[#CBD5E1]">—</span>
-                  )}
-                </td>
-
-                {/* Contacto */}
-                <td className="px-6 py-4">
-                  <div className="space-y-1">
-                    {(client.contact_phone || client.phone) && (
-                      <div className="flex items-center gap-1.5 text-[12px] text-[#64748B]">
-                        <span className="text-[#94A3B8]"><IconPhone /></span>
-                        {client.contact_phone || client.phone}
-                      </div>
-                    )}
-                    {(client.contact_email || client.email) && (
-                      <div className="flex items-center gap-1.5 text-[12px] text-[#64748B]">
-                        <span className="text-[#94A3B8]"><IconMail /></span>
-                        {client.contact_email || client.email}
-                      </div>
-                    )}
-                    {!client.contact_phone && !client.phone && !client.contact_email && !client.email && (
-                      <span className="text-[12px] text-[#CBD5E1]">Sin contacto</span>
-                    )}
-                  </div>
-                </td>
-
-                {/* Actions */}
-                <td className="px-6 py-4">
-                  <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    {onOpen && (
-                      <ActionBtn onClick={() => onOpen(client.id)} title="Ver detalle" color="green">
-                        <IconEye />
-                      </ActionBtn>
-                    )}
-                    <ActionBtn onClick={() => onEdit(client)} title="Editar" color="slate">
-                      <IconEdit />
-                    </ActionBtn>
-                    <ActionBtn onClick={() => onDelete(client.id)} title="Eliminar" color="red">
-                      <IconTrash />
-                    </ActionBtn>
-                  </div>
-                </td>
-              </tr>
+    <div className="table-wrap">
+      <table className="table-base min-w-[700px]">
+        <thead>
+          <tr>
+            {['Farmacia', 'Titular', 'Provincia / Ciudad', 'Contacto', ''].map(h => (
+              <th key={h}>{h}</th>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </tr>
+        </thead>
+        <tbody>
+          {clients.map(client => (
+            <tr key={client.id} className="group">
+              {/* Farmacia */}
+              <td>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[13px] font-semibold text-white"
+                    style={{ backgroundColor: avatarColor(client.pharmacy_name || client.name) }}
+                  >
+                    {getInitials(client.pharmacy_name || client.name)}
+                  </div>
+                  <div>
+                    <p className="text-[14px] font-medium" style={{ color: 'var(--text)' }}>
+                      {client.pharmacy_name || client.name}
+                    </p>
+                    {client.name !== client.pharmacy_name && client.name && (
+                      <p className="text-[12px]" style={{ color: 'var(--muted)' }}>{client.name}</p>
+                    )}
+                  </div>
+                </div>
+              </td>
+
+              {/* Titular */}
+              <td className="text-[13px]" style={{ color: 'var(--text-soft)' }}>
+                {client.pharmacist_owner || '—'}
+              </td>
+
+              {/* Ubicación */}
+              <td>
+                {(client.province || client.city) ? (
+                  <div className="flex items-center gap-1.5 text-[13px]" style={{ color: 'var(--text-soft)' }}>
+                    <span style={{ color: 'var(--muted)' }}><IconPin /></span>
+                    {[client.city, client.province].filter(Boolean).join(', ')}
+                  </div>
+                ) : (
+                  <span className="text-[13px]" style={{ color: 'var(--muted)' }}>—</span>
+                )}
+              </td>
+
+              {/* Contacto */}
+              <td>
+                <div className="space-y-1">
+                  {(client.contact_phone || client.phone) && (
+                    <div className="flex items-center gap-1.5 text-[12px]" style={{ color: 'var(--text-soft)' }}>
+                      <span style={{ color: 'var(--muted)' }}><IconPhone /></span>
+                      {client.contact_phone || client.phone}
+                    </div>
+                  )}
+                  {(client.contact_email || client.email) && (
+                    <div className="flex items-center gap-1.5 text-[12px]" style={{ color: 'var(--text-soft)' }}>
+                      <span style={{ color: 'var(--muted)' }}><IconMail /></span>
+                      {client.contact_email || client.email}
+                    </div>
+                  )}
+                  {!client.contact_phone && !client.phone && !client.contact_email && !client.email && (
+                    <span className="text-[12px]" style={{ color: 'var(--muted)' }}>Sin contacto</span>
+                  )}
+                </div>
+              </td>
+
+              {/* Actions */}
+              <td>
+                <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  {onOpen && (
+                    <ActionBtn onClick={() => onOpen(client.id)} title="Ver detalle" color="green">
+                      <IconEye />
+                    </ActionBtn>
+                  )}
+                  <ActionBtn onClick={() => onEdit(client)} title="Editar" color="slate">
+                    <IconEdit />
+                  </ActionBtn>
+                  <ActionBtn onClick={() => onDelete(client.id)} title="Eliminar" color="red">
+                    <IconTrash />
+                  </ActionBtn>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -364,7 +358,9 @@ function GridView({ clients, onOpen, onEdit, onDelete }) {
       {clients.map(client => (
         <div
           key={client.id}
-          className="group flex flex-col rounded-2xl border border-[#E8EDF2] bg-white p-5 transition hover:border-[#005643]/30 hover:shadow-sm"
+          className="group card flex flex-col p-5 transition hover:shadow-sm"
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
         >
           {/* Avatar + name */}
           <div className="flex items-center gap-3">
@@ -375,11 +371,11 @@ function GridView({ clients, onOpen, onEdit, onDelete }) {
               {getInitials(client.pharmacy_name || client.name)}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-[14px] font-medium text-[#0F172A]">
+              <p className="truncate text-[14px] font-medium" style={{ color: 'var(--text)' }}>
                 {client.pharmacy_name || client.name}
               </p>
               {client.pharmacist_owner && (
-                <p className="truncate text-[12px] text-[#94A3B8]">{client.pharmacist_owner}</p>
+                <p className="truncate text-[12px]" style={{ color: 'var(--muted)' }}>{client.pharmacist_owner}</p>
               )}
             </div>
           </div>
@@ -387,32 +383,35 @@ function GridView({ clients, onOpen, onEdit, onDelete }) {
           {/* Details */}
           <div className="mt-4 flex-1 space-y-2">
             {(client.province || client.city) && (
-              <div className="flex items-center gap-1.5 text-[12px] text-[#64748B]">
-                <span className="text-[#94A3B8]"><IconPin /></span>
+              <div className="flex items-center gap-1.5 text-[12px]" style={{ color: 'var(--text-soft)' }}>
+                <span style={{ color: 'var(--muted)' }}><IconPin /></span>
                 <span className="truncate">{[client.city, client.province].filter(Boolean).join(', ')}</span>
               </div>
             )}
             {(client.contact_phone || client.phone) && (
-              <div className="flex items-center gap-1.5 text-[12px] text-[#64748B]">
-                <span className="text-[#94A3B8]"><IconPhone /></span>
+              <div className="flex items-center gap-1.5 text-[12px]" style={{ color: 'var(--text-soft)' }}>
+                <span style={{ color: 'var(--muted)' }}><IconPhone /></span>
                 <span className="truncate">{client.contact_phone || client.phone}</span>
               </div>
             )}
             {(client.contact_email || client.email) && (
-              <div className="flex items-center gap-1.5 text-[12px] text-[#64748B]">
-                <span className="text-[#94A3B8]"><IconMail /></span>
+              <div className="flex items-center gap-1.5 text-[12px]" style={{ color: 'var(--text-soft)' }}>
+                <span style={{ color: 'var(--muted)' }}><IconMail /></span>
                 <span className="truncate">{client.contact_email || client.email}</span>
               </div>
             )}
           </div>
 
           {/* Actions */}
-          <div className="mt-4 flex items-center gap-2 border-t border-[#F1F5F9] pt-4">
+          <div
+            className="mt-4 flex items-center gap-2 pt-4"
+            style={{ borderTop: '1px solid var(--border)' }}
+          >
             {onOpen && (
               <button
                 type="button"
                 onClick={() => onOpen(client.id)}
-                className="flex-1 rounded-lg bg-[#005643] py-1.5 text-center text-[12px] font-medium text-white transition hover:bg-[#00442f]"
+                className="btn-primary flex-1 py-1.5 text-center text-[12px]"
               >
                 Ver detalle
               </button>
@@ -435,17 +434,20 @@ function GridView({ clients, onOpen, onEdit, onDelete }) {
 // ---------------------------------------------------------------------------
 function EmptyState({ hasFilters, onClear }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#E8EDF2] bg-white py-16 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F1F5F9] text-[#94A3B8]">
+    <div className="empty-state">
+      <div
+        className="flex h-12 w-12 items-center justify-center rounded-xl"
+        style={{ background: 'var(--surface-soft)', color: 'var(--muted)' }}
+      >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
           <polyline points="9 22 9 12 15 12 15 22" />
         </svg>
       </div>
-      <p className="mt-4 text-[14px] font-medium text-[#0F172A]">
+      <p className="mt-4 text-[14px] font-medium" style={{ color: 'var(--text)' }}>
         {hasFilters ? 'Sin resultados' : 'Aún no hay farmacias'}
       </p>
-      <p className="mt-1 text-[13px] text-[#94A3B8]">
+      <p className="mt-1 text-[13px]" style={{ color: 'var(--muted)' }}>
         {hasFilters
           ? 'Prueba con otros términos de búsqueda'
           : 'Crea la primera farmacia para empezar'}
@@ -454,7 +456,8 @@ function EmptyState({ hasFilters, onClear }) {
         <button
           type="button"
           onClick={onClear}
-          className="mt-4 text-[13px] font-medium text-[#005643] hover:underline"
+          className="mt-4 text-[13px] font-medium hover:underline"
+          style={{ color: 'var(--primary)' }}
         >
           Limpiar filtros
         </button>
@@ -468,16 +471,17 @@ function EmptyState({ hasFilters, onClear }) {
 // ---------------------------------------------------------------------------
 function ActionBtn({ onClick, title, color = 'slate', children }) {
   const styles = {
-    green: 'bg-[#DCFCE7] text-[#166534] hover:bg-[#bbf7d0]',
-    slate: 'bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0]',
-    red:   'bg-[#FEE2E2] text-[#991B1B] hover:bg-[#fecaca]',
+    green: { background: 'var(--badge-green-bg)', color: 'var(--badge-green-text)' },
+    slate: { background: 'var(--surface-soft)',   color: 'var(--text-soft)' },
+    red:   { background: 'var(--badge-red-bg)',   color: 'var(--badge-red-text)' },
   }
   return (
     <button
       type="button"
       onClick={onClick}
       title={title}
-      className={`flex h-7 w-7 items-center justify-center rounded-lg transition ${styles[color]}`}
+      className="flex h-7 w-7 items-center justify-center rounded-lg transition hover:opacity-80"
+      style={styles[color]}
     >
       {children}
     </button>
@@ -489,10 +493,10 @@ function ActionBtn({ onClick, title, color = 'slate', children }) {
 // ---------------------------------------------------------------------------
 function KpiCard({ label, value, sub }) {
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-[#E8EDF2] bg-white p-5">
-      <p className="text-[12px] text-[#94A3B8]">{label}</p>
-      <p className="mt-3 text-3xl font-semibold tracking-tight text-[#0F172A]">{value}</p>
-      {sub && <p className="mt-1 text-[12px] text-[#94A3B8]">{sub}</p>}
+    <div className="card flex flex-col justify-between p-5">
+      <p className="text-[12px]" style={{ color: 'var(--muted)' }}>{label}</p>
+      <p className="mt-3 text-3xl font-semibold tracking-tight" style={{ color: 'var(--text)' }}>{value}</p>
+      {sub && <p className="mt-1 text-[12px]" style={{ color: 'var(--muted)' }}>{sub}</p>}
     </div>
   )
 }
