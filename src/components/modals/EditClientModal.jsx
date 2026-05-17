@@ -1,170 +1,77 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 
-const EMPTY_FORM = {
-  name: '',
-  pharmacy_name: '',
-  pharmacist_owner: '',
-  province: '',
-  city: '',
-  contact_phone: '',
-  contact_email: '',
-  nif_cif: '',
-  soe_number: '',
-  business_email: '',
-  business_phone: '',
-  address: '',
-  collegiate_data: '',
-  company_data: '',
-  operators: '',
-  cip: '',
-  observations: '',
-  email: '',
-  phone: '',
-  notes: '',
-}
-
-export default function EditClientModal({
-  isOpen,
-  client,
-  onClose,
-  onSave,
-}) {
-  const [formData, setFormData] = useState(EMPTY_FORM)
+export default function EditClientModal({ isOpen, client, onClose, onSave }) {
+  const [form, setForm] = useState({})
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    if (!client) return
-
-    setFormData({
-      name: client.name || '',
-      pharmacy_name: client.pharmacy_name || client.name || '',
-      pharmacist_owner: client.pharmacist_owner || '',
-      province: client.province || '',
-      city: client.city || '',
-      contact_phone: client.contact_phone || client.phone || '',
-      contact_email: client.contact_email || client.email || '',
-      nif_cif: client.nif_cif || '',
-      soe_number: client.soe_number || '',
-      business_email: client.business_email || '',
-      business_phone: client.business_phone || '',
-      address: client.address || '',
-      collegiate_data: client.collegiate_data || '',
-      company_data: client.company_data || '',
-      operators: client.operators || '',
-      cip: client.cip || '',
-      observations: client.observations || client.notes || '',
-      email: client.email || '',
-      phone: client.phone || '',
-      notes: client.notes || '',
-    })
+    if (client) setForm({ ...client })
   }, [client])
 
-  const isValid = useMemo(() => validateForm(formData), [formData])
+  useEffect(() => {
+    if (isOpen) document.body.style.overflow = 'hidden'
+    else document.body.style.overflow = ''
+    return () => { document.body.style.overflow = '' }
+  }, [isOpen])
 
-  function updateField(field, value) {
-    setFormData(current => ({ ...current, [field]: value }))
-  }
-
-  function handleClose() {
-    setSubmitting(false)
-    onClose()
+  function update(field, value) {
+    setForm(prev => ({ ...prev, [field]: value }))
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
-
-    if (!client?.id) return
-
-    if (!isValid) {
-      alert('Completa todos los campos obligatorios y revisa el email de contacto.')
-      return
-    }
-
-    try {
-      setSubmitting(true)
-
-      const payload = {
-        ...formData,
-        email: formData.contact_email,
-        phone: formData.contact_phone,
-        notes: formData.observations,
-      }
-
-      await onSave(client.id, payload)
-      setSubmitting(false)
-    } catch (error) {
-      setSubmitting(false)
-      throw error
-    }
+    setSubmitting(true)
+    try { await onSave(client.id, form) }
+    catch (err) { alert(err.message) }
+    finally { setSubmitting(false) }
   }
 
   if (!isOpen || !client) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-4xl rounded-3xl border border-[#E2E8F0] bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-4">
+      <div className="mx-auto my-8 w-full max-w-2xl rounded-3xl border border-[#E2E8F0] bg-white p-6 shadow-xl">
         <div className="mb-6 flex items-start justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold text-[#0F172A]">Editar farmacia</h2>
-            <p className="mt-1 text-sm text-[#64748B]">Actualiza los datos obligatorios marcados con *</p>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleClose}
-            className="rounded-xl border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] hover:bg-[#F8FAFC]"
-          >
+          <h2 className="text-xl font-semibold text-[#0F172A]">Editar farmacia</h2>
+          <button type="button" onClick={onClose}
+            className="rounded-xl border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] hover:bg-[#F8FAFC]">
             Cerrar
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Field label="Razón social *" value={formData.name} onChange={value => updateField('name', value)} />
-            <Field label="Nombre comercial *" value={formData.pharmacy_name} onChange={value => updateField('pharmacy_name', value)} />
-            <Field label="Provincia *" value={formData.province} onChange={value => updateField('province', value)} />
-            <Field label="Localidad *" value={formData.city} onChange={value => updateField('city', value)} />
-            <Field label="Teléfono contacto *" value={formData.contact_phone} onChange={value => updateField('contact_phone', value)} />
-            <Field label="Email contacto *" type="email" value={formData.contact_email} onChange={value => updateField('contact_email', value)} />
-            <Field label="Titular farmacéutico" value={formData.pharmacist_owner} onChange={value => updateField('pharmacist_owner', value)} />
-            <Field label="NIF/CIF" value={formData.nif_cif} onChange={value => updateField('nif_cif', value)} />
-            <Field label="SOE" value={formData.soe_number} onChange={value => updateField('soe_number', value)} />
-            <Field label="Email empresa" type="email" value={formData.business_email} onChange={value => updateField('business_email', value)} />
-            <Field label="Teléfono empresa" value={formData.business_phone} onChange={value => updateField('business_phone', value)} />
-            <Field label="CIP" value={formData.cip} onChange={value => updateField('cip', value)} />
-            <Field label="Datos colegiales" value={formData.collegiate_data} onChange={value => updateField('collegiate_data', value)} />
-            <Field label="Datos empresa" value={formData.company_data} onChange={value => updateField('company_data', value)} />
-            <Field label="Operadores" value={formData.operators} onChange={value => updateField('operators', value)} />
-
-            <div className="md:col-span-2">
-              <Field label="Dirección" value={formData.address} onChange={value => updateField('address', value)} />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Nombre fiscal" value={form.name} onChange={v => update('name', v)} />
+            <Field label="Farmacia" value={form.pharmacy_name} onChange={v => update('pharmacy_name', v)} />
+            <Field label="Titular" value={form.pharmacist_owner} onChange={v => update('pharmacist_owner', v)} />
+            <Field label="NIF/CIF" value={form.nif_cif} onChange={v => update('nif_cif', v)} />
+            <Field label="SOE" value={form.soe_number} onChange={v => update('soe_number', v)} />
+            <Field label="Teléfono" value={form.contact_phone} onChange={v => update('contact_phone', v)} />
+            <Field label="Email" type="email" value={form.contact_email} onChange={v => update('contact_email', v)} />
+            <Field label="Ciudad" value={form.city} onChange={v => update('city', v)} />
+            <Field label="Provincia" value={form.province} onChange={v => update('province', v)} />
+            <Field label="Código postal" value={form.postal_code} onChange={v => update('postal_code', v)} />
+            <div className="sm:col-span-2">
+              <Field label="Dirección" value={form.address} onChange={v => update('address', v)} />
             </div>
-
-            <div className="md:col-span-2">
-              <TextArea label="Observaciones" value={formData.observations} onChange={value => updateField('observations', value)} />
+            <div className="sm:col-span-2">
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-[#334155]">Observaciones</span>
+                <textarea value={form.observations || ''} onChange={e => update('observations', e.target.value)} rows={3}
+                  className="w-full rounded-xl border border-[#E2E8F0] px-3 py-2 text-sm outline-none focus:border-[#059669]" />
+              </label>
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-[#64748B]">* Campos obligatorios</p>
-
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="rounded-xl border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#334155] hover:bg-[#F8FAFC]"
-              >
-                Cancelar
-              </button>
-
-              <button
-                type="submit"
-                disabled={!isValid || submitting}
-                className="rounded-xl bg-[#005643] px-5 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {submitting ? 'Guardando...' : 'Guardar cambios'}
-              </button>
-            </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={onClose}
+              className="rounded-xl border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#334155] hover:bg-[#F8FAFC]">
+              Cancelar
+            </button>
+            <button type="submit" disabled={submitting}
+              className="rounded-xl bg-[#005643] px-5 py-2 text-sm font-semibold text-white disabled:opacity-60">
+              {submitting ? 'Guardando...' : 'Guardar cambios'}
+            </button>
           </div>
         </form>
       </div>
@@ -172,50 +79,12 @@ export default function EditClientModal({
   )
 }
 
-function validateForm(data) {
-  const required = [
-    'name',
-    'pharmacy_name',
-    'province',
-    'city',
-    'contact_phone',
-    'contact_email',
-  ]
-
-  for (const field of required) {
-    if (!data[field] || String(data[field]).trim() === '') {
-      return false
-    }
-  }
-
-  const emailOk = /\S+@\S+\.\S+/.test(data.contact_email || '')
-  return emailOk
-}
-
 function Field({ label, value, onChange, type = 'text' }) {
   return (
     <label className="block">
       <span className="mb-1 block text-sm font-medium text-[#334155]">{label}</span>
-      <input
-        type={type}
-        value={value || ''}
-        onChange={e => onChange(e.target.value)}
-        className="w-full rounded-xl border border-[#E2E8F0] px-3 py-2 text-sm outline-none focus:border-[#059669]"
-      />
-    </label>
-  )
-}
-
-function TextArea({ label, value, onChange }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-sm font-medium text-[#334155]">{label}</span>
-      <textarea
-        value={value || ''}
-        onChange={e => onChange(e.target.value)}
-        rows={4}
-        className="w-full rounded-xl border border-[#E2E8F0] px-3 py-2 text-sm outline-none focus:border-[#059669]"
-      />
+      <input type={type} value={value || ''} onChange={e => onChange(e.target.value)}
+        className="w-full rounded-xl border border-[#E2E8F0] px-3 py-2 text-sm outline-none focus:border-[#059669]" />
     </label>
   )
 }

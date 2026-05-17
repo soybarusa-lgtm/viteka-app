@@ -1,170 +1,109 @@
 import { useEffect, useState } from 'react'
 
-export default function EditProjectModal({
-  isOpen,
-  project,
-  clients = [],
-  onClose,
-  onSave,
-}) {
-  const [name, setName] = useState('')
-  const [clientId, setClientId] = useState('')
-  const [status, setStatus] = useState('active')
-  const [notes, setNotes] = useState('')
-  const [visibleToClient, setVisibleToClient] = useState(false)
-  const [loading, setLoading] = useState(false)
+export default function EditProjectModal({ isOpen, project, clients = [], onClose, onSave }) {
+  const [form, setForm] = useState({ name: '', client_id: '', status: 'active', notes: '', visible_to_client: false })
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (project) {
-      setName(project.name || '')
-      setClientId(project.client_id || '')
-      setStatus(project.status || 'active')
-      setNotes(project.notes || '')
-      setVisibleToClient(Boolean(project.visible_to_client))
+      setForm({
+        name: project.name || '',
+        client_id: project.client_id || '',
+        status: project.status || 'active',
+        notes: project.notes || '',
+        visible_to_client: project.visible_to_client || false,
+      })
     }
   }, [project])
 
-  if (!isOpen || !project) return null
+  useEffect(() => {
+    if (isOpen) document.body.style.overflow = 'hidden'
+    else document.body.style.overflow = ''
+    return () => { document.body.style.overflow = '' }
+  }, [isOpen])
 
-  async function submit(e) {
-    e.preventDefault()
-
-    if (!name.trim()) {
-      alert('El nombre es obligatorio.')
-      return
-    }
-
-    if (!clientId) {
-      alert('Selecciona un cliente.')
-      return
-    }
-
-    setLoading(true)
-
-    await onSave(project.id, {
-      name,
-      client_id: clientId,
-      status,
-      notes,
-      visible_to_client: visibleToClient,
-    })
-
-    setLoading(false)
+  function update(field, value) {
+    setForm(prev => ({ ...prev, [field]: value }))
   }
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-6">
-      <div className="w-full max-w-xl rounded-3xl border border-[#E2E8F0] bg-white shadow-xl">
-        <div className="border-b border-[#E2E8F0] px-7 py-6">
-          <h2 className="text-2xl tracking-[-0.03em] text-[#0F172A] font-medium">
-            Editar proyecto
-          </h2>
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setSubmitting(true)
+    try { await onSave(project.id, form) }
+    catch (err) { alert(err.message) }
+    finally { setSubmitting(false) }
+  }
 
-          <p className="mt-2 text-sm text-[#64748B]">
-            Modificar información del proyecto.
-          </p>
+  if (!isOpen || !project) return null
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-4">
+      <div className="mx-auto my-8 w-full max-w-xl rounded-3xl border border-[#E2E8F0] bg-white p-6 shadow-xl">
+        <div className="mb-6 flex items-start justify-between">
+          <h2 className="text-xl font-semibold text-[#0F172A]">Editar proyecto</h2>
+          <button type="button" onClick={onClose}
+            className="rounded-xl border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] hover:bg-[#F8FAFC]">
+            Cerrar
+          </button>
         </div>
 
-        <form onSubmit={submit} className="space-y-5 p-7">
-          <div>
-            <label className="mb-2 block text-xs uppercase tracking-wide text-[#64748B] font-medium">
-              Nombre
-            </label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Field label="Nombre *" value={form.name} onChange={v => update('name', v)} />
 
-            <input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              className="w-full rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4 text-sm outline-none focus:border-[#005643]"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-xs uppercase tracking-wide text-[#64748B] font-medium">
-              Cliente
-            </label>
-
-            <select
-              value={clientId}
-              onChange={e => setClientId(e.target.value)}
-              className="w-full rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4 text-sm outline-none focus:border-[#005643]"
-            >
-              <option value="">Seleccionar cliente</option>
-
-              {clients.map(client => (
-                <option key={client.id} value={client.id}>
-                  {client.name}
-                </option>
-              ))}
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-[#334155]">Farmacia</span>
+            <select value={form.client_id} onChange={e => update('client_id', e.target.value)}
+              className="w-full rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm outline-none focus:border-[#059669]">
+              <option value="">Selecciona una farmacia</option>
+              {clients.map(c => <option key={c.id} value={c.id}>{c.pharmacy_name || c.name}</option>)}
             </select>
-          </div>
+          </label>
 
-          <div>
-            <label className="mb-2 block text-xs uppercase tracking-wide text-[#64748B] font-medium">
-              Estado
-            </label>
-
-            <select
-              value={status}
-              onChange={e => setStatus(e.target.value)}
-              className="w-full rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4 text-sm outline-none focus:border-[#005643]"
-            >
-              <option value="draft">En revisión</option>
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-[#334155]">Estado</span>
+            <select value={form.status} onChange={e => update('status', e.target.value)}
+              className="w-full rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm outline-none focus:border-[#059669]">
+              <option value="draft">Borrador</option>
               <option value="active">Activo</option>
               <option value="completed">Completado</option>
               <option value="cancelled">Cancelado</option>
             </select>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-xs uppercase tracking-wide text-[#64748B] font-medium">
-              Notas
-            </label>
-
-            <textarea
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              className="min-h-[140px] w-full rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4 text-sm outline-none focus:border-[#005643]"
-            />
-          </div>
-
-          <label className="flex cursor-pointer items-start gap-4 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-5">
-            <input
-              type="checkbox"
-              checked={visibleToClient}
-              onChange={e => setVisibleToClient(e.target.checked)}
-              className="mt-1 h-5 w-5"
-            />
-
-            <div>
-              <p className="text-sm text-[#0F172A] font-medium">
-                Mostrar al cliente
-              </p>
-
-              <p className="mt-1 text-sm text-[#64748B]">
-                Si está marcado, este proyecto podrá mostrarse en el portal cliente cuando corresponda.
-              </p>
-            </div>
           </label>
 
-          <div className="flex justify-end gap-4 pt-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-2xl border border-[#E2E8F0] bg-white px-6 py-4 text-sm text-[#0F172A] hover:bg-[#F8FAFC]"
-            >
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-[#334155]">Notas</span>
+            <textarea value={form.notes} onChange={e => update('notes', e.target.value)} rows={3}
+              className="w-full rounded-xl border border-[#E2E8F0] px-3 py-2 text-sm outline-none focus:border-[#059669]" />
+          </label>
+
+          <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-[#334155]">
+            <input type="checkbox" checked={form.visible_to_client}
+              onChange={e => update('visible_to_client', e.target.checked)} />
+            Visible para el cliente
+          </label>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={onClose}
+              className="rounded-xl border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#334155] hover:bg-[#F8FAFC]">
               Cancelar
             </button>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-2xl bg-gradient-to-br from-[#00684F] to-[#009B73] px-6 py-4 text-sm text-white shadow-sm hover:opacity-95 disabled:opacity-60"
-            >
-              {loading ? 'Guardando...' : 'Guardar cambios'}
+            <button type="submit" disabled={submitting}
+              className="rounded-xl bg-[#005643] px-5 py-2 text-sm font-semibold text-white disabled:opacity-60">
+              {submitting ? 'Guardando...' : 'Guardar cambios'}
             </button>
           </div>
         </form>
       </div>
     </div>
+  )
+}
+
+function Field({ label, value, onChange, type = 'text' }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-sm font-medium text-[#334155]">{label}</span>
+      <input type={type} value={value || ''} onChange={e => onChange(e.target.value)}
+        className="w-full rounded-xl border border-[#E2E8F0] px-3 py-2 text-sm outline-none focus:border-[#059669]" />
+    </label>
   )
 }

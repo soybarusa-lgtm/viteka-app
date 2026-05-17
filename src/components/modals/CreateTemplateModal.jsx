@@ -1,58 +1,63 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export default function CreateTemplateModal({ isOpen, onClose, onCreate }) {
-  const [name,        setName]        = useState('')
-  const [description, setDescription] = useState('')
-  const [loading,     setLoading]     = useState(false)
+  const [form, setForm] = useState({ name: '', description: '' })
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (isOpen) document.body.style.overflow = 'hidden'
+    else document.body.style.overflow = ''
+    return () => { document.body.style.overflow = '' }
+  }, [isOpen])
+
+  function handleClose() {
+    setForm({ name: '', description: '' })
+    onClose()
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!form.name.trim()) { alert('El nombre es obligatorio.'); return }
+    setSubmitting(true)
+    try { await onCreate(form) }
+    catch (err) { alert(err.message) }
+    finally { setSubmitting(false) }
+  }
 
   if (!isOpen) return null
 
-  async function submit(e) {
-    e.preventDefault()
-    if (!name.trim()) { alert('El nombre es obligatorio.'); return }
-    setLoading(true)
-    await onCreate({ name, description })
-    setLoading(false)
-    setName(''); setDescription('')
-  }
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-[#E8EDF2] bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-[#F1F5F9] px-6 py-4">
-          <div>
-            <h2 className="text-[15px] font-semibold text-[#0F172A]">Nueva plantilla</h2>
-            <p className="text-[12px] text-[#94A3B8]">Crea una plantilla de checklist reutilizable</p>
-          </div>
-          <button type="button" onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[#94A3B8] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition">
-            ✕
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-4">
+      <div className="mx-auto my-8 w-full max-w-lg rounded-3xl border border-[#E2E8F0] bg-white p-6 shadow-xl">
+        <div className="mb-6 flex items-start justify-between">
+          <h2 className="text-xl font-semibold text-[#0F172A]">Nueva plantilla</h2>
+          <button type="button" onClick={handleClose}
+            className="rounded-xl border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] hover:bg-[#F8FAFC]">
+            Cerrar
           </button>
         </div>
 
-        <form onSubmit={submit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <label className="block">
-            <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#94A3B8]">Nombre</span>
-            <input value={name} onChange={e => setName(e.target.value)} autoFocus
-              className="w-full rounded-xl border border-[#E8EDF2] bg-[#F8FAFC] px-4 py-2.5 text-[13px] outline-none focus:border-[#005643] focus:bg-white focus:ring-1 focus:ring-[#005643]/20"
-              placeholder="Inspección mensual..." />
+            <span className="mb-1 block text-sm font-medium text-[#334155]">Nombre *</span>
+            <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+              className="w-full rounded-xl border border-[#E2E8F0] px-3 py-2 text-sm outline-none focus:border-[#059669]" />
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#94A3B8]">Descripción</span>
-            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3}
-              className="w-full resize-none rounded-xl border border-[#E8EDF2] bg-[#F8FAFC] px-4 py-2.5 text-[13px] outline-none focus:border-[#005643] focus:bg-white focus:ring-1 focus:ring-[#005643]/20"
-              placeholder="Breve descripción del uso de la plantilla" />
+            <span className="mb-1 block text-sm font-medium text-[#334155]">Descripción</span>
+            <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3}
+              className="w-full rounded-xl border border-[#E2E8F0] px-3 py-2 text-sm outline-none focus:border-[#059669]" />
           </label>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose}
-              className="rounded-xl border border-[#E8EDF2] bg-white px-5 py-2.5 text-[13px] font-medium text-[#64748B] hover:bg-[#F8FAFC]">
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={handleClose}
+              className="rounded-xl border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#334155] hover:bg-[#F8FAFC]">
               Cancelar
             </button>
-            <button type="submit" disabled={loading}
-              className="rounded-xl bg-[#005643] px-5 py-2.5 text-[13px] font-medium text-white hover:bg-[#00442f] disabled:opacity-60">
-              {loading ? 'Creando...' : 'Crear plantilla'}
+            <button type="submit" disabled={submitting}
+              className="rounded-xl bg-[#005643] px-5 py-2 text-sm font-semibold text-white disabled:opacity-60">
+              {submitting ? 'Creando...' : 'Crear plantilla'}
             </button>
           </div>
         </form>
