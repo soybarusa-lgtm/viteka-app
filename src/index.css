@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* ── Tokens de tema ───────────────────────────────────────────────────────── */
+/* ── Tokens de tema ─────────────────────────────────────────────────────── */
 :root,
 [data-theme="light"] {
   --bg:                #f8fafc;
@@ -18,8 +18,6 @@
   --danger:            #b91c1c;
   --ring:              #005643;
   --row-hover:         #f8fafc;
-
-  /* Badges */
   --badge-green-bg:    #dcfce7;
   --badge-green-text:  #166534;
   --badge-red-bg:      #fee2e2;
@@ -48,7 +46,6 @@
   --danger:            #f87171;
   --ring:              #1fa37e;
   --row-hover:         #112219;
-
   --badge-green-bg:    rgba(31,163,126,0.18);
   --badge-green-text:  #6ee7b7;
   --badge-red-bg:      rgba(248,113,113,0.16);
@@ -77,7 +74,6 @@
   --danger:            #c2410c;
   --ring:              #006b53;
   --row-hover:         #f0fdf9;
-
   --badge-green-bg:    #dcfce7;
   --badge-green-text:  #166534;
   --badge-red-bg:      #fee2e2;
@@ -106,7 +102,6 @@
   --danger:            #be123c;
   --ring:              #be123c;
   --row-hover:         #fff5f5;
-
   --badge-green-bg:    #dcfce7;
   --badge-green-text:  #166534;
   --badge-red-bg:      #fee2e2;
@@ -119,39 +114,45 @@
   --badge-gray-text:   #6b7280;
 }
 
-/* ── Transición suave entre temas ─────────────────────────────────────────── */
+/* ── Transición suave entre temas ─────────────────────────────────────── */
 *, *::before, *::after {
   transition-property: background-color, border-color, color, box-shadow;
   transition-duration: 200ms;
   transition-timing-function: ease;
 }
 
-/* ── Componentes globales temáticos ───────────────────────────────────────── */
+/* ── Componentes globales (CSS puro, sin @apply) ──────────────────────── */
 @layer components {
-  @reference "tailwindcss";
 
-  /* Tarjeta base */
   .card {
-    @apply rounded-2xl border;
+    border-radius: 1rem;
+    border-width: 1px;
+    border-style: solid;
     background-color: var(--surface);
     border-color: var(--border);
     color: var(--text);
   }
   .card-soft {
-    @apply rounded-2xl border;
+    border-radius: 1rem;
+    border-width: 1px;
+    border-style: solid;
     background-color: var(--surface-soft);
     border-color: var(--border);
     color: var(--text);
   }
 
-  /* Input / Select / Textarea */
   .input {
-    @apply w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none
-           focus:ring-2;
+    width: 100%;
+    border-radius: 0.75rem;
+    border-width: 1px;
+    border-style: solid;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    outline: none;
     background-color: var(--surface);
     border-color: var(--border);
     color: var(--text);
-    --tw-ring-color: var(--ring);
   }
   .input::placeholder { color: var(--muted); }
   .input:focus {
@@ -159,210 +160,281 @@
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent);
   }
 
-  /* Botón primario */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl
-           px-4 py-2.5 text-sm font-medium text-white
-           transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.75rem;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #fff;
     background-color: var(--primary);
+    transition: background-color 150ms ease;
+    cursor: pointer;
+    border: none;
   }
-  .btn-primary:hover:not(:disabled) {
-    background-color: var(--primary-hover);
-  }
+  .btn-primary:hover:not(:disabled) { background-color: var(--primary-hover); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  /* Botón secundario (outline) */
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl
-           border px-4 py-2.5 text-sm font-medium
-           transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.75rem;
+    border-width: 1px;
+    border-style: solid;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
     border-color: var(--border);
     background-color: var(--surface);
     color: var(--text);
+    transition: background-color 150ms ease;
+    cursor: pointer;
   }
-  .btn-secondary:hover:not(:disabled) {
-    background-color: var(--surface-soft);
-  }
+  .btn-secondary:hover:not(:disabled) { background-color: var(--surface-soft); }
+  .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  /* Botón ghost */
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl
-           px-3 py-2 text-sm font-medium transition-colors
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
     color: var(--muted);
+    background: transparent;
+    border: none;
+    transition: background-color 150ms ease, color 150ms ease;
+    cursor: pointer;
   }
-  .btn-ghost:hover:not(:disabled) {
-    background-color: var(--surface-soft);
-    color: var(--text);
-  }
+  .btn-ghost:hover:not(:disabled) { background-color: var(--surface-soft); color: var(--text); }
+  .btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  /* Botón destructivo */
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl
-           px-4 py-2.5 text-sm font-medium transition-colors
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.75rem;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
     background-color: var(--badge-red-bg);
     color: var(--badge-red-text);
+    border: none;
+    transition: filter 150ms ease;
+    cursor: pointer;
   }
-  .btn-danger:hover:not(:disabled) {
-    filter: brightness(0.92);
-  }
+  .btn-danger:hover:not(:disabled) { filter: brightness(0.92); }
+  .btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  /* Página wrapper */
   .page {
-    @apply min-h-full;
+    min-height: 100%;
     color: var(--text);
   }
-
-  /* Cabecera de sección */
   .page-header {
-    @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (min-width: 640px) {
+    .page-header {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
   }
   .page-title {
-    @apply text-xl font-semibold tracking-tight;
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.025em;
     color: var(--text);
   }
   .page-subtitle {
-    @apply text-sm mt-0.5;
+    font-size: 0.875rem;
+    margin-top: 0.125rem;
     color: var(--text-soft);
   }
-
-  /* Divisor */
   .divider {
-    @apply h-px w-full my-4;
+    height: 1px;
+    width: 100%;
+    margin: 1rem 0;
     background-color: var(--border);
   }
 
-  /* ── Badges ─────────────────────────────────────────────────────────────── */
+  /* Badges */
   .badge {
-    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 9999px;
+    padding: 0.125rem 0.625rem;
+    font-size: 11px;
+    font-weight: 500;
   }
-  .badge-green {
-    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium;
-    background-color: var(--badge-green-bg);
-    color: var(--badge-green-text);
-  }
-  .badge-red {
-    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium;
-    background-color: var(--badge-red-bg);
-    color: var(--badge-red-text);
-  }
-  .badge-amber {
-    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium;
-    background-color: var(--badge-amber-bg);
-    color: var(--badge-amber-text);
-  }
-  .badge-blue {
-    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium;
-    background-color: var(--badge-blue-bg);
-    color: var(--badge-blue-text);
-  }
-  .badge-gray {
-    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium;
-    background-color: var(--badge-gray-bg);
-    color: var(--badge-gray-text);
-  }
+  .badge-green  { display: inline-flex; align-items: center; gap: 0.25rem; border-radius: 9999px; padding: 0.125rem 0.625rem; font-size: 11px; font-weight: 500; background-color: var(--badge-green-bg);  color: var(--badge-green-text); }
+  .badge-red    { display: inline-flex; align-items: center; gap: 0.25rem; border-radius: 9999px; padding: 0.125rem 0.625rem; font-size: 11px; font-weight: 500; background-color: var(--badge-red-bg);    color: var(--badge-red-text); }
+  .badge-amber  { display: inline-flex; align-items: center; gap: 0.25rem; border-radius: 9999px; padding: 0.125rem 0.625rem; font-size: 11px; font-weight: 500; background-color: var(--badge-amber-bg);  color: var(--badge-amber-text); }
+  .badge-blue   { display: inline-flex; align-items: center; gap: 0.25rem; border-radius: 9999px; padding: 0.125rem 0.625rem; font-size: 11px; font-weight: 500; background-color: var(--badge-blue-bg);   color: var(--badge-blue-text); }
+  .badge-gray   { display: inline-flex; align-items: center; gap: 0.25rem; border-radius: 9999px; padding: 0.125rem 0.625rem; font-size: 11px; font-weight: 500; background-color: var(--badge-gray-bg);   color: var(--badge-gray-text); }
 
-  /* ── Tabla ───────────────────────────────────────────────────────────────── */
+  /* Tabla */
   .table-wrap {
-    @apply w-full overflow-x-auto rounded-2xl border;
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 1rem;
+    border-width: 1px;
+    border-style: solid;
     background-color: var(--surface);
     border-color: var(--border);
   }
   .table-base {
-    @apply w-full text-sm;
+    width: 100%;
+    font-size: 0.875rem;
     background-color: var(--surface);
   }
   .table-base thead tr {
-    @apply border-b text-xs font-medium uppercase tracking-wide;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     border-color: var(--border);
     background-color: var(--surface-soft);
     color: var(--muted);
   }
   .table-base th {
-    @apply px-4 py-3 text-left;
+    padding: 0.75rem 1rem;
+    text-align: left;
     color: var(--muted);
   }
   .table-base td {
-    @apply px-4 py-3;
+    padding: 0.75rem 1rem;
     color: var(--text-soft);
     background-color: var(--surface);
   }
   .table-base tbody tr {
-    @apply border-b last:border-0 transition-colors;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
     border-color: var(--border);
     background-color: var(--surface);
+    transition: background-color 150ms ease;
   }
-  .table-base tbody tr:hover td {
-    background-color: var(--row-hover);
-  }
+  .table-base tbody tr:last-child { border-bottom: none; }
+  .table-base tbody tr:hover td { background-color: var(--row-hover); }
 
-  /* ── Modal ───────────────────────────────────────────────────────────────── */
+  /* Modal */
   .modal-overlay {
-    @apply fixed inset-0 z-[300] flex items-end sm:items-center justify-center p-4;
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 1rem;
     background-color: rgba(0,0,0,0.55);
     backdrop-filter: blur(4px);
   }
+  @media (min-width: 640px) { .modal-overlay { align-items: center; } }
   .modal-panel {
-    @apply w-full max-w-lg rounded-2xl border p-6 shadow-2xl;
+    width: 100%;
+    max-width: 32rem;
+    border-radius: 1rem;
+    border-width: 1px;
+    border-style: solid;
+    padding: 1.5rem;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
     background-color: var(--surface-elevated);
     border-color: var(--border);
   }
   .modal-title {
-    @apply text-base font-semibold mb-4;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
     color: var(--text);
   }
 
-  /* ── Empty state ─────────────────────────────────────────────────────────── */
+  /* Empty state */
   .empty-state {
-    @apply flex flex-col items-center justify-center gap-3 rounded-2xl border py-16 text-center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    border-radius: 1rem;
+    border-width: 1px;
+    border-style: solid;
+    padding: 4rem 1rem;
+    text-align: center;
     border-color: var(--border);
     background-color: var(--surface);
     color: var(--muted);
   }
 
-  /* ── Progress bar ────────────────────────────────────────────────────────── */
+  /* Progress bar */
   .progress-track {
-    @apply h-1.5 w-full overflow-hidden rounded-full;
+    height: 0.375rem;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 9999px;
     background-color: var(--surface-soft);
   }
   .progress-bar {
-    @apply h-full rounded-full transition-all duration-500;
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 500ms ease;
     background-color: var(--primary);
   }
 
-  /* ── KPI card ────────────────────────────────────────────────────────────── */
+  /* KPI card */
   .kpi-card {
-    @apply flex flex-col justify-between gap-1 p-5 rounded-2xl border;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 0.25rem;
+    padding: 1.25rem;
+    border-radius: 1rem;
+    border-width: 1px;
+    border-style: solid;
     background-color: var(--surface);
     border-color: var(--border);
   }
-  .kpi-label {
-    @apply text-[12px];
-    color: var(--text-soft);
-  }
-  .kpi-value {
-    @apply text-3xl font-semibold tracking-tight;
-    color: var(--text);
-  }
-  .kpi-sub {
-    @apply text-[12px];
-    color: var(--muted);
-  }
+  .kpi-label { font-size: 12px; color: var(--text-soft); }
+  .kpi-value { font-size: 1.875rem; font-weight: 600; letter-spacing: -0.025em; color: var(--text); }
+  .kpi-sub   { font-size: 12px; color: var(--muted); }
 
-  /* ── Tab bar ─────────────────────────────────────────────────────────────── */
+  /* Tab bar */
   .tab-bar {
-    @apply flex gap-1 rounded-xl p-1;
+    display: flex;
+    gap: 0.25rem;
+    border-radius: 0.75rem;
+    padding: 0.25rem;
     background-color: var(--surface-soft);
     border: 1px solid var(--border);
   }
   .tab-item {
-    @apply flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
     color: var(--muted);
+    transition: background-color 150ms ease, color 150ms ease;
+    cursor: pointer;
+    border: none;
+    background: transparent;
   }
-  .tab-item:hover {
-    color: var(--text);
-    background-color: var(--surface);
-  }
+  .tab-item:hover { color: var(--text); background-color: var(--surface); }
   .tab-item.active {
     background-color: var(--surface-elevated);
     color: var(--text);
@@ -370,7 +442,7 @@
   }
 }
 
-/* ── Clases de utilidad del sistema ───────────────────────────────────────── */
+/* ── Utilidades de tema ───────────────────────────────────────────────── */
 .bg-theme        { background-color: var(--bg) !important; }
 .bg-surface      { background-color: var(--surface) !important; }
 .bg-surface-soft { background-color: var(--surface-soft) !important; }
@@ -381,22 +453,20 @@
 .text-primary    { color: var(--primary) !important; }
 .bg-primary-soft { background-color: var(--primary-soft) !important; }
 
-/* ── Safe area ────────────────────────────────────────────────────────────── */
+/* ── Safe area ─────────────────────────────────────────────────────────── */
 :root {
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top:    env(safe-area-inset-top, 0px);
 }
 
-/* ── Scroll & tap ─────────────────────────────────────────────────────────── */
+/* ── Scroll & tap ───────────────────────────────────────────────────── */
 * { -webkit-tap-highlight-color: transparent; }
-
 html {
   scroll-behavior: smooth;
   height: -webkit-fill-available;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
-
 body {
   min-height: 100vh;
   min-height: -webkit-fill-available;
@@ -404,13 +474,10 @@ body {
   background-color: var(--bg);
   color: var(--text);
 }
-
 .overflow-y-auto,
-.overflow-y-scroll {
-  -webkit-overflow-scrolling: touch;
-}
+.overflow-y-scroll { -webkit-overflow-scrolling: touch; }
 
-/* ── Select custom arrow ──────────────────────────────────────────────────── */
+/* ── Select arrow ───────────────────────────────────────────────────── */
 select {
   -webkit-appearance: none;
   appearance: none;
