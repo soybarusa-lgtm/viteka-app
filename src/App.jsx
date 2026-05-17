@@ -31,8 +31,6 @@ import CreateChecklistModal from './components/modals/CreateChecklistModal'
 import CreateTemplateModal from './components/modals/CreateTemplateModal'
 import UsersPage from './pages/UsersPage'
 
-const COMPANY_ID = '53d152e5-8459-4996-aa9e-e27ecd97892d'
-
 export default function App() {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -85,8 +83,6 @@ export default function App() {
 
   async function loadInitialData() {
     const loadedProfile = await loadProfile()
-    console.log('SESSION USER ID:', session?.user?.id)
-console.log('SESSION EMAIL:', session?.user?.email)
     await Promise.all([
       loadClients(),
       loadProjects(loadedProfile),
@@ -96,39 +92,28 @@ console.log('SESSION EMAIL:', session?.user?.email)
   }
 
   async function loadProfile() {
-  const userId = session?.user?.id
-  if (!userId) return null
+    const userId = session?.user?.id
+    if (!userId) return null
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle()
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle()
 
-  if (error) {
-    console.error('loadProfile error:', error.message)
-    setProfile({
-      id: userId,
-      full_name: session?.user?.email || 'Usuario',
-      role: 'owner', // fallback temporal
-      portal_type: 'internal',
-    })
-    return null
+    if (error) {
+      console.error('loadProfile error:', error.message)
+      return null
+    }
+
+    if (!data) {
+      // No profile found — do not assign any role or permissions
+      return null
+    }
+
+    setProfile(data)
+    return data
   }
-
-  if (!data) {
-    setProfile({
-      id: userId,
-      full_name: session?.user?.email || 'Usuario',
-      role: 'owner', // fallback temporal
-      portal_type: 'internal',
-    })
-    return null
-  }
-
-  setProfile(data)
-  return data
-}
 
   function isTechnician(userProfile = profile) {
     return userProfile?.role === 'technician'
@@ -297,10 +282,12 @@ console.log('SESSION EMAIL:', session?.user?.email)
   }
 
   async function createClient(clientData) {
+    if (!profile?.company_id) return
+
     const { data, error } = await supabase
       .from('clients')
       .insert({
-        company_id: COMPANY_ID,
+        company_id: profile.company_id,
         name: clientData.name,
         pharmacy_name: clientData.pharmacy_name || clientData.name,
         pharmacist_owner: clientData.pharmacist_owner || '',
@@ -429,10 +416,12 @@ console.log('SESSION EMAIL:', session?.user?.email)
   }
 
   async function createProject(projectData) {
+    if (!profile?.company_id) return
+
     const { data, error } = await supabase
       .from('projects')
       .insert({
-        company_id: COMPANY_ID,
+        company_id: profile.company_id,
         client_id: projectData.client_id,
         assigned_technician_id: session.user.id,
         name: projectData.name,
@@ -532,10 +521,12 @@ console.log('SESSION EMAIL:', session?.user?.email)
   }
 
   async function createTemplate(templateData) {
+    if (!profile?.company_id) return
+
     const { data, error } = await supabase
       .from('checklist_templates')
       .insert({
-        company_id: COMPANY_ID,
+        company_id: profile.company_id,
         name: templateData.name,
         description: templateData.description || '',
         is_active: true,
@@ -564,6 +555,8 @@ console.log('SESSION EMAIL:', session?.user?.email)
   }
 
   async function duplicateTemplate(templateId) {
+    if (!profile?.company_id) return
+
     const original = templates.find(template => template.id === templateId)
 
     if (!original) {
@@ -574,7 +567,7 @@ console.log('SESSION EMAIL:', session?.user?.email)
     const { data: newTemplate, error: templateError } = await supabase
       .from('checklist_templates')
       .insert({
-        company_id: COMPANY_ID,
+        company_id: profile.company_id,
         name: `${original.name} - copia`,
         description: original.description || '',
         is_active: true,
@@ -925,36 +918,36 @@ console.log('SESSION EMAIL:', session?.user?.email)
   }
 
   function changePage(page) {
-  if (
-    page === 'audit' &&
-    profile?.role !== 'owner' &&
-    profile?.role !== 'admin'
-  ) {
-    setCurrentPage('dashboard')
-    return
+    if (
+      page === 'audit' &&
+      profile?.role !== 'owner' &&
+      profile?.role !== 'admin'
+    ) {
+      setCurrentPage('dashboard')
+      return
+    }
+
+    if (
+      page === 'settings' &&
+      profile?.role !== 'owner' &&
+      profile?.role !== 'admin'
+    ) {
+      setCurrentPage('dashboard')
+      return
+    }
+
+    if (
+      page === 'users' &&
+      profile?.role !== 'owner' &&
+      profile?.role !== 'admin'
+    ) {
+      setCurrentPage('dashboard')
+      return
+    }
+
+    setSelectedClientId(null)
+    setCurrentPage(page)
   }
-
-  if (
-    page === 'settings' &&
-    profile?.role !== 'owner' &&
-    profile?.role !== 'admin'
-  ) {
-    setCurrentPage('dashboard')
-    return
-  }
-
-  if (
-  page === 'users' &&
-  profile?.role !== 'owner' &&
-  profile?.role !== 'admin'
-) {
-  setCurrentPage('dashboard')
-  return
-}
-
-  setSelectedClientId(null)
-  setCurrentPage(page)
-}
 
   if (!session) {
     return (
@@ -997,6 +990,24 @@ console.log('SESSION EMAIL:', session?.user?.email)
               {errorMsg}
             </p>
           )}
+        </div>
+      </div>
+    )
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
+        <div className="w-full max-w-md rounded-3xl bg-white border border-[#E2E8F0] shadow-sm p-8 text-center">
+          <p className="text-[#64748B]">
+            Tu cuenta no tiene un perfil asignado. Contacta con el administrador.
+          </p>
+          <button
+            onClick={logout}
+            className="mt-4 text-sm text-[#005643] underline"
+          >
+            Cerrar sesión
+          </button>
         </div>
       </div>
     )
@@ -1054,21 +1065,21 @@ console.log('SESSION EMAIL:', session?.user?.email)
         )}
 
         {currentPage === 'users' &&
-  (profile?.role === 'owner' || profile?.role === 'admin') && (
-    <UsersPage
-  currentUser={profile}
-  onUserUpdated={async (oldUser, newUser) => {
-    await createActivityLog({
-      userId: session.user.id,
-      entityType: 'profile',
-      entityId: newUser.id,
-      action: 'update',
-      oldValue: oldUser,
-      newValue: newUser,
-    })
-  }}
-/>
-  )}
+          (profile?.role === 'owner' || profile?.role === 'admin') && (
+            <UsersPage
+              currentUser={profile}
+              onUserUpdated={async (oldUser, newUser) => {
+                await createActivityLog({
+                  userId: session.user.id,
+                  entityType: 'profile',
+                  entityId: newUser.id,
+                  action: 'update',
+                  oldValue: oldUser,
+                  newValue: newUser,
+                })
+              }}
+            />
+          )}
 
         {currentPage === 'projects' && (
           <ProjectsPage
