@@ -2,16 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 
 /**
  * useThemeMode
- * Gestiona el tema visual de la app de forma dinámica:
- * - El usuario puede elegir 'light' o 'dark'
- * - Si hay incidencias críticas abiertas → tema 'alert' automático
- * - Si hay tareas vencidas → tema 'focus' automático
- * La preferencia del usuario se persiste en localStorage.
+ * Modo oscuro temporalmente deshabilitado.
+ * Siempre aplica 'light' (o 'alert'/'focus' por contexto operativo).
  */
 export function useThemeMode({ incidents = [], tasks = [] } = {}) {
-  const [userTheme, setUserTheme] = useState(
-    () => localStorage.getItem('viteka-theme') || 'light'
-  )
+  // Dark deshabilitado: forzamos 'light' como base siempre
+  const [userTheme] = useState('light')
 
   const appTheme = useMemo(() => {
     const criticalOpen = incidents.filter(
@@ -28,20 +24,18 @@ export function useThemeMode({ incidents = [], tasks = [] } = {}) {
 
     if (criticalOpen > 0) return 'alert'
     if (overdue > 0) return 'focus'
-    return userTheme
-  }, [incidents, tasks, userTheme])
+    return 'light'
+  }, [incidents, tasks])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', appTheme)
+    // Limpia cualquier preferencia dark guardada en localStorage
+    localStorage.setItem('viteka-theme', 'light')
   }, [appTheme])
 
-  useEffect(() => {
-    localStorage.setItem('viteka-theme', userTheme)
-  }, [userTheme])
-
-  function toggleTheme() {
-    setUserTheme(prev => (prev === 'light' ? 'dark' : 'light'))
-  }
+  // toggleTheme no-op hasta que se reactive el dark mode
+  function toggleTheme() {}
+  function setUserTheme() {}
 
   return { theme: appTheme, userTheme, setUserTheme, toggleTheme }
 }
