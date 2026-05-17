@@ -23,19 +23,20 @@ function timeAgo(dateStr) {
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
-function KpiCard({ icon, label, value, sub, accent = '#005643' }) {
+function KpiCard({ icon, label, value, sub, accent }) {
+  const color = accent || 'var(--primary)'
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-[#E8EDF2] bg-white p-6">
+    <div className="card flex flex-col justify-between">
       <div
         className="flex h-10 w-10 items-center justify-center rounded-xl"
-        style={{ backgroundColor: accent + '18' }}
+        style={{ backgroundColor: color + '22' }}
       >
-        <span style={{ color: accent }}>{icon}</span>
+        <span style={{ color }}>{icon}</span>
       </div>
       <div className="mt-5">
-        <p className="text-[13px] text-[#94A3B8]">{label}</p>
-        <p className="mt-1 text-3xl font-semibold tracking-tight text-[#0F172A]">{value}</p>
-        {sub && <p className="mt-1 text-[12px] text-[#94A3B8]">{sub}</p>}
+        <p className="text-[13px]" style={{ color: 'var(--muted)' }}>{label}</p>
+        <p className="mt-1 text-3xl font-semibold tracking-tight" style={{ color: 'var(--text)' }}>{value}</p>
+        {sub && <p className="mt-1 text-[12px]" style={{ color: 'var(--muted)' }}>{sub}</p>}
       </div>
     </div>
   )
@@ -46,7 +47,22 @@ function QuickAction({ icon, label, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-3 rounded-xl border border-[#E8EDF2] bg-white px-4 py-3 text-[13px] font-medium text-[#334155] transition hover:border-[#005643]/30 hover:bg-[#f0fdf8] hover:text-[#005643]"
+      className="flex items-center gap-3 rounded-xl border px-4 py-3 text-[13px] font-medium transition"
+      style={{
+        borderColor: 'var(--border)',
+        backgroundColor: 'var(--surface)',
+        color: 'var(--text)',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = 'var(--primary)'
+        e.currentTarget.style.backgroundColor = 'var(--primary-soft)'
+        e.currentTarget.style.color = 'var(--primary)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = 'var(--border)'
+        e.currentTarget.style.backgroundColor = 'var(--surface)'
+        e.currentTarget.style.color = 'var(--text)'
+      }}
     >
       <span className="text-base">{icon}</span>
       {label}
@@ -56,23 +72,16 @@ function QuickAction({ icon, label, onClick }) {
 
 function StatusBadge({ status }) {
   const map = {
-    active:    { label: 'Activo',      bg: '#DCFCE7', color: '#166534' },
-    pending:   { label: 'Pendiente',   bg: '#FEF9C3', color: '#854D0E' },
-    blocked:   { label: 'Bloqueado',   bg: '#FEE2E2', color: '#991B1B' },
-    review:    { label: 'En revisión', bg: '#DBEAFE', color: '#1E40AF' },
-    completed: { label: 'Finalizado',  bg: '#F1F5F9', color: '#475569' },
-    cancelled: { label: 'Cancelado',   bg: '#F1F5F9', color: '#94A3B8' },
-    in_progress: { label: 'En curso',  bg: '#DCFCE7', color: '#166534' },
+    active:      { label: 'Activo',      cls: 'badge-green' },
+    in_progress: { label: 'En curso',    cls: 'badge-green' },
+    pending:     { label: 'Pendiente',   cls: 'badge-amber' },
+    blocked:     { label: 'Bloqueado',   cls: 'badge-red'   },
+    review:      { label: 'En revisión', cls: 'badge-blue'  },
+    completed:   { label: 'Finalizado',  cls: 'badge-gray'  },
+    cancelled:   { label: 'Cancelado',   cls: 'badge-gray'  },
   }
-  const cfg = map[status] || { label: status, bg: '#F1F5F9', color: '#64748B' }
-  return (
-    <span
-      className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-      style={{ backgroundColor: cfg.bg, color: cfg.color }}
-    >
-      {cfg.label}
-    </span>
-  )
+  const cfg = map[status] || { label: status, cls: 'badge-gray' }
+  return <span className={cfg.cls}>{cfg.label}</span>
 }
 
 function PriorityDot({ priority }) {
@@ -80,12 +89,12 @@ function PriorityDot({ priority }) {
     urgent: '#EF4444',
     high:   '#F97316',
     medium: '#EAB308',
-    low:    '#94A3B8',
+    low:    'var(--muted)',
   }
   return (
     <span
-      className="inline-block h-2 w-2 rounded-full"
-      style={{ backgroundColor: map[priority] || '#94A3B8' }}
+      className="inline-block h-2 w-2 rounded-full shrink-0"
+      style={{ backgroundColor: map[priority] || 'var(--muted)' }}
       title={priority}
     />
   )
@@ -94,13 +103,13 @@ function PriorityDot({ priority }) {
 function ProgressBar({ value = 0 }) {
   return (
     <div className="flex items-center gap-2">
-      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[#E8EDF2]">
+      <div className="h-1.5 w-24 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--surface-soft)' }}>
         <div
-          className="h-full rounded-full bg-[#005643]"
-          style={{ width: `${value}%` }}
+          className="h-full rounded-full transition-all"
+          style={{ width: `${value}%`, backgroundColor: 'var(--primary)' }}
         />
       </div>
-      <span className="text-[12px] text-[#94A3B8]">{value}%</span>
+      <span className="text-[12px]" style={{ color: 'var(--muted)' }}>{value}%</span>
     </div>
   )
 }
@@ -108,7 +117,7 @@ function ProgressBar({ value = 0 }) {
 function EmptyRow({ cols, message }) {
   return (
     <tr>
-      <td colSpan={cols} className="px-6 py-10 text-center text-sm text-[#94A3B8]">
+      <td colSpan={cols} className="px-6 py-10 text-center text-sm" style={{ color: 'var(--muted)' }}>
         {message}
       </td>
     </tr>
@@ -125,24 +134,15 @@ export default function Dashboard({
   checklists = [],
   onNavigate,
 }) {
-  // KPI calculations
   const stats = useMemo(() => {
     const activeProjects = projects.filter(p =>
       p.status === 'active' || p.status === 'in_progress'
     )
     const pendingChecklists = checklists.filter(c => c.status !== 'completed')
-    const blockedTasks = checklists.reduce(
-      (acc, c) => acc + (c.stats?.blocked || 0), 0
-    )
-    const totalTasks = checklists.reduce(
-      (acc, c) => acc + (c.stats?.total || 0), 0
-    )
-    const completedTasks = checklists.reduce(
-      (acc, c) => acc + (c.stats?.completed || 0), 0
-    )
-    const globalProgress = totalTasks > 0
-      ? Math.round((completedTasks / totalTasks) * 100)
-      : 0
+    const blockedTasks = checklists.reduce((acc, c) => acc + (c.stats?.blocked || 0), 0)
+    const totalTasks = checklists.reduce((acc, c) => acc + (c.stats?.total || 0), 0)
+    const completedTasks = checklists.reduce((acc, c) => acc + (c.stats?.completed || 0), 0)
+    const globalProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
 
     return {
       totalClients: clients.length,
@@ -155,16 +155,14 @@ export default function Dashboard({
     }
   }, [clients, projects, checklists])
 
-  // Recent data
-  const recentProjects = projects.slice(0, 6)
+  const recentProjects  = projects.slice(0, 6)
   const recentChecklists = checklists.slice(0, 5)
 
-  // Projects by status for mini chart
   const byStatus = useMemo(() => [
-    { label: 'Activos',     count: projects.filter(p => p.status === 'active').length,    color: '#005643' },
+    { label: 'Activos',     count: projects.filter(p => p.status === 'active').length,    color: 'var(--primary)' },
     { label: 'Pendientes',  count: projects.filter(p => p.status === 'pending').length,   color: '#EAB308' },
-    { label: 'Bloqueados',  count: projects.filter(p => p.status === 'blocked').length,   color: '#EF4444' },
-    { label: 'Finalizados', count: projects.filter(p => p.status === 'completed').length, color: '#94A3B8' },
+    { label: 'Bloqueados',  count: projects.filter(p => p.status === 'blocked').length,   color: 'var(--danger)' },
+    { label: 'Finalizados', count: projects.filter(p => p.status === 'completed').length, color: 'var(--muted)' },
   ], [projects])
 
   function go(page) {
@@ -175,12 +173,10 @@ export default function Dashboard({
     <div className="space-y-8">
 
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#0F172A]">Dashboard</h1>
-          <p className="mt-1 text-sm text-[#94A3B8]">
-            Resumen de actividad del portal de soporte técnico
-          </p>
+          <h1 className="page-title text-2xl">Dashboard</h1>
+          <p className="page-subtitle">Resumen de actividad del portal de soporte técnico</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <QuickAction icon="＋" label="Nueva farmacia"  onClick={() => go('clients')} />
@@ -191,78 +187,57 @@ export default function Dashboard({
 
       {/* KPI row */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KpiCard
-          icon={<IconPharmacy />}
-          label="Farmacias"
-          value={stats.totalClients}
-          sub="clientes activos"
-        />
-        <KpiCard
-          icon={<IconFolder />}
-          label="Proyectos activos"
-          value={stats.activeProjects}
-          sub={`de ${projects.length} totales`}
-        />
-        <KpiCard
-          icon={<IconChecklist />}
-          label="Checklists en curso"
-          value={stats.pendingChecklists}
-          sub={`${stats.globalProgress}% completado global`}
-        />
-        <KpiCard
-          icon={<IconAlert />}
-          label="Tareas bloqueadas"
-          value={stats.blockedTasks}
-          sub="requieren atención"
-          accent="#EF4444"
-        />
+        <KpiCard icon={<IconPharmacy />}  label="Farmacias"          value={stats.totalClients}        sub="clientes activos" />
+        <KpiCard icon={<IconFolder />}    label="Proyectos activos"  value={stats.activeProjects}      sub={`de ${projects.length} totales`} />
+        <KpiCard icon={<IconChecklist />} label="Checklists en curso" value={stats.pendingChecklists}  sub={`${stats.globalProgress}% completado global`} />
+        <KpiCard icon={<IconAlert />}     label="Tareas bloqueadas"  value={stats.blockedTasks}        sub="requieren atención" accent="var(--danger)" />
       </div>
 
       {/* Main grid */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_320px]">
 
         {/* Projects table */}
-        <div className="overflow-hidden rounded-2xl border border-[#E8EDF2] bg-white">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#E8EDF2]">
-            <h2 className="text-[15px] font-semibold text-[#0F172A]">Proyectos recientes</h2>
+        <div className="table-wrap overflow-hidden">
+          <div
+            className="flex items-center justify-between px-6 py-4 border-b"
+            style={{ borderColor: 'var(--border)' }}
+          >
+            <h2 className="text-[15px] font-semibold" style={{ color: 'var(--text)' }}>Proyectos recientes</h2>
             <button
               onClick={() => go('projects')}
-              className="text-[13px] font-medium text-[#005643] hover:underline"
+              className="text-[13px] font-medium hover:underline"
+              style={{ color: 'var(--primary)' }}
             >
               Ver todos →
             </button>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] text-left">
+            <table className="table-base min-w-[560px]">
               <thead>
-                <tr className="border-b border-[#F1F5F9]">
+                <tr>
                   {['Proyecto', 'Farmacia', 'Estado', 'Progreso'].map(h => (
-                    <th key={h} className="px-6 py-3 text-[11px] font-medium uppercase tracking-wider text-[#94A3B8]">
-                      {h}
-                    </th>
+                    <th key={h}>{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F1F5F9]">
+              <tbody>
                 {recentProjects.length === 0 ? (
                   <EmptyRow cols={4} message="No hay proyectos todavía" />
                 ) : recentProjects.map(project => (
-                  <tr key={project.id} className="hover:bg-[#FAFBFC] transition-colors">
-                    <td className="px-6 py-4">
+                  <tr key={project.id}>
+                    <td>
                       <div className="flex items-center gap-2">
                         <PriorityDot priority={project.priority} />
-                        <span className="text-[14px] font-medium text-[#0F172A]">
+                        <span className="text-[14px] font-medium" style={{ color: 'var(--text)' }}>
                           {project.name}
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-[13px] text-[#64748B]">
+                    <td className="text-[13px]" style={{ color: 'var(--muted)' }}>
                       {project.clients?.pharmacy_name || project.clients?.name || '—'}
                     </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={project.status} />
-                    </td>
-                    <td className="px-6 py-4">
+                    <td><StatusBadge status={project.status} /></td>
+                    <td>
                       <ProgressBar
                         value={
                           project.status === 'completed' ? 100 :
@@ -282,8 +257,8 @@ export default function Dashboard({
         <div className="flex flex-col gap-6">
 
           {/* Status breakdown */}
-          <div className="rounded-2xl border border-[#E8EDF2] bg-white p-6">
-            <h2 className="text-[15px] font-semibold text-[#0F172A] mb-4">Estado proyectos</h2>
+          <div className="card">
+            <h2 className="text-[15px] font-semibold mb-4" style={{ color: 'var(--text)' }}>Estado proyectos</h2>
             <div className="space-y-3">
               {byStatus.map(item => {
                 const total = projects.length || 1
@@ -291,10 +266,10 @@ export default function Dashboard({
                 return (
                   <div key={item.label}>
                     <div className="mb-1 flex justify-between text-[13px]">
-                      <span className="text-[#334155]">{item.label}</span>
-                      <span className="font-medium text-[#0F172A]">{item.count}</span>
+                      <span style={{ color: 'var(--text)' }}>{item.label}</span>
+                      <span className="font-medium" style={{ color: 'var(--text)' }}>{item.count}</span>
                     </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#F1F5F9]">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full" style={{ backgroundColor: 'var(--surface-soft)' }}>
                       <div
                         className="h-full rounded-full transition-all"
                         style={{ width: `${pct}%`, backgroundColor: item.color }}
@@ -307,33 +282,36 @@ export default function Dashboard({
           </div>
 
           {/* Recent checklists */}
-          <div className="flex-1 rounded-2xl border border-[#E8EDF2] bg-white p-6">
+          <div className="card flex-1">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-[15px] font-semibold text-[#0F172A]">Actividad reciente</h2>
+              <h2 className="text-[15px] font-semibold" style={{ color: 'var(--text)' }}>Actividad reciente</h2>
               <button
                 onClick={() => go('checklists')}
-                className="text-[13px] font-medium text-[#005643] hover:underline"
+                className="text-[13px] font-medium hover:underline"
+                style={{ color: 'var(--primary)' }}
               >
                 Ver →
               </button>
             </div>
             {recentChecklists.length === 0 ? (
-              <p className="text-sm text-[#94A3B8]">Sin actividad reciente.</p>
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>Sin actividad reciente.</p>
             ) : (
               <div className="space-y-3">
                 {recentChecklists.map(c => (
                   <div key={c.id} className="flex items-start gap-3">
                     <div
                       className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
-                      style={{ backgroundColor: c.status === 'completed' ? '#DCFCE7' : '#F1F5F9' }}
+                      style={{
+                        backgroundColor: c.status === 'completed' ? 'var(--primary-soft)' : 'var(--surface-soft)',
+                      }}
                     >
-                      <span style={{ color: c.status === 'completed' ? '#166534' : '#94A3B8', fontSize: 13 }}>
+                      <span style={{ color: c.status === 'completed' ? 'var(--primary)' : 'var(--muted)', fontSize: 13 }}>
                         {c.status === 'completed' ? '✓' : '○'}
                       </span>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13px] font-medium text-[#0F172A]">{c.title}</p>
-                      <p className="text-[12px] text-[#94A3B8]">
+                      <p className="truncate text-[13px] font-medium" style={{ color: 'var(--text)' }}>{c.title}</p>
+                      <p className="text-[12px]" style={{ color: 'var(--muted)' }}>
                         {c.projects?.clients?.pharmacy_name || c.projects?.name || 'Sin proyecto'}
                       </p>
                     </div>
@@ -350,21 +328,23 @@ export default function Dashboard({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
         {/* Templates */}
-        <div className="rounded-2xl border border-[#E8EDF2] bg-white p-6">
+        <div className="card">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-[15px] font-semibold text-[#0F172A]">Plantillas</h2>
-            <button onClick={() => go('checklists')} className="text-[13px] font-medium text-[#005643] hover:underline">Ver →</button>
+            <h2 className="text-[15px] font-semibold" style={{ color: 'var(--text)' }}>Plantillas</h2>
+            <button onClick={() => go('checklists')} className="text-[13px] font-medium hover:underline" style={{ color: 'var(--primary)' }}>Ver →</button>
           </div>
           {templates.length === 0 ? (
-            <p className="text-sm text-[#94A3B8]">Sin plantillas todavía.</p>
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>Sin plantillas todavía.</p>
           ) : (
             <div className="space-y-2">
               {templates.slice(0, 5).map(t => (
-                <div key={t.id} className="flex items-center justify-between rounded-lg bg-[#F8FAFC] px-3 py-2">
-                  <span className="truncate text-[13px] text-[#334155]">{t.name}</span>
-                  <span className="ml-2 shrink-0 rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[11px] font-medium text-[#166534]">
-                    activa
-                  </span>
+                <div
+                  key={t.id}
+                  className="flex items-center justify-between rounded-lg px-3 py-2"
+                  style={{ backgroundColor: 'var(--surface-soft)' }}
+                >
+                  <span className="truncate text-[13px]" style={{ color: 'var(--text)' }}>{t.name}</span>
+                  <span className="badge-green ml-2 shrink-0">activa</span>
                 </div>
               ))}
             </div>
@@ -372,32 +352,32 @@ export default function Dashboard({
         </div>
 
         {/* Global progress */}
-        <div className="rounded-2xl border border-[#E8EDF2] bg-white p-6">
-          <h2 className="text-[15px] font-semibold text-[#0F172A] mb-1">Progreso global</h2>
-          <p className="text-[12px] text-[#94A3B8] mb-6">Tareas en todos los checklists</p>
+        <div className="card">
+          <h2 className="text-[15px] font-semibold mb-1" style={{ color: 'var(--text)' }}>Progreso global</h2>
+          <p className="text-[12px] mb-6" style={{ color: 'var(--muted)' }}>Tareas en todos los checklists</p>
           <div className="flex items-center justify-center">
             <CircleProgress value={stats.globalProgress} />
           </div>
           <div className="mt-6 grid grid-cols-2 gap-3 text-center">
-            <div className="rounded-xl bg-[#F8FAFC] py-3">
-              <p className="text-xl font-semibold text-[#0F172A]">{stats.completedTasks}</p>
-              <p className="text-[11px] text-[#94A3B8]">completadas</p>
+            <div className="rounded-xl py-3" style={{ backgroundColor: 'var(--surface-soft)' }}>
+              <p className="text-xl font-semibold" style={{ color: 'var(--text)' }}>{stats.completedTasks}</p>
+              <p className="text-[11px]" style={{ color: 'var(--muted)' }}>completadas</p>
             </div>
-            <div className="rounded-xl bg-[#F8FAFC] py-3">
-              <p className="text-xl font-semibold text-[#0F172A]">{stats.totalTasks - stats.completedTasks}</p>
-              <p className="text-[11px] text-[#94A3B8]">pendientes</p>
+            <div className="rounded-xl py-3" style={{ backgroundColor: 'var(--surface-soft)' }}>
+              <p className="text-xl font-semibold" style={{ color: 'var(--text)' }}>{stats.totalTasks - stats.completedTasks}</p>
+              <p className="text-[11px]" style={{ color: 'var(--muted)' }}>pendientes</p>
             </div>
           </div>
         </div>
 
         {/* Quick summary */}
-        <div className="rounded-2xl border border-[#E8EDF2] bg-white p-6">
-          <h2 className="text-[15px] font-semibold text-[#0F172A] mb-4">Resumen rápido</h2>
+        <div className="card">
+          <h2 className="text-[15px] font-semibold mb-4" style={{ color: 'var(--text)' }}>Resumen rápido</h2>
           <div className="space-y-4">
-            <SummaryRow label="Farmacias registradas" value={clients.length} onClick={() => go('clients')} />
-            <SummaryRow label="Proyectos totales" value={projects.length} onClick={() => go('projects')} />
-            <SummaryRow label="Checklists totales" value={checklists.length} onClick={() => go('checklists')} />
-            <SummaryRow label="Plantillas activas" value={templates.filter(t => t.is_active).length} onClick={() => go('checklists')} />
+            <SummaryRow label="Farmacias registradas"  value={clients.length}                              onClick={() => go('clients')} />
+            <SummaryRow label="Proyectos totales"       value={projects.length}                             onClick={() => go('projects')} />
+            <SummaryRow label="Checklists totales"      value={checklists.length}                           onClick={() => go('checklists')} />
+            <SummaryRow label="Plantillas activas"      value={templates.filter(t => t.is_active).length}  onClick={() => go('checklists')} />
           </div>
         </div>
       </div>
@@ -414,11 +394,11 @@ function CircleProgress({ value = 0 }) {
   const offset = circ - (value / 100) * circ
   return (
     <svg width="120" height="120" viewBox="0 0 110 110">
-      <circle cx="55" cy="55" r={r} fill="none" stroke="#F1F5F9" strokeWidth="10" />
+      <circle cx="55" cy="55" r={r} fill="none" stroke="var(--surface-soft)" strokeWidth="10" />
       <circle
         cx="55" cy="55" r={r}
         fill="none"
-        stroke="#005643"
+        stroke="var(--primary)"
         strokeWidth="10"
         strokeLinecap="round"
         strokeDasharray={circ}
@@ -426,7 +406,7 @@ function CircleProgress({ value = 0 }) {
         transform="rotate(-90 55 55)"
         style={{ transition: 'stroke-dashoffset 0.6s ease' }}
       />
-      <text x="55" y="59" textAnchor="middle" fontSize="18" fontWeight="600" fill="#0F172A">
+      <text x="55" y="59" textAnchor="middle" fontSize="18" fontWeight="600" fill="var(--text)">
         {value}%
       </text>
     </svg>
@@ -441,10 +421,10 @@ function SummaryRow({ label, value, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition hover:bg-[#F8FAFC]"
+      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition hover:bg-[var(--surface-soft)]"
     >
-      <span className="text-[13px] text-[#64748B]">{label}</span>
-      <span className="text-[14px] font-semibold text-[#0F172A]">{value}</span>
+      <span className="text-[13px]" style={{ color: 'var(--muted)' }}>{label}</span>
+      <span className="text-[14px] font-semibold" style={{ color: 'var(--text)' }}>{value}</span>
     </button>
   )
 }
