@@ -1,344 +1,133 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-const ACTION_LABELS = {
-  create: 'Creado',
-  update: 'Actualizado',
-  delete: 'Eliminado',
-  duplicate: 'Duplicado',
-  complete: 'Completado',
-  upload: 'Subido',
-  status_update: 'Cambio de estado',
-  comment_update: 'Comentario actualizado',
+function IconSearch() { return (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>) }
+function IconCalendar() { return (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>) }
+
+const EVENT_CFG = {
+  checklist_created:   { label: 'Checklist creado',   dot: 'bg-emerald-500' },
+  checklist_completed: { label: 'Checklist completado', dot: 'bg-blue-500' },
+  task_completed:      { label: 'Tarea completada',    dot: 'bg-emerald-400' },
+  task_blocked:        { label: 'Tarea bloqueada',     dot: 'bg-red-400' },
+  incident_created:    { label: 'Incidencia abierta',  dot: 'bg-amber-400' },
+  incident_resolved:   { label: 'Incidencia resuelta', dot: 'bg-teal-500' },
+  project_created:     { label: 'Proyecto creado',     dot: 'bg-violet-500' },
+  document_uploaded:   { label: 'Documento subido',    dot: 'bg-sky-500' },
 }
 
-const ENTITY_LABELS = {
-  client: 'Cliente',
-  project: 'Proyecto',
-  template: 'Plantilla',
-  checklist: 'Checklist',
-  task: 'Tarea',
-  evidence: 'Evidencia',
-  document: 'Documento',
+function fmtDate(str) {
+  if (!str) return '—'
+  return new Date(str).toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
 }
-
-const ACTION_STYLES = {
-  create: 'bg-[#DCFCE7] text-[#166534]',
-  update: 'bg-[#DBEAFE] text-[#1D4ED8]',
-  delete: 'bg-[#FEE2E2] text-[#B91C1C]',
-  duplicate: 'bg-[#F3E8FF] text-[#7E22CE]',
-  complete: 'bg-[#ECFCCB] text-[#3F6212]',
-  upload: 'bg-[#FEF3C7] text-[#92400E]',
-  status_update: 'bg-[#E0F2FE] text-[#075985]',
-  comment_update: 'bg-[#F1F5F9] text-[#334155]',
+function fmtTime(str) {
+  if (!str) return ''
+  return new Date(str).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
 }
 
 export default function TimelinePage() {
-  const [logs, setLogs] = useState([])
+  const [logs, setLogs]     = useState([])
   const [loading, setLoading] = useState(true)
-
   const [search, setSearch] = useState('')
-  const [entityFilter, setEntityFilter] = useState('all')
-  const [actionFilter, setActionFilter] = useState('all')
+  const [typeFilter, setTypeFilter] = useState('all')
 
-  useEffect(() => {
-    loadLogs()
-  }, [])
+  useEffect(() => { load() }, [])
 
-  async function loadLogs() {
+  async function load() {
     setLoading(true)
-
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('activity_logs')
-      .select('*')
+      .select('*, profiles(id, full_name, email)')
       .order('created_at', { ascending: false })
       .limit(200)
-
-    setLoading(false)
-
-    if (error) {
-      alert(error.message)
-      return
-    }
-
     setLogs(data || [])
+    setLoading(false)
   }
 
-  const filteredLogs = useMemo(() => {
-    return logs.filter(log => {
-      const valueText = JSON.stringify({
-        old: log.old_value,
-        new: log.new_value,
-      }).toLowerCase()
-
-      const fullText = [
-        log.entity_type,
-        log.action,
-        log.user_id,
-        valueText,
-      ]
-        .join(' ')
-        .toLowerCase()
-
-      const matchesSearch =
-        search.trim() === '' ||
-        fullText.includes(search.toLowerCase())
-
-      const matchesEntity =
-        entityFilter === 'all' ||
-        log.entity_type === entityFilter
-
-      const matchesAction =
-        actionFilter === 'all' ||
-        log.action === actionFilter
-
-      return matchesSearch && matchesEntity && matchesAction
+  const filtered = useMemo(() => {
+    return logs.filter(l => {
+      const text = [l.action, l.entity_type, l.profiles?.full_name, l.profiles?.email].join(' ').toLowerCase()
+      return (
+        (!search || text.includes(search.toLowerCase())) &&
+        (typeFilter === 'all' || l.entity_type === typeFilter)
+      )
     })
-  }, [logs, search, entityFilter, actionFilter])
+  }, [logs, search, typeFilter])
 
-  if (loading) {
-    return (
-      <div className="rounded-[32px] border border-[#E2E8F0] bg-white p-8 text-[#64748B]">
-        Cargando timeline...
-      </div>
-    )
-  }
+  // Group by date
+  const grouped = useMemo(() => {
+    const groups = {}
+    filtered.forEach(log => {
+      const day = new Date(log.created_at).toDateString()
+      if (!groups[day]) groups[day] = []
+      groups[day].push(log)
+    })
+    return Object.entries(groups)
+  }, [filtered])
+
+  const entityTypes = useMemo(() => [
+    ...new Set(logs.map(l => l.entity_type).filter(Boolean))
+  ], [logs])
 
   return (
-    <div>
-      <div className="mb-10 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <h1 className="text-5xl tracking-[-0.045em] text-[#0F172A] font-medium">
-            Timeline operativo
-          </h1>
-
-          <p className="mt-3 text-base text-[#64748B]">
-            Secuencia visual de actividad, cambios y trazabilidad.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={loadLogs}
-          className="rounded-2xl border border-[#E2E8F0] bg-white px-5 py-3 text-sm text-[#334155] shadow-sm hover:bg-[#F8FAFC]"
-        >
-          Actualizar
-        </button>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-[#0F172A]">Línea de tiempo</h1>
+        <p className="mt-1 text-sm text-[#94A3B8]">Historial cronológico de actividad</p>
       </div>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-[1fr_220px_220px]">
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar por acción, entidad, usuario o valor..."
-          className="rounded-2xl border border-[#E2E8F0] bg-white px-5 py-4 text-sm outline-none focus:border-[#059669]"
-        />
-
-        <select
-          value={entityFilter}
-          onChange={e => setEntityFilter(e.target.value)}
-          className="rounded-2xl border border-[#E2E8F0] bg-white px-5 py-4 text-sm outline-none focus:border-[#059669]"
-        >
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]"><IconSearch /></span>
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar por acción, entidad o usuario..."
+            className="w-full rounded-xl border border-[#E8EDF2] bg-white py-2.5 pl-9 pr-4 text-[13px] outline-none placeholder:text-[#94A3B8] focus:border-[#005643] focus:ring-1 focus:ring-[#005643]/20" />
+        </div>
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
+          className="rounded-xl border border-[#E8EDF2] bg-white px-3 py-2.5 text-[13px] outline-none focus:border-[#005643] sm:w-[160px]">
           <option value="all">Todas las entidades</option>
-          <option value="client">Clientes</option>
-          <option value="project">Proyectos</option>
-          <option value="template">Plantillas</option>
-          <option value="checklist">Checklists</option>
-          <option value="task">Tareas</option>
-          <option value="evidence">Evidencias</option>
-          <option value="document">Documentos</option>
-        </select>
-
-        <select
-          value={actionFilter}
-          onChange={e => setActionFilter(e.target.value)}
-          className="rounded-2xl border border-[#E2E8F0] bg-white px-5 py-4 text-sm outline-none focus:border-[#059669]"
-        >
-          <option value="all">Todas las acciones</option>
-          <option value="create">Creado</option>
-          <option value="update">Actualizado</option>
-          <option value="delete">Eliminado</option>
-          <option value="duplicate">Duplicado</option>
-          <option value="complete">Completado</option>
-          <option value="upload">Subido</option>
-          <option value="status_update">Cambio de estado</option>
-          <option value="comment_update">Comentario actualizado</option>
+          {entityTypes.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
       </div>
 
-      <div className="rounded-[32px] border border-[#E2E8F0] bg-white p-8 shadow-[0_10px_40px_rgba(15,23,42,0.04)]">
-        {filteredLogs.length === 0 ? (
-          <div className="py-16 text-center text-[#64748B]">
-            No hay actividad registrada.
-          </div>
-        ) : (
-          <div className="relative">
-            <div className="absolute bottom-0 left-[23px] top-0 w-px bg-[#E2E8F0]" />
-
-            <div className="space-y-7">
-              {filteredLogs.map(log => (
-                <TimelineItem
-                  key={log.id}
-                  log={log}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function TimelineItem({ log }) {
-  const actionLabel = ACTION_LABELS[log.action] || log.action
-  const entityLabel = ENTITY_LABELS[log.entity_type] || log.entity_type
-
-  const date = log.created_at
-    ? new Date(log.created_at).toLocaleString()
-    : '-'
-
-  const titleFromNew =
-    log.new_value?.title ||
-    log.new_value?.name ||
-    log.new_value?.file_name
-
-  const titleFromOld =
-    log.old_value?.title ||
-    log.old_value?.name ||
-    log.old_value?.file_name
-
-  const itemTitle =
-    titleFromNew ||
-    titleFromOld ||
-    log.entity_id ||
-    'Elemento sin título'
-
-  return (
-    <div className="relative flex gap-5">
-      <div className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white text-[#059669]">
-        {getEntityIcon(log.entity_type)}
-      </div>
-
-      <div className="min-w-0 flex-1 rounded-[28px] border border-[#E2E8F0] bg-[#F8FAFC] p-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-sm text-[#64748B]">
-                {entityLabel}
-              </span>
-
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-medium ${
-                  ACTION_STYLES[log.action] ||
-                  'bg-[#F1F5F9] text-[#334155]'
-                }`}
-              >
-                {actionLabel}
-              </span>
-            </div>
-
-            <h2 className="mt-3 text-xl tracking-[-0.02em] text-[#0F172A] font-medium">
-              {itemTitle}
-            </h2>
-
-            <p className="mt-2 text-sm text-[#64748B]">
-              Usuario: {log.user_id || 'No registrado'}
-            </p>
-          </div>
-
-          <span className="text-sm text-[#94A3B8]">
-            {date}
-          </span>
+      {loading ? (
+        <div className="flex justify-center py-12"><div className="h-6 w-6 animate-spin rounded-full border-2 border-[#005643] border-t-transparent" /></div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#E8EDF2] bg-white py-12 text-center">
+          <p className="text-[14px] font-medium text-[#0F172A]">Sin actividad</p>
+          <p className="mt-1 text-[13px] text-[#94A3B8]">No hay eventos que coincidan</p>
         </div>
-
-        <ChangeSummary
-          oldValue={log.old_value}
-          newValue={log.new_value}
-          action={log.action}
-        />
-      </div>
+      ) : (
+        <div className="space-y-8">
+          {grouped.map(([day, dayLogs]) => (
+            <div key={day}>
+              <div className="mb-4 flex items-center gap-2">
+                <span className="text-[#94A3B8]"><IconCalendar /></span>
+                <p className="text-[12px] font-medium text-[#94A3B8] uppercase tracking-wider">{fmtDate(dayLogs[0].created_at)}</p>
+                <span className="rounded-full bg-[#F1F5F9] px-1.5 py-0.5 text-[10px] text-[#94A3B8]">{dayLogs.length}</span>
+              </div>
+              <div className="relative ml-4 space-y-0 border-l-2 border-[#F1F5F9] pl-6">
+                {dayLogs.map((log, i) => {
+                  const cfg = EVENT_CFG[`${log.entity_type}_${log.action}`] || { label: `${log.entity_type} ${log.action}`, dot: 'bg-slate-300' }
+                  const user = log.profiles?.full_name || log.profiles?.email || 'Sistema'
+                  return (
+                    <div key={log.id} className="relative pb-4 last:pb-0">
+                      <span className={`absolute -left-[31px] top-1 h-3 w-3 rounded-full ring-2 ring-white ${cfg.dot}`} />
+                      <div className="rounded-xl border border-[#F1F5F9] bg-white p-3 hover:border-[#E8EDF2]">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[13px] font-medium text-[#0F172A]">{cfg.label}</p>
+                          <span className="shrink-0 text-[11px] text-[#94A3B8]">{fmtTime(log.created_at)}</span>
+                        </div>
+                        <p className="mt-0.5 text-[12px] text-[#94A3B8]">{user}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
-}
-
-function ChangeSummary({
-  oldValue,
-  newValue,
-  action,
-}) {
-  if (action === 'status_update') {
-    return (
-      <div className="mt-5 rounded-2xl bg-white p-4 text-sm">
-        <span className="text-[#64748B]">Estado:</span>{' '}
-        <span className="text-[#B91C1C]">
-          {oldValue?.status || '-'}
-        </span>{' '}
-        <span className="text-[#94A3B8]">→</span>{' '}
-        <span className="text-[#166534]">
-          {newValue?.status || '-'}
-        </span>
-      </div>
-    )
-  }
-
-  if (action === 'comment_update') {
-    return (
-      <div className="mt-5 rounded-2xl bg-white p-4 text-sm text-[#64748B]">
-        Comentario actualizado.
-      </div>
-    )
-  }
-
-  if (action === 'upload') {
-    return (
-      <div className="mt-5 rounded-2xl bg-white p-4 text-sm text-[#64748B]">
-        Archivo subido: {newValue?.file_name || 'evidencia'}
-      </div>
-    )
-  }
-
-  if (action === 'delete') {
-    return (
-      <div className="mt-5 rounded-2xl bg-white p-4 text-sm text-[#64748B]">
-        Elemento eliminado del sistema.
-      </div>
-    )
-  }
-
-  if (action === 'create') {
-    return (
-      <div className="mt-5 rounded-2xl bg-white p-4 text-sm text-[#64748B]">
-        Nuevo elemento creado.
-      </div>
-    )
-  }
-
-  if (action === 'update') {
-    return (
-      <div className="mt-5 rounded-2xl bg-white p-4 text-sm text-[#64748B]">
-        Información actualizada.
-      </div>
-    )
-  }
-
-  return (
-    <div className="mt-5 rounded-2xl bg-white p-4 text-sm text-[#64748B]">
-      Acción registrada.
-    </div>
-  )
-}
-
-function getEntityIcon(entityType) {
-  const icons = {
-    client: '◎',
-    project: '▣',
-    template: '☷',
-    checklist: '✓',
-    task: '◌',
-    evidence: '▧',
-    document: '≣',
-  }
-
-  return icons[entityType] || '•'
 }

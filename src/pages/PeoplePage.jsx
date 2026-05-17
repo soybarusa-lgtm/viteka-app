@@ -1,265 +1,138 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-export default function PeoplePage({ pharmacies = [] }) {
-  const [people, setPeople] = useState([])
-  const [search, setSearch] = useState('')
-  const [formOpen, setFormOpen] = useState(false)
+function IconSearch() { return (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>) }
+function IconPhone() { return (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.35 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>) }
+function IconMail() { return (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>) }
 
-  const [pharmacyId, setPharmacyId] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [role, setRole] = useState('')
-  const [phone, setPhone] = useState('')
-  const [mobile, setMobile] = useState('')
-  const [email, setEmail] = useState('')
-  const [isPrimary, setIsPrimary] = useState(false)
-  const [notes, setNotes] = useState('')
+function getInitials(name = '') { return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase() || '?' }
+const COLORS = ['#005643','#0369a1','#7c3aed','#b45309','#0f766e','#be123c','#1d4ed8','#15803d']
+function avatarColor(str = '') { let h = 0; for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h); return COLORS[Math.abs(h) % COLORS.length] }
 
-  useEffect(() => {
-    loadPeople()
-  }, [])
+export default function PeoplePage() {
+  const [people, setPeople]   = useState([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch]   = useState('')
 
-  async function loadPeople() {
-    const { data, error } = await supabase
-      .from('pharmacy_people')
-      .select(`
-        *,
-        clients (
-          id,
-          name,
-          pharmacy_name
-        )
-      `)
-      .order('created_at', { ascending: false })
+  useEffect(() => { load() }, [])
 
-    if (error) {
-      alert(error.message)
-      return
-    }
+  async function load() {
+    setLoading(true)
+    // Load people from clients (pharmacist_owner + operators) and profiles
+    const [{ data: clients }, { data: profiles }] = await Promise.all([
+      supabase.from('clients').select('id, pharmacy_name, name, pharmacist_owner, contact_phone, contact_email, operators').order('pharmacy_name'),
+      supabase.from('profiles').select('id, full_name, email, role').order('full_name'),
+    ])
 
-    setPeople(data || [])
+    // Build unified people list
+    const list = []
+
+    // Pharmacist owners from clients
+    ;(clients || []).forEach(c => {
+      if (c.pharmacist_owner) {
+        list.push({
+          id: `client-${c.id}`,
+          name: c.pharmacist_owner,
+          role: 'Titular de farmacia',
+          pharmacy: c.pharmacy_name || c.name,
+          phone: c.contact_phone,
+          email: c.contact_email,
+          source: 'client',
+        })
+      }
+    })
+
+    // Internal team
+    ;(profiles || []).forEach(p => {
+      list.push({
+        id: `profile-${p.id}`,
+        name: p.full_name || p.email,
+        role: p.role,
+        pharmacy: null,
+        phone: null,
+        email: p.email,
+        source: 'internal',
+      })
+    })
+
+    setPeople(list)
+    setLoading(false)
   }
 
-  const filteredPeople = useMemo(() => {
-    return people.filter(person => {
-      const text = [
-        person.full_name,
-        person.role,
-        person.email,
-        person.phone,
-        person.mobile,
-        person.clients?.name,
-        person.clients?.pharmacy_name,
-      ]
-        .join(' ')
-        .toLowerCase()
-
-      return text.includes(search.toLowerCase())
+  const filtered = useMemo(() => {
+    return people.filter(p => {
+      const text = [p.name, p.role, p.pharmacy, p.email, p.phone].join(' ').toLowerCase()
+      return !search || text.includes(search.toLowerCase())
     })
   }, [people, search])
 
-  async function createPerson(e) {
-    e.preventDefault()
-
-    if (!pharmacyId) {
-      alert('Selecciona una farmacia.')
-      return
-    }
-
-    if (!fullName.trim()) {
-      alert('El nombre es obligatorio.')
-      return
-    }
-
-    const { error } = await supabase
-      .from('pharmacy_people')
-      .insert({
-        pharmacy_id: pharmacyId,
-        full_name: fullName,
-        role,
-        phone,
-        mobile,
-        email,
-        is_primary: isPrimary,
-        notes,
-      })
-
-    if (error) {
-      alert(error.message)
-      return
-    }
-
-    setPharmacyId('')
-    setFullName('')
-    setRole('')
-    setPhone('')
-    setMobile('')
-    setEmail('')
-    setIsPrimary(false)
-    setNotes('')
-    setFormOpen(false)
-
-    await loadPeople()
-  }
-
-  async function deletePerson(personId) {
-    const confirmed = window.confirm('¿Eliminar esta persona?')
-    if (!confirmed) return
-
-    const { error } = await supabase
-      .from('pharmacy_people')
-      .delete()
-      .eq('id', personId)
-
-    if (error) {
-      alert(error.message)
-      return
-    }
-
-    await loadPeople()
-  }
+  const internal = filtered.filter(p => p.source === 'internal')
+  const external = filtered.filter(p => p.source === 'client')
 
   return (
-    <div>
-      <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-5xl tracking-[-0.045em] text-[#0F172A] font-medium">
-            Personas
-          </h1>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-[#0F172A]">Personas</h1>
+        <p className="mt-1 text-sm text-[#94A3B8]">Equipo interno y titulares de farmacia</p>
+      </div>
 
-          <p className="mt-3 text-base text-[#64748B]">
-            Contactos y responsables asociados a farmacias.
-          </p>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <KpiCard label="Total personas" value={people.length} />
+        <KpiCard label="Equipo interno" value={internal.length} />
+        <KpiCard label="Titulares farmacia" value={external.length} />
+      </div>
+
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]"><IconSearch /></span>
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar por nombre, rol, farmacia o email..."
+          className="w-full rounded-xl border border-[#E8EDF2] bg-white py-2.5 pl-9 pr-4 text-[13px] outline-none placeholder:text-[#94A3B8] focus:border-[#005643] focus:ring-1 focus:ring-[#005643]/20" />
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12"><div className="h-6 w-6 animate-spin rounded-full border-2 border-[#005643] border-t-transparent" /></div>
+      ) : (
+        <div className="space-y-6">
+          {internal.length > 0 && (
+            <PeopleSection title="Equipo interno" people={internal} />
+          )}
+          {external.length > 0 && (
+            <PeopleSection title="Titulares de farmacia" people={external} />
+          )}
+          {filtered.length === 0 && (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#E8EDF2] bg-white py-12 text-center">
+              <p className="text-[14px] font-medium text-[#0F172A]">Sin resultados</p>
+              <p className="mt-1 text-[13px] text-[#94A3B8]">Prueba con otros términos</p>
+            </div>
+          )}
         </div>
-
-        <button
-          type="button"
-          onClick={() => setFormOpen(!formOpen)}
-          className="rounded-2xl bg-[#005643] px-6 py-4 text-sm text-white shadow-sm"
-        >
-          + Nueva persona
-        </button>
-      </div>
-
-      {formOpen && (
-        <form
-          onSubmit={createPerson}
-          className="mb-8 rounded-[32px] border border-[#E2E8F0] bg-white p-8 shadow-sm"
-        >
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-            <Field label="Farmacia">
-              <select
-                value={pharmacyId}
-                onChange={e => setPharmacyId(e.target.value)}
-                className="input"
-              >
-                <option value="">Seleccionar farmacia</option>
-                {pharmacies.map(pharmacy => (
-                  <option key={pharmacy.id} value={pharmacy.id}>
-                    {pharmacy.pharmacy_name || pharmacy.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="Nombre completo">
-              <input value={fullName} onChange={e => setFullName(e.target.value)} className="input" />
-            </Field>
-
-            <Field label="Cargo / rol">
-              <input value={role} onChange={e => setRole(e.target.value)} className="input" />
-            </Field>
-
-            <Field label="Teléfono">
-              <input value={phone} onChange={e => setPhone(e.target.value)} className="input" />
-            </Field>
-
-            <Field label="Móvil">
-              <input value={mobile} onChange={e => setMobile(e.target.value)} className="input" />
-            </Field>
-
-            <Field label="Email">
-              <input value={email} onChange={e => setEmail(e.target.value)} className="input" />
-            </Field>
-          </div>
-
-          <div className="mt-5">
-            <Field label="Notas">
-              <textarea value={notes} onChange={e => setNotes(e.target.value)} className="input min-h-[120px]" />
-            </Field>
-          </div>
-
-          <label className="mt-5 flex items-center gap-3 text-sm text-[#334155]">
-            <input
-              type="checkbox"
-              checked={isPrimary}
-              onChange={e => setIsPrimary(e.target.checked)}
-            />
-            Contacto principal
-          </label>
-
-          <div className="mt-6 flex justify-end gap-3">
-            <button type="button" onClick={() => setFormOpen(false)} className="btn-secondary">
-              Cancelar
-            </button>
-
-            <button type="submit" className="btn-primary">
-              Crear persona
-            </button>
-          </div>
-        </form>
       )}
+    </div>
+  )
+}
 
-      <div className="mb-6">
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar persona, farmacia, email o teléfono..."
-          className="w-full rounded-2xl border border-[#E2E8F0] bg-white px-5 py-4 text-sm outline-none"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        {filteredPeople.map(person => (
-          <div key={person.id} className="rounded-[28px] border border-[#E2E8F0] bg-white p-7 shadow-sm">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-2xl tracking-[-0.03em] text-[#0F172A] font-medium">
-                  {person.full_name}
-                </h2>
-
-                <p className="mt-2 text-sm text-[#64748B]">
-                  {person.clients?.pharmacy_name || person.clients?.name || 'Sin farmacia'}
-                </p>
-              </div>
-
-              {person.is_primary && (
-                <span className="rounded-full bg-[#DCFCE7] px-3 py-1 text-xs text-[#166534]">
-                  Principal
-                </span>
+function PeopleSection({ title, people }) {
+  return (
+    <div>
+      <p className="mb-3 text-[12px] font-medium uppercase tracking-wider text-[#94A3B8]">{title}</p>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {people.map(person => (
+          <div key={person.id} className="flex items-start gap-3 rounded-2xl border border-[#E8EDF2] bg-white p-4">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[12px] font-semibold text-white"
+              style={{ backgroundColor: avatarColor(person.name) }}>
+              {getInitials(person.name)}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-[13px] font-medium text-[#0F172A]">{person.name}</p>
+              <p className="text-[11px] text-[#94A3B8]">{person.role}</p>
+              {person.pharmacy && <p className="mt-0.5 truncate text-[11px] text-[#94A3B8]">{person.pharmacy}</p>}
+              {person.phone && (
+                <div className="mt-1.5 flex items-center gap-1 text-[11px] text-[#64748B]"><IconPhone />{person.phone}</div>
+              )}
+              {person.email && (
+                <div className="flex items-center gap-1 text-[11px] text-[#64748B]"><IconMail />{person.email}</div>
               )}
             </div>
-
-            <div className="mt-6 space-y-2 text-sm text-[#64748B]">
-              <p>Rol: {person.role || '—'}</p>
-              <p>Email: {person.email || '—'}</p>
-              <p>Teléfono: {person.phone || '—'}</p>
-              <p>Móvil: {person.mobile || '—'}</p>
-            </div>
-
-            {person.notes && (
-              <p className="mt-5 rounded-2xl bg-[#F8FAFC] p-4 text-sm text-[#64748B]">
-                {person.notes}
-              </p>
-            )}
-
-            <button
-              type="button"
-              onClick={() => deletePerson(person.id)}
-              className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm text-red-600"
-            >
-              Eliminar
-            </button>
           </div>
         ))}
       </div>
@@ -267,13 +140,11 @@ export default function PeoplePage({ pharmacies = [] }) {
   )
 }
 
-function Field({ label, children }) {
+function KpiCard({ label, value }) {
   return (
-    <label className="block">
-      <span className="mb-2 block text-xs uppercase tracking-wide text-[#64748B] font-medium">
-        {label}
-      </span>
-      {children}
-    </label>
+    <div className="rounded-2xl border border-[#E8EDF2] bg-white p-5">
+      <p className="text-[12px] text-[#94A3B8]">{label}</p>
+      <p className="mt-2 text-3xl font-semibold tracking-tight text-[#0F172A]">{value}</p>
+    </div>
   )
 }

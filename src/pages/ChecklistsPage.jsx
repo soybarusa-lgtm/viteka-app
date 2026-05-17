@@ -1,5 +1,19 @@
 import { useMemo, useState } from 'react'
 
+// ── Icons ──────────────────────────────────────────────────────────────────
+function IconSearch() { return (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>) }
+function IconCopy()   { return (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>) }
+function IconEdit()   { return (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>) }
+function IconTrash()  { return (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>) }
+function IconPlay()   { return (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>) }
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function fmtDate(str) {
+  if (!str) return '—'
+  return new Date(str).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+// ── Component ───────────────────────────────────────────────────────────────
 export default function ChecklistsPage({
   templates = [],
   executedChecklists = [],
@@ -12,377 +26,244 @@ export default function ChecklistsPage({
   onOpenChecklist,
   onEditTemplate,
 }) {
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [search, setSearch]   = useState('')
+  const [status, setStatus]   = useState('all')
+  const [tab, setTab]         = useState('executions') // 'executions' | 'templates'
 
-  const filteredChecklists = useMemo(() => {
-    return executedChecklists.filter(checklist => {
-      const text = [
-        checklist.title,
-        checklist.projects?.name,
-        checklist.projects?.clients?.name,
-        checklist.status,
-      ]
-        .join(' ')
-        .toLowerCase()
-
-      const matchesSearch = text.includes(search.toLowerCase())
-
-      const matchesStatus =
-        statusFilter === 'all' ||
-        checklist.status === statusFilter ||
-        (statusFilter === 'in_progress' && checklist.status !== 'completed')
-
-      return matchesSearch && matchesStatus
+  const filtered = useMemo(() => {
+    return executedChecklists.filter(c => {
+      const text = [c.title, c.projects?.name, c.projects?.clients?.name, c.projects?.clients?.pharmacy_name].join(' ').toLowerCase()
+      const matchSearch = !search || text.includes(search.toLowerCase())
+      const matchStatus = status === 'all' || c.status === status ||
+        (status === 'blocked' && (c.stats?.blocked || 0) > 0)
+      return matchSearch && matchStatus
     })
-  }, [executedChecklists, search, statusFilter])
+  }, [executedChecklists, search, status])
 
-  const activeCount = executedChecklists.filter(
-    checklist => checklist.status !== 'completed'
-  ).length
-
-  const completedCount = executedChecklists.filter(
-    checklist => checklist.status === 'completed'
-  ).length
-
-  const blockedCount = executedChecklists.filter(
-    checklist => (checklist.stats?.blocked || 0) > 0
-  ).length
+  const counts = useMemo(() => ({
+    total:     executedChecklists.length,
+    active:    executedChecklists.filter(c => c.status !== 'completed').length,
+    completed: executedChecklists.filter(c => c.status === 'completed').length,
+    blocked:   executedChecklists.filter(c => (c.stats?.blocked || 0) > 0).length,
+    templates: templates.length,
+  }), [executedChecklists, templates])
 
   return (
-    <div>
-      <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-5xl tracking-[-0.045em] text-[#0F172A] font-medium">
-            Checklists
-          </h1>
-
-          <p className="mt-3 text-base font-semibold text-[#64748B]">
-            Ejecuciones técnicas, plantillas y control de progreso.
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight text-[#0F172A]">Checklists</h1>
+          <p className="mt-1 text-sm text-[#94A3B8]">Ejecuciones técnicas y plantillas</p>
         </div>
-
-        <div className="flex flex-wrap gap-4">
-          <button
-            type="button"
-            onClick={onCreateTemplate}
-            className="rounded-2xl border border-[#E2E8F0] bg-white px-6 py-4 text-sm font-black text-[#0F172A] shadow-sm hover:bg-[#F8FAFC]"
-          >
-            + Nueva plantilla
+        <div className="flex gap-2">
+          <button type="button" onClick={onCreateTemplate}
+            className="flex items-center gap-1.5 rounded-xl border border-[#E8EDF2] bg-white px-4 py-2.5 text-[13px] font-medium text-[#334155] shadow-sm transition hover:bg-[#F8FAFC]">
+            + Plantilla
           </button>
-
-          <button
-            type="button"
-            onClick={onCreateChecklist}
-            className="rounded-2xl bg-gradient-to-br from-[#00684F] to-[#009B73] px-6 py-4 text-sm font-black text-white shadow-sm hover:opacity-95"
-          >
+          <button type="button" onClick={onCreateChecklist}
+            className="flex items-center gap-1.5 rounded-xl bg-[#005643] px-4 py-2.5 text-[13px] font-medium text-white shadow-sm transition hover:bg-[#00442f]">
             + Nuevo checklist
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-4">
-        <StatCard title="Ejecuciones" value={executedChecklists.length} />
-        <StatCard title="En curso" value={activeCount} />
-        <StatCard title="Finalizadas" value={completedCount} />
-        <StatCard title="Con bloqueos" value={blockedCount} danger={blockedCount > 0} />
+      {/* KPIs */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+        {[
+          { label: 'Total',       value: counts.total,     dot: 'bg-slate-400' },
+          { label: 'En curso',    value: counts.active,    dot: 'bg-emerald-500' },
+          { label: 'Finalizados', value: counts.completed, dot: 'bg-blue-500' },
+          { label: 'Con bloqueos',value: counts.blocked,   dot: 'bg-red-400' },
+          { label: 'Plantillas',  value: counts.templates, dot: 'bg-violet-400' },
+        ].map(k => (
+          <div key={k.label} className={`flex flex-col justify-between rounded-2xl border p-4 ${
+            k.label === 'Con bloqueos' && counts.blocked > 0
+              ? 'border-red-200 bg-red-50'
+              : 'border-[#E8EDF2] bg-white'
+          }`}>
+            <div className="flex items-center gap-1.5">
+              <span className={`h-2 w-2 rounded-full ${k.dot}`} />
+              <p className="text-[11px] text-[#94A3B8]">{k.label}</p>
+            </div>
+            <p className={`mt-2 text-2xl font-semibold tracking-tight ${
+              k.label === 'Con bloqueos' && counts.blocked > 0 ? 'text-red-700' : 'text-[#0F172A]'
+            }`}>{k.value}</p>
+          </div>
+        ))}
       </div>
 
-      <div className="mt-7 rounded-3xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_240px]">
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4 text-sm font-semibold outline-none focus:border-[#005643]"
-            placeholder="Buscar checklist, proyecto o cliente..."
-          />
+      {/* Tabs */}
+      <div className="flex gap-1 rounded-xl border border-[#E8EDF2] bg-[#F8FAFC] p-1 w-fit">
+        {[{ id: 'executions', label: `Ejecuciones (${counts.total})` }, { id: 'templates', label: `Plantillas (${counts.templates})` }].map(t => (
+          <button key={t.id} type="button" onClick={() => setTab(t.id)}
+            className={`rounded-lg px-4 py-2 text-[13px] font-medium transition ${
+              tab === t.id ? 'bg-white text-[#0F172A] shadow-sm' : 'text-[#64748B] hover:text-[#0F172A]'
+            }`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="w-full rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4 text-sm font-black outline-none focus:border-[#005643]"
-          >
-            <option value="all">Todos los estados</option>
-            <option value="in_progress">En curso</option>
-            <option value="completed">Finalizados</option>
-          </select>
+      {/* Tab: Executions */}
+      {tab === 'executions' && (
+        <div className="space-y-4">
+          {/* Toolbar */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]"><IconSearch /></span>
+              <input value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Buscar checklist, proyecto o farmacia..."
+                className="w-full rounded-xl border border-[#E8EDF2] bg-white py-2.5 pl-9 pr-4 text-[13px] outline-none placeholder:text-[#94A3B8] focus:border-[#005643] focus:ring-1 focus:ring-[#005643]/20" />
+            </div>
+            <select value={status} onChange={e => setStatus(e.target.value)}
+              className="rounded-xl border border-[#E8EDF2] bg-white px-3 py-2.5 text-[13px] outline-none focus:border-[#005643] sm:w-[160px]">
+              <option value="all">Todos</option>
+              <option value="in_progress">En curso</option>
+              <option value="completed">Finalizados</option>
+              <option value="blocked">Con bloqueos</option>
+            </select>
+          </div>
+
+          <p className="text-[12px] text-[#94A3B8]">
+            {filtered.length === executedChecklists.length ? `${executedChecklists.length} ejecuciones` : `${filtered.length} de ${executedChecklists.length}`}
+          </p>
+
+          {filtered.length === 0 ? (
+            <EmptyState label={executedChecklists.length === 0 ? 'Aún no hay ejecuciones' : 'Sin resultados'}
+              sub={executedChecklists.length === 0 ? 'Crea un checklist a partir de una plantilla' : 'Prueba con otros filtros'} />
+          ) : (
+            <div className="space-y-3">
+              {filtered.map(c => (
+                <ChecklistCard
+                  key={c.id}
+                  checklist={c}
+                  onOpen={() => onOpenChecklist(c.id)}
+                  onDelete={() => onDeleteChecklist(c.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab: Templates */}
+      {tab === 'templates' && (
+        <div className="space-y-3">
+          {templates.length === 0 ? (
+            <EmptyState label="Sin plantillas" sub="Crea la primera plantilla para empezar" />
+          ) : (
+            templates.map(t => (
+              <div key={t.id} className="flex flex-col gap-4 rounded-2xl border border-[#E8EDF2] bg-white p-5 sm:flex-row sm:items-center">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-[14px] font-medium text-[#0F172A] truncate">{t.name}</p>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ${
+                      t.is_active ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-gray-100 text-gray-500 ring-gray-200'
+                    }`}>{t.is_active ? 'Activa' : 'Inactiva'}</span>
+                  </div>
+                  {t.description && <p className="mt-0.5 text-[12px] text-[#94A3B8] line-clamp-1">{t.description}</p>}
+                  <p className="mt-1 text-[11px] text-[#CBD5E1]">{fmtDate(t.created_at)}</p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <ActionBtn onClick={() => onCreateChecklist()} title="Usar plantilla" color="green"><IconPlay /></ActionBtn>
+                  <ActionBtn onClick={() => onEditTemplate(t.id)} title="Editar" color="slate"><IconEdit /></ActionBtn>
+                  <ActionBtn onClick={() => onDuplicateTemplate(t.id)} title="Duplicar" color="slate"><IconCopy /></ActionBtn>
+                  <ActionBtn onClick={() => onDeleteTemplate(t.id)} title="Eliminar" color="red"><IconTrash /></ActionBtn>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Checklist card ──────────────────────────────────────────────────────────
+function ChecklistCard({ checklist: c, onOpen, onDelete }) {
+  const hasBlocked = (c.stats?.blocked || 0) > 0
+  const progress   = c.stats?.progress || 0
+
+  return (
+    <div className={`rounded-2xl border bg-white p-5 transition hover:shadow-sm ${
+      hasBlocked ? 'border-red-200' : 'border-[#E8EDF2]'
+    }`}>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        {/* Info */}
+        <button type="button" onClick={onOpen} className="flex-1 min-w-0 text-left">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[14px] font-medium text-[#0F172A]">{c.title}</p>
+            <StatusPill status={c.status} blocked={c.stats?.blocked || 0} />
+          </div>
+          <p className="mt-1 text-[12px] text-[#94A3B8]">
+            {c.projects?.name || '—'}
+            {c.projects?.clients && ` · ${c.projects.clients.pharmacy_name || c.projects.clients.name}`}
+          </p>
+
+          {/* Progress bar */}
+          <div className="mt-3">
+            <div className="mb-1 flex items-center justify-between text-[11px] text-[#94A3B8]">
+              <span>Progreso</span><span>{progress}%</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-[#F1F5F9]">
+              <div
+                className={`h-full rounded-full transition-all ${hasBlocked ? 'bg-red-400' : 'bg-[#005643]'}`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Mini stats */}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {[
+              { l: 'Total',       v: c.stats?.total || 0,     danger: false },
+              { l: 'Completadas', v: c.stats?.completed || 0, danger: false },
+              { l: 'Pendientes',  v: c.stats?.pending || 0,   danger: false },
+              { l: 'Bloqueadas',  v: c.stats?.blocked || 0,   danger: hasBlocked },
+            ].map(s => (
+              <span key={s.l} className={`rounded-lg px-2 py-1 text-[11px] font-medium ${
+                s.danger ? 'bg-red-50 text-red-600' : 'bg-[#F8FAFC] text-[#64748B]'
+              }`}>{s.l}: <strong>{s.v}</strong></span>
+            ))}
+          </div>
+        </button>
+
+        {/* Actions */}
+        <div className="flex shrink-0 items-center gap-1">
+          <button type="button" onClick={onOpen}
+            className="rounded-lg bg-[#005643] px-3 py-1.5 text-[12px] font-medium text-white transition hover:bg-[#00442f]">
+            Abrir
+          </button>
+          <ActionBtn onClick={onDelete} title="Eliminar" color="red"><IconTrash /></ActionBtn>
         </div>
       </div>
-
-      <div className="mt-7 grid grid-cols-1 gap-7 2xl:grid-cols-[1.15fr_0.85fr]">
-        <section className="overflow-hidden rounded-3xl border border-[#E2E8F0] bg-white shadow-sm">
-          <div className="border-b border-[#E2E8F0] px-7 py-6">
-            <h2 className="text-xl font-black text-[#0F172A]">
-              Ejecuciones técnicas
-            </h2>
-
-            <p className="mt-1 text-sm font-semibold text-[#64748B]">
-              {filteredChecklists.length} resultados
-            </p>
-          </div>
-
-          {filteredChecklists.length === 0 ? (
-            <div className="px-7 py-10 text-sm font-semibold text-[#64748B]">
-              No hay ejecuciones que coincidan con los filtros.
-            </div>
-          ) : (
-            <div className="divide-y divide-[#F1F5F9]">
-              {filteredChecklists.map(checklist => (
-                <div
-                  key={checklist.id}
-                  className="px-7 py-6"
-                >
-                  <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                    <button
-                      type="button"
-                      onClick={() => onOpenChecklist(checklist.id)}
-                      className="flex-1 text-left"
-                    >
-                      <div className="flex flex-wrap items-center gap-3">
-                        <h3 className="font-black text-[#0F172A]">
-                          {checklist.title}
-                        </h3>
-
-                        <StatusBadge
-                          status={checklist.status}
-                          blocked={checklist.stats?.blocked || 0}
-                        />
-                      </div>
-
-                      <p className="mt-2 text-sm font-semibold text-[#64748B]">
-                        Proyecto: {checklist.projects?.name || 'Sin proyecto'}
-                      </p>
-
-                      <p className="mt-1 text-sm font-semibold text-[#94A3B8]">
-                        Cliente: {checklist.projects?.clients?.name || 'Sin cliente'}
-                      </p>
-
-                      <div className="mt-5">
-                        <div className="mb-2 flex items-center justify-between text-xs font-black text-[#64748B]">
-                          <span>Progreso</span>
-                          <span>{checklist.stats?.progress || 0}%</span>
-                        </div>
-
-                        <div className="h-2.5 overflow-hidden rounded-full bg-[#E2E8F0]">
-                          <div
-                            className={
-                              (checklist.stats?.blocked || 0) > 0
-                                ? 'h-full rounded-full bg-[#EF4444]'
-                                : 'h-full rounded-full bg-[#005643]'
-                            }
-                            style={{
-                              width: `${checklist.stats?.progress || 0}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="mt-5 flex flex-wrap gap-3">
-                        <MiniStat label="Total" value={checklist.stats?.total || 0} />
-                        <MiniStat label="Completadas" value={checklist.stats?.completed || 0} />
-                        <MiniStat label="Pendientes" value={checklist.stats?.pending || 0} />
-                        <MiniStat label="Bloqueadas" value={checklist.stats?.blocked || 0} danger={(checklist.stats?.blocked || 0) > 0} />
-                      </div>
-                    </button>
-
-                    <div className="flex flex-wrap gap-3">
-                      <button
-                        type="button"
-                        onClick={() => onOpenChecklist(checklist.id)}
-                        className="rounded-2xl border border-[#E2E8F0] bg-white px-5 py-3 text-sm font-black text-[#0F172A] hover:bg-[#F8FAFC]"
-                      >
-                        Abrir
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => onDeleteChecklist(checklist.id)}
-                        className="rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-black text-red-600 hover:bg-red-100"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="overflow-hidden rounded-3xl border border-[#E2E8F0] bg-white shadow-sm">
-          <div className="border-b border-[#E2E8F0] px-7 py-6">
-            <h2 className="text-xl font-black text-[#0F172A]">
-              Plantillas disponibles
-            </h2>
-
-            <p className="mt-1 text-sm font-semibold text-[#64748B]">
-              Base para nuevas ejecuciones.
-            </p>
-          </div>
-
-          {templates.length === 0 ? (
-            <div className="px-7 py-10 text-sm font-semibold text-[#64748B]">
-              No hay plantillas disponibles.
-            </div>
-          ) : (
-            <div className="divide-y divide-[#F1F5F9]">
-              {templates.map(template => (
-                <div
-                  key={template.id}
-                  className="px-7 py-6"
-                >
-                  <button
-                    type="button"
-                    onClick={() => onSelectTemplate(template.id)}
-                    className="block w-full text-left"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h3 className="font-black text-[#0F172A]">
-                          {template.name}
-                        </h3>
-
-                        <p className="mt-2 text-sm font-semibold text-[#64748B]">
-                          {template.description || 'Sin descripción'}
-                        </p>
-                      </div>
-
-                      <span className="rounded-full bg-[#DCFCE7] px-3 py-1 text-xs font-black text-[#166534]">
-                        {template.is_active ? 'Activa' : 'Inactiva'}
-                      </span>
-                    </div>
-                  </button>
-
-                  <div className="mt-5 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => onEditTemplate(template.id)}
-                      className="rounded-2xl border border-[#E2E8F0] bg-white px-5 py-3 text-sm font-black text-[#0F172A] hover:bg-[#F8FAFC]"
-                    >
-                      Editar
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => onDuplicateTemplate(template.id)}
-                      className="rounded-2xl border border-[#E2E8F0] bg-white px-5 py-3 text-sm font-black text-[#005643] hover:bg-[#F8FAFC]"
-                    >
-                      Duplicar
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => onDeleteTemplate(template.id)}
-                      className="rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-black text-red-600 hover:bg-red-100"
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
     </div>
   )
 }
 
-function StatCard({
-  title,
-  value,
-  danger = false,
-}) {
-  return (
-    <div
-      className={
-        danger
-          ? 'rounded-3xl border border-red-200 bg-red-50 p-7 shadow-sm'
-          : 'rounded-3xl border border-[#E2E8F0] bg-white p-7 shadow-sm'
-      }
-    >
-      <p
-        className={
-          danger
-            ? 'text-sm font-bold text-red-600'
-            : 'text-sm font-bold text-[#64748B]'
-        }
-      >
-        {title}
-      </p>
-
-      <strong
-        className={
-          danger
-            ? 'mt-3 block text-5xl font-black text-red-700'
-            : 'mt-3 block text-5xl font-black text-[#0F172A]'
-        }
-      >
-        {value}
-      </strong>
-    </div>
-  )
+// ── StatusPill ──────────────────────────────────────────────────────────────
+function StatusPill({ status, blocked }) {
+  if (blocked > 0) return <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-600 ring-1 ring-red-200">Bloqueado</span>
+  if (status === 'completed') return <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 ring-1 ring-blue-200">Finalizado</span>
+  return <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-200">En curso</span>
 }
 
-function MiniStat({
-  label,
-  value,
-  danger = false,
-}) {
+// ── Reusable ─────────────────────────────────────────────────────────────────
+function ActionBtn({ onClick, title, color, children }) {
+  const s = { green: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100', slate: 'bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0]', red: 'bg-[#FEE2E2] text-[#991B1B] hover:bg-[#fecaca]' }
   return (
-    <div
-      className={
-        danger
-          ? 'rounded-2xl border border-red-200 bg-red-50 px-4 py-3'
-          : 'rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3'
-      }
-    >
-      <p
-        className={
-          danger
-            ? 'text-[10px] font-black uppercase tracking-wide text-red-600'
-            : 'text-[10px] font-black uppercase tracking-wide text-[#64748B]'
-        }
-      >
-        {label}
-      </p>
-
-      <strong
-        className={
-          danger
-            ? 'mt-1 block text-sm font-black text-red-700'
-            : 'mt-1 block text-sm font-black text-[#0F172A]'
-        }
-      >
-        {value}
-      </strong>
-    </div>
+    <button type="button" onClick={onClick} title={title}
+      className={`flex h-7 w-7 items-center justify-center rounded-lg transition ${s[color]}`}>
+      {children}
+    </button>
   )
 }
-
-function StatusBadge({
-  status,
-  blocked = 0,
-}) {
-  if (blocked > 0) {
-    return (
-      <span className="rounded-full bg-[#FEE2E2] px-3 py-1 text-xs font-black text-[#B91C1C]">
-        Bloqueado
-      </span>
-    )
-  }
-
-  if (status === 'completed') {
-    return (
-      <span className="rounded-full bg-[#DBEAFE] px-3 py-1 text-xs font-black text-[#1D4ED8]">
-        Finalizado
-      </span>
-    )
-  }
-
+function EmptyState({ label, sub }) {
   return (
-    <span className="rounded-full bg-[#DCFCE7] px-3 py-1 text-xs font-black text-[#166534]">
-      En curso
-    </span>
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#E8EDF2] bg-white py-12 text-center">
+      <p className="text-[14px] font-medium text-[#0F172A]">{label}</p>
+      <p className="mt-1 text-[13px] text-[#94A3B8]">{sub}</p>
+    </div>
   )
 }
