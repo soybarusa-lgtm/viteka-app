@@ -1061,7 +1061,7 @@ export default function App() {
         )}
 
         {currentPage === 'people' && (
-          <PeoplePage pharmacies={clients} />
+          <PeoplePage profile={profile} pharmacies={clients} />
         )}
 
         {currentPage === 'users' &&
@@ -1091,7 +1091,7 @@ export default function App() {
         )}
 
         {currentPage === 'tasks' && (
-          <TasksPage />
+          <TasksPage profile={profile} />
         )}
 
         {currentPage === 'checklists' && (
@@ -1122,7 +1122,7 @@ export default function App() {
         )}
 
         {currentPage === 'timeline' && (
-          <TimelinePage />
+          <TimelinePage profile={profile} />
         )}
 
         {currentPage === 'template-editor' && selectedTemplateId && (
