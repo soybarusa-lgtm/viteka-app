@@ -13,8 +13,10 @@
   --border:       #e2e8f0;
   --primary:      #005643;
   --primary-soft: #e6f4ef;
+  --primary-hover:#004535;
   --danger-soft:  #fef2f2;
   --danger:       #b91c1c;
+  --ring:         #005643;
 }
 
 [data-theme="dark"] {
@@ -26,8 +28,10 @@
   --border:       #1f3a34;
   --primary:      #1fa37e;
   --primary-soft: #0f2a23;
+  --primary-hover:#17866a;
   --danger-soft:  #2a1212;
   --danger:       #f87171;
+  --ring:         #1fa37e;
 }
 
 [data-theme="focus"] {
@@ -39,8 +43,10 @@
   --border:       #cfeee3;
   --primary:      #006b53;
   --primary-soft: #e8f8f2;
+  --primary-hover:#005543;
   --danger-soft:  #fff7ed;
   --danger:       #c2410c;
+  --ring:         #006b53;
 }
 
 [data-theme="alert"] {
@@ -52,24 +58,216 @@
   --border:       #fecdd3;
   --primary:      #005643;
   --primary-soft: #ecfdf5;
+  --primary-hover:#004535;
   --danger-soft:  #fff1f2;
   --danger:       #be123c;
+  --ring:         #be123c;
 }
 
 /* ── Transición suave entre temas ─────────────────────────────────────────── */
 *, *::before, *::after {
-  transition-property: background-color, border-color, color;
+  transition-property: background-color, border-color, color, box-shadow;
   transition-duration: 200ms;
   transition-timing-function: ease;
 }
 
-/* ── Clases de utilidad del sistema ───────────────────────────────────────── */
-.bg-theme        { background-color: var(--bg); }
-.bg-surface      { background-color: var(--surface); }
-.bg-surface-soft { background-color: var(--surface-soft); }
-.text-theme      { color: var(--text); }
-.text-muted      { color: var(--muted); }
-.border-theme    { border-color: var(--border); }
+/* ── Componentes globales temáticos ───────────────────────────────────────── */
+@layer components {
+
+  /* Tarjeta base */
+  .card {
+    @apply rounded-2xl border p-5 md:p-6;
+    background-color: var(--surface);
+    border-color: var(--border);
+    color: var(--text);
+  }
+  .card-soft {
+    @apply rounded-2xl border p-5 md:p-6;
+    background-color: var(--surface-soft);
+    border-color: var(--border);
+    color: var(--text);
+  }
+
+  /* Input / Select / Textarea */
+  .input {
+    @apply w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none
+           placeholder:text-[color:var(--muted)]
+           focus:ring-2;
+    background-color: var(--surface);
+    border-color: var(--border);
+    color: var(--text);
+    --tw-ring-color: var(--ring);
+    --tw-ring-offset-shadow: 0 0 0 0px transparent;
+    --tw-ring-shadow: 0 0 0 2px var(--ring);
+  }
+  .input:focus {
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent);
+  }
+
+  /* Botón primario */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl
+           px-4 py-2.5 text-sm font-medium text-white
+           transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    background-color: var(--primary);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--primary-hover);
+  }
+
+  /* Botón secundario (outline) */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl
+           border px-4 py-2.5 text-sm font-medium
+           transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    border-color: var(--border);
+    background-color: var(--surface);
+    color: var(--text);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background-color: var(--surface-soft);
+  }
+
+  /* Botón ghost (sin borde) */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl
+           px-3 py-2 text-sm font-medium transition-colors
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    color: var(--muted);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background-color: var(--surface-soft);
+    color: var(--text);
+  }
+
+  /* Botón destructivo */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl
+           px-4 py-2.5 text-sm font-medium transition-colors
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    background-color: var(--danger-soft);
+    color: var(--danger);
+  }
+  .btn-danger:hover:not(:disabled) {
+    filter: brightness(0.95);
+  }
+
+  /* Página wrapper */
+  .page {
+    @apply min-h-full;
+    color: var(--text);
+  }
+
+  /* Cabecera de sección (título + acciones) */
+  .page-header {
+    @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6;
+  }
+  .page-title {
+    @apply text-xl font-semibold tracking-tight;
+    color: var(--text);
+  }
+  .page-subtitle {
+    @apply text-sm mt-0.5;
+    color: var(--muted);
+  }
+
+  /* Divisor */
+  .divider {
+    @apply h-px w-full my-4;
+    background-color: var(--border);
+  }
+
+  /* Badges de estado */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium;
+  }
+  .badge-green {
+    @apply badge;
+    background-color: var(--primary-soft);
+    color: var(--primary);
+  }
+  .badge-red {
+    @apply badge;
+    background-color: var(--danger-soft);
+    color: var(--danger);
+  }
+  .badge-gray {
+    @apply badge;
+    background-color: var(--surface-soft);
+    color: var(--muted);
+  }
+  .badge-amber {
+    @apply badge bg-amber-50 text-amber-700;
+  }
+  .badge-blue {
+    @apply badge bg-blue-50 text-blue-700;
+  }
+
+  /* Tabla */
+  .table-wrap {
+    @apply w-full overflow-x-auto rounded-2xl border;
+    border-color: var(--border);
+  }
+  .table-base {
+    @apply w-full text-sm;
+  }
+  .table-base thead tr {
+    @apply border-b text-xs font-medium uppercase tracking-wide;
+    border-color: var(--border);
+    background-color: var(--surface-soft);
+    color: var(--muted);
+  }
+  .table-base th {
+    @apply px-4 py-3 text-left;
+  }
+  .table-base td {
+    @apply px-4 py-3;
+    color: var(--text);
+  }
+  .table-base tbody tr {
+    @apply border-b last:border-0 transition-colors;
+    border-color: var(--border);
+    background-color: var(--surface);
+  }
+  .table-base tbody tr:hover {
+    background-color: var(--surface-soft);
+  }
+
+  /* Modal overlay */
+  .modal-overlay {
+    @apply fixed inset-0 z-[300] flex items-end sm:items-center justify-center p-4;
+    background-color: rgba(0,0,0,0.45);
+    backdrop-filter: blur(4px);
+  }
+  .modal-panel {
+    @apply w-full max-w-lg rounded-2xl border p-6 shadow-2xl;
+    background-color: var(--surface);
+    border-color: var(--border);
+  }
+  .modal-title {
+    @apply text-base font-semibold mb-4;
+    color: var(--text);
+  }
+
+  /* Empty state */
+  .empty-state {
+    @apply flex flex-col items-center justify-center gap-3 rounded-2xl border py-16 text-center;
+    border-color: var(--border);
+    background-color: var(--surface);
+    color: var(--muted);
+  }
+}
+
+/* ── Clases de utilidad del sistema (fuera de @layer para máxima prioridad) ── */
+.bg-theme        { background-color: var(--bg) !important; }
+.bg-surface      { background-color: var(--surface) !important; }
+.bg-surface-soft { background-color: var(--surface-soft) !important; }
+.text-theme      { color: var(--text) !important; }
+.text-muted-theme{ color: var(--muted) !important; }
+.border-theme    { border-color: var(--border) !important; }
+.text-primary    { color: var(--primary) !important; }
+.bg-primary-soft { background-color: var(--primary-soft) !important; }
 
 /* ── Safe area (notch / home-bar) ─────────────────────────────────────────── */
 :root {
@@ -77,7 +275,7 @@
   --safe-top:    env(safe-area-inset-top, 0px);
 }
 
-/* ── Scroll & tap ────────────────────────────────────────────────────────── */
+/* ── Scroll & tap ─────────────────────────────────────────────────────────── */
 * { -webkit-tap-highlight-color: transparent; }
 
 html {
