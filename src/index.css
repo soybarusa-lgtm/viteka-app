@@ -2,41 +2,105 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Safe area support for notch/home-bar devices */
+/* ── Tokens de tema ───────────────────────────────────────────────────────── */
+:root,
+[data-theme="light"] {
+  --bg:           #f8fafc;
+  --surface:      #ffffff;
+  --surface-soft: #f1f5f9;
+  --text:         #0f172a;
+  --muted:        #64748b;
+  --border:       #e2e8f0;
+  --primary:      #005643;
+  --primary-soft: #e6f4ef;
+  --danger-soft:  #fef2f2;
+  --danger:       #b91c1c;
+}
+
+[data-theme="dark"] {
+  --bg:           #08110f;
+  --surface:      #0f1b18;
+  --surface-soft: #132320;
+  --text:         #f1f5f9;
+  --muted:        #94a3b8;
+  --border:       #1f3a34;
+  --primary:      #1fa37e;
+  --primary-soft: #0f2a23;
+  --danger-soft:  #2a1212;
+  --danger:       #f87171;
+}
+
+[data-theme="focus"] {
+  --bg:           #f8fafc;
+  --surface:      #ffffff;
+  --surface-soft: #eefbf6;
+  --text:         #0f172a;
+  --muted:        #475569;
+  --border:       #cfeee3;
+  --primary:      #006b53;
+  --primary-soft: #e8f8f2;
+  --danger-soft:  #fff7ed;
+  --danger:       #c2410c;
+}
+
+[data-theme="alert"] {
+  --bg:           #fffafa;
+  --surface:      #ffffff;
+  --surface-soft: #fff1f2;
+  --text:         #1f2937;
+  --muted:        #6b7280;
+  --border:       #fecdd3;
+  --primary:      #005643;
+  --primary-soft: #ecfdf5;
+  --danger-soft:  #fff1f2;
+  --danger:       #be123c;
+}
+
+/* ── Transición suave entre temas ─────────────────────────────────────────── */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color;
+  transition-duration: 200ms;
+  transition-timing-function: ease;
+}
+
+/* ── Clases de utilidad del sistema ───────────────────────────────────────── */
+.bg-theme        { background-color: var(--bg); }
+.bg-surface      { background-color: var(--surface); }
+.bg-surface-soft { background-color: var(--surface-soft); }
+.text-theme      { color: var(--text); }
+.text-muted      { color: var(--muted); }
+.border-theme    { border-color: var(--border); }
+
+/* ── Safe area (notch / home-bar) ─────────────────────────────────────────── */
 :root {
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top:    env(safe-area-inset-top, 0px);
 }
 
-/* Smooth scroll on iOS */
-* {
-  -webkit-tap-highlight-color: transparent;
-}
+/* ── Scroll & tap ────────────────────────────────────────────────────────── */
+* { -webkit-tap-highlight-color: transparent; }
 
 html {
   scroll-behavior: smooth;
   height: -webkit-fill-available;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   overscroll-behavior: none;
+  background-color: var(--bg);
+  color: var(--text);
 }
 
-/* Prevent text size adjust on orientation change */
-html {
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
-/* Better momentum scrolling on iOS */
 .overflow-y-auto,
 .overflow-y-scroll {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Remove default select arrow on Safari */
+/* ── Select custom arrow ──────────────────────────────────────────────────── */
 select {
   -webkit-appearance: none;
   appearance: none;
