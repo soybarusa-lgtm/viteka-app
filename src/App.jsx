@@ -107,7 +107,6 @@ export default function App() {
     }
 
     if (!data) {
-      // No profile found — do not assign any role or permissions
       return null
     }
 
@@ -1040,6 +1039,7 @@ export default function App() {
             projects={projects}
             templates={templates}
             checklists={executedChecklists}
+            onNavigate={changePage}
           />
         )}
 
