@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { createActivityLog } from './lib/activityLogs'
 import { createNotification } from './lib/notifications'
+import { useThemeMode } from './hooks/useThemeMode'
 
 import AppLayout from './layouts/AppLayout'
 import ClientLayout from './layouts/ClientLayout'
@@ -42,6 +43,8 @@ export default function App() {
   const [projects, setProjects] = useState([])
   const [templates, setTemplates] = useState([])
   const [executedChecklists, setExecutedChecklists] = useState([])
+  const [incidents, setIncidents] = useState([])
+  const [tasks, setTasks] = useState([])
 
   const [errorMsg, setErrorMsg] = useState('')
   const [currentPage, setCurrentPage] = useState('dashboard')
@@ -58,6 +61,9 @@ export default function App() {
 
   const [isCreateChecklistOpen, setIsCreateChecklistOpen] = useState(false)
   const [isCreateTemplateOpen, setIsCreateTemplateOpen] = useState(false)
+
+  // ── Tema dinámico ───────────────────────────────────────────────────────
+  const { theme, userTheme, toggleTheme } = useThemeMode({ incidents, tasks })
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -88,6 +94,8 @@ export default function App() {
       loadProjects(loadedProfile),
       loadTemplates(),
       loadExecutedChecklists(loadedProfile),
+      loadIncidents(loadedProfile),
+      loadTasks(loadedProfile),
     ])
   }
 
@@ -106,9 +114,7 @@ export default function App() {
       return null
     }
 
-    if (!data) {
-      return null
-    }
+    if (!data) return null
 
     setProfile(data)
     return data
@@ -122,24 +128,19 @@ export default function App() {
     e.preventDefault()
     setErrorMsg('')
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (error) {
-      setErrorMsg(error.message)
-    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) setErrorMsg(error.message)
   }
 
   async function logout() {
     await supabase.auth.signOut()
-
     setProfile(null)
     setClients([])
     setProjects([])
     setTemplates([])
     setExecutedChecklists([])
+    setIncidents([])
+    setTasks([])
     setSelectedChecklistId(null)
     setSelectedTemplateId(null)
     setSelectedClientId(null)
@@ -152,25 +153,14 @@ export default function App() {
       .select('*')
       .order('created_at', { ascending: false })
 
-    if (error) {
-      setErrorMsg(error.message)
-      return
-    }
-
+    if (error) { setErrorMsg(error.message); return }
     setClients(data || [])
   }
 
   async function loadProjects(userProfile = profile) {
     let query = supabase
       .from('projects')
-      .select(`
-        *,
-        clients (
-          id,
-          name,
-          pharmacy_name
-        )
-      `)
+      .select('*, clients(id,name,pharmacy_name)')
       .order('created_at', { ascending: false })
 
     if (isTechnician(userProfile)) {
@@ -178,12 +168,7 @@ export default function App() {
     }
 
     const { data, error } = await query
-
-    if (error) {
-      setErrorMsg(error.message)
-      return
-    }
-
+    if (error) { setErrorMsg(error.message); return }
     setProjects(data || [])
   }
 
@@ -193,11 +178,7 @@ export default function App() {
       .select('*')
       .order('created_at', { ascending: false })
 
-    if (error) {
-      setErrorMsg(error.message)
-      return
-    }
-
+    if (error) { setErrorMsg(error.message); return }
     setTemplates(data || [])
   }
 
@@ -207,77 +188,53 @@ export default function App() {
       .select(`
         *,
         projects (
-          id,
-          name,
-          assigned_technician_id,
-          clients (
-            id,
-            name,
-            pharmacy_name
-          )
+          id, name, assigned_technician_id,
+          clients(id, name, pharmacy_name)
         ),
         checklist_sections (
           id,
-          checklist_tasks (
-            id,
-            status
-          )
+          checklist_tasks(id, status)
         )
       `)
       .order('created_at', { ascending: false })
 
-    if (error) {
-      setErrorMsg(error.message)
-      return
-    }
+    if (error) { setErrorMsg(error.message); return }
 
     const visibleData = isTechnician(userProfile)
-      ? (data || []).filter(
-          checklist =>
-            checklist.projects?.assigned_technician_id === session.user.id
-        )
+      ? (data || []).filter(c => c.projects?.assigned_technician_id === session.user.id)
       : data || []
 
     const formatted = visibleData.map(checklist => {
-      const allTasks =
-        checklist.checklist_sections?.flatMap(
-          section => section.checklist_tasks || []
-        ) || []
-
-      const total = allTasks.length
-
-      const completed = allTasks.filter(
-        task =>
-          task.status === 'completed' ||
-          task.status === 'not_applicable'
-      ).length
-
-      const blocked = allTasks.filter(
-        task => task.status === 'blocked'
-      ).length
-
-      const pending = allTasks.filter(
-        task =>
-          task.status === 'pending' ||
-          task.status === 'in_progress'
-      ).length
-
-      const progress =
-        total > 0 ? Math.round((completed / total) * 100) : 0
-
-      return {
-        ...checklist,
-        stats: {
-          total,
-          completed,
-          blocked,
-          pending,
-          progress,
-        },
-      }
+      const allTasks = checklist.checklist_sections?.flatMap(s => s.checklist_tasks || []) || []
+      const total     = allTasks.length
+      const completed = allTasks.filter(t => t.status === 'completed' || t.status === 'not_applicable').length
+      const blocked   = allTasks.filter(t => t.status === 'blocked').length
+      const pending   = allTasks.filter(t => t.status === 'pending' || t.status === 'in_progress').length
+      const progress  = total > 0 ? Math.round((completed / total) * 100) : 0
+      return { ...checklist, stats: { total, completed, blocked, pending, progress } }
     })
 
     setExecutedChecklists(formatted)
+  }
+
+  // Carga ligera de incidencias para el tema dinámico (solo campos necesarios)
+  async function loadIncidents(userProfile = profile) {
+    if (!userProfile?.company_id) return
+    const { data } = await supabase
+      .from('incidents')
+      .select('id, priority, status')
+      .eq('company_id', userProfile.company_id)
+    setIncidents(data || [])
+  }
+
+  // Carga ligera de tareas para el tema dinámico (solo campos necesarios)
+  async function loadTasks(userProfile = profile) {
+    if (!userProfile?.company_id) return
+    const { data } = await supabase
+      .from('tasks')
+      .select('id, status, due_date')
+      .eq('company_id', userProfile.company_id)
+    setTasks(data || [])
   }
 
   async function createClient(clientData) {
@@ -311,27 +268,10 @@ export default function App() {
       .select()
       .single()
 
-    if (error) {
-      alert(error.message)
-      return
-    }
+    if (error) { alert(error.message); return }
 
-    await createActivityLog({
-      userId: session.user.id,
-      entityType: 'client',
-      entityId: data.id,
-      action: 'create',
-      newValue: data,
-    })
-
-    await createNotification({
-      userId: session.user.id,
-      title: 'Farmacia creada',
-      message: `Se creó la farmacia "${data.pharmacy_name || data.name}".`,
-      type: 'success',
-      entityType: 'client',
-      entityId: data.id,
-    })
+    await createActivityLog({ userId: session.user.id, entityType: 'client', entityId: data.id, action: 'create', newValue: data })
+    await createNotification({ userId: session.user.id, title: 'Farmacia creada', message: `Se creó la farmacia "${data.pharmacy_name || data.name}".`, type: 'success', entityType: 'client', entityId: data.id })
 
     setIsCreateClientOpen(false)
     await loadClients()
@@ -339,7 +279,7 @@ export default function App() {
   }
 
   async function updateClient(clientId, clientData) {
-    const previous = clients.find(client => client.id === clientId)
+    const previous = clients.find(c => c.id === clientId)
 
     const { data, error } = await supabase
       .from('clients')
@@ -369,48 +309,19 @@ export default function App() {
       .select()
       .single()
 
-    if (error) {
-      alert(error.message)
-      return
-    }
+    if (error) { alert(error.message); return }
 
-    await createActivityLog({
-      userId: session.user.id,
-      entityType: 'client',
-      entityId: clientId,
-      action: 'update',
-      oldValue: previous,
-      newValue: data,
-    })
-
+    await createActivityLog({ userId: session.user.id, entityType: 'client', entityId: clientId, action: 'update', oldValue: previous, newValue: data })
     setEditingClient(null)
     await loadClients()
   }
 
   async function deleteClient(clientId) {
-    const confirmed = window.confirm('¿Eliminar esta farmacia?')
-    if (!confirmed) return
-
-    const previous = clients.find(client => client.id === clientId)
-
-    const { error } = await supabase
-      .from('clients')
-      .delete()
-      .eq('id', clientId)
-
-    if (error) {
-      alert(error.message)
-      return
-    }
-
-    await createActivityLog({
-      userId: session.user.id,
-      entityType: 'client',
-      entityId: clientId,
-      action: 'delete',
-      oldValue: previous,
-    })
-
+    if (!window.confirm('¿Eliminar esta farmacia?')) return
+    const previous = clients.find(c => c.id === clientId)
+    const { error } = await supabase.from('clients').delete().eq('id', clientId)
+    if (error) { alert(error.message); return }
+    await createActivityLog({ userId: session.user.id, entityType: 'client', entityId: clientId, action: 'delete', oldValue: previous })
     await loadClients()
   }
 
@@ -431,27 +342,10 @@ export default function App() {
       .select()
       .single()
 
-    if (error) {
-      alert(error.message)
-      return
-    }
+    if (error) { alert(error.message); return }
 
-    await createActivityLog({
-      userId: session.user.id,
-      entityType: 'project',
-      entityId: data.id,
-      action: 'create',
-      newValue: data,
-    })
-
-    await createNotification({
-      userId: session.user.id,
-      title: 'Proyecto creado',
-      message: `Se creó el proyecto "${projectData.name}".`,
-      type: 'success',
-      entityType: 'project',
-      entityId: data.id,
-    })
+    await createActivityLog({ userId: session.user.id, entityType: 'project', entityId: data.id, action: 'create', newValue: data })
+    await createNotification({ userId: session.user.id, title: 'Proyecto creado', message: `Se creó el proyecto "${projectData.name}".`, type: 'success', entityType: 'project', entityId: data.id })
 
     setIsCreateProjectOpen(false)
     await loadProjects()
@@ -459,7 +353,7 @@ export default function App() {
   }
 
   async function updateProject(projectId, projectData) {
-    const previous = projects.find(project => project.id === projectId)
+    const previous = projects.find(p => p.id === projectId)
 
     const { data, error } = await supabase
       .from('projects')
@@ -474,48 +368,19 @@ export default function App() {
       .select()
       .single()
 
-    if (error) {
-      alert(error.message)
-      return
-    }
+    if (error) { alert(error.message); return }
 
-    await createActivityLog({
-      userId: session.user.id,
-      entityType: 'project',
-      entityId: projectId,
-      action: 'update',
-      oldValue: previous,
-      newValue: data,
-    })
-
+    await createActivityLog({ userId: session.user.id, entityType: 'project', entityId: projectId, action: 'update', oldValue: previous, newValue: data })
     setEditingProject(null)
     await loadProjects()
   }
 
   async function deleteProject(projectId) {
-    const confirmed = window.confirm('¿Eliminar este proyecto?')
-    if (!confirmed) return
-
-    const previous = projects.find(project => project.id === projectId)
-
-    const { error } = await supabase
-      .from('projects')
-      .delete()
-      .eq('id', projectId)
-
-    if (error) {
-      alert(error.message)
-      return
-    }
-
-    await createActivityLog({
-      userId: session.user.id,
-      entityType: 'project',
-      entityId: projectId,
-      action: 'delete',
-      oldValue: previous,
-    })
-
+    if (!window.confirm('¿Eliminar este proyecto?')) return
+    const previous = projects.find(p => p.id === projectId)
+    const { error } = await supabase.from('projects').delete().eq('id', projectId)
+    if (error) { alert(error.message); return }
+    await createActivityLog({ userId: session.user.id, entityType: 'project', entityId: projectId, action: 'delete', oldValue: previous })
     await loadProjects()
   }
 
@@ -533,51 +398,27 @@ export default function App() {
       .select()
       .single()
 
-    if (error) {
-      alert(error.message)
-      return
-    }
+    if (error) { alert(error.message); return }
 
-    await createActivityLog({
-      userId: session.user.id,
-      entityType: 'template',
-      entityId: data.id,
-      action: 'create',
-      newValue: data,
-    })
-
+    await createActivityLog({ userId: session.user.id, entityType: 'template', entityId: data.id, action: 'create', newValue: data })
     setIsCreateTemplateOpen(false)
     await loadTemplates()
-
     setSelectedTemplateId(data.id)
     setCurrentPage('template-editor')
   }
 
   async function duplicateTemplate(templateId) {
     if (!profile?.company_id) return
-
-    const original = templates.find(template => template.id === templateId)
-
-    if (!original) {
-      alert('No se encontró la plantilla.')
-      return
-    }
+    const original = templates.find(t => t.id === templateId)
+    if (!original) { alert('No se encontró la plantilla.'); return }
 
     const { data: newTemplate, error: templateError } = await supabase
       .from('checklist_templates')
-      .insert({
-        company_id: profile.company_id,
-        name: `${original.name} - copia`,
-        description: original.description || '',
-        is_active: true,
-      })
+      .insert({ company_id: profile.company_id, name: `${original.name} - copia`, description: original.description || '', is_active: true })
       .select()
       .single()
 
-    if (templateError) {
-      alert(templateError.message)
-      return
-    }
+    if (templateError) { alert(templateError.message); return }
 
     const { data: sections, error: sectionsError } = await supabase
       .from('checklist_template_sections')
@@ -585,26 +426,16 @@ export default function App() {
       .eq('template_id', templateId)
       .order('position', { ascending: true })
 
-    if (sectionsError) {
-      alert(sectionsError.message)
-      return
-    }
+    if (sectionsError) { alert(sectionsError.message); return }
 
     for (const section of sections || []) {
       const { data: newSection, error: newSectionError } = await supabase
         .from('checklist_template_sections')
-        .insert({
-          template_id: newTemplate.id,
-          title: section.title,
-          position: section.position,
-        })
+        .insert({ template_id: newTemplate.id, title: section.title, position: section.position })
         .select()
         .single()
 
-      if (newSectionError) {
-        alert(newSectionError.message)
-        return
-      }
+      if (newSectionError) { alert(newSectionError.message); return }
 
       const { data: tasks, error: tasksError } = await supabase
         .from('checklist_template_tasks')
@@ -612,10 +443,7 @@ export default function App() {
         .eq('section_id', section.id)
         .order('position', { ascending: true })
 
-      if (tasksError) {
-        alert(tasksError.message)
-        return
-      }
+      if (tasksError) { alert(tasksError.message); return }
 
       const newTasks = (tasks || []).map(task => ({
         section_id: newSection.id,
@@ -626,87 +454,41 @@ export default function App() {
       }))
 
       if (newTasks.length > 0) {
-        const { error: insertTasksError } = await supabase
-          .from('checklist_template_tasks')
-          .insert(newTasks)
-
-        if (insertTasksError) {
-          alert(insertTasksError.message)
-          return
-        }
+        const { error: insertTasksError } = await supabase.from('checklist_template_tasks').insert(newTasks)
+        if (insertTasksError) { alert(insertTasksError.message); return }
       }
     }
 
-    await createActivityLog({
-      userId: session.user.id,
-      entityType: 'template',
-      entityId: newTemplate.id,
-      action: 'duplicate',
-      oldValue: original,
-      newValue: newTemplate,
-    })
-
+    await createActivityLog({ userId: session.user.id, entityType: 'template', entityId: newTemplate.id, action: 'duplicate', oldValue: original, newValue: newTemplate })
     await loadTemplates()
     setSelectedTemplateId(newTemplate.id)
     setCurrentPage('template-editor')
   }
 
   async function deleteTemplate(templateId) {
-    const confirmed = window.confirm(
-      '¿Eliminar esta plantilla y todas sus secciones/tareas?'
-    )
-
-    if (!confirmed) return
-
-    const previous = templates.find(template => template.id === templateId)
+    if (!window.confirm('¿Eliminar esta plantilla y todas sus secciones/tareas?')) return
+    const previous = templates.find(t => t.id === templateId)
 
     const { data: sections, error: sectionsError } = await supabase
       .from('checklist_template_sections')
       .select('id')
       .eq('template_id', templateId)
 
-    if (sectionsError) {
-      alert(sectionsError.message)
-      return
-    }
+    if (sectionsError) { alert(sectionsError.message); return }
 
-    const sectionIds = (sections || []).map(section => section.id)
+    const sectionIds = (sections || []).map(s => s.id)
 
     if (sectionIds.length > 0) {
-      const { error: tasksError } = await supabase
-        .from('checklist_template_tasks')
-        .delete()
-        .in('section_id', sectionIds)
-
-      if (tasksError) {
-        alert(tasksError.message)
-        return
-      }
+      const { error: tasksError } = await supabase.from('checklist_template_tasks').delete().in('section_id', sectionIds)
+      if (tasksError) { alert(tasksError.message); return }
     }
 
-    await supabase
-      .from('checklist_template_sections')
-      .delete()
-      .eq('template_id', templateId)
+    await supabase.from('checklist_template_sections').delete().eq('template_id', templateId)
 
-    const { error: deleteTemplateError } = await supabase
-      .from('checklist_templates')
-      .delete()
-      .eq('id', templateId)
+    const { error: deleteTemplateError } = await supabase.from('checklist_templates').delete().eq('id', templateId)
+    if (deleteTemplateError) { alert(deleteTemplateError.message); return }
 
-    if (deleteTemplateError) {
-      alert(deleteTemplateError.message)
-      return
-    }
-
-    await createActivityLog({
-      userId: session.user.id,
-      entityType: 'template',
-      entityId: templateId,
-      action: 'delete',
-      oldValue: previous,
-    })
-
+    await createActivityLog({ userId: session.user.id, entityType: 'template', entityId: templateId, action: 'delete', oldValue: previous })
     await loadTemplates()
   }
 
@@ -723,10 +505,7 @@ export default function App() {
       .select()
       .single()
 
-    if (checklistError) {
-      alert(checklistError.message)
-      return
-    }
+    if (checklistError) { alert(checklistError.message); return }
 
     const { data: sections, error: sectionsError } = await supabase
       .from('checklist_template_sections')
@@ -734,26 +513,16 @@ export default function App() {
       .eq('template_id', checklistData.template_id)
       .order('position', { ascending: true })
 
-    if (sectionsError) {
-      alert(sectionsError.message)
-      return
-    }
+    if (sectionsError) { alert(sectionsError.message); return }
 
     for (const section of sections || []) {
       const { data: newSection, error: newSectionError } = await supabase
         .from('checklist_sections')
-        .insert({
-          checklist_id: checklist.id,
-          title: section.title,
-          position: section.position,
-        })
+        .insert({ checklist_id: checklist.id, title: section.title, position: section.position })
         .select()
         .single()
 
-      if (newSectionError) {
-        alert(newSectionError.message)
-        return
-      }
+      if (newSectionError) { alert(newSectionError.message); return }
 
       const { data: tasks, error: tasksError } = await supabase
         .from('checklist_template_tasks')
@@ -761,10 +530,7 @@ export default function App() {
         .eq('section_id', section.id)
         .order('position', { ascending: true })
 
-      if (tasksError) {
-        alert(tasksError.message)
-        return
-      }
+      if (tasksError) { alert(tasksError.message); return }
 
       const tasksToInsert = (tasks || []).map(task => ({
         section_id: newSection.id,
@@ -776,63 +542,32 @@ export default function App() {
       }))
 
       if (tasksToInsert.length > 0) {
-        const { error: insertTasksError } = await supabase
-          .from('checklist_tasks')
-          .insert(tasksToInsert)
-
-        if (insertTasksError) {
-          alert(insertTasksError.message)
-          return
-        }
+        const { error: insertTasksError } = await supabase.from('checklist_tasks').insert(tasksToInsert)
+        if (insertTasksError) { alert(insertTasksError.message); return }
       }
     }
 
-    await createActivityLog({
-      userId: session.user.id,
-      entityType: 'checklist',
-      entityId: checklist.id,
-      action: 'create',
-      newValue: checklist,
-    })
-
-    await createNotification({
-      userId: session.user.id,
-      title: 'Checklist creado',
-      message: `Se creó el checklist "${checklistData.title}".`,
-      type: 'success',
-      entityType: 'checklist',
-      entityId: checklist.id,
-    })
+    await createActivityLog({ userId: session.user.id, entityType: 'checklist', entityId: checklist.id, action: 'create', newValue: checklist })
+    await createNotification({ userId: session.user.id, title: 'Checklist creado', message: `Se creó el checklist "${checklistData.title}".`, type: 'success', entityType: 'checklist', entityId: checklist.id })
 
     setIsCreateChecklistOpen(false)
     await loadExecutedChecklists()
-
     setSelectedChecklistId(checklist.id)
     setCurrentPage('checklist-execution')
   }
 
   async function deleteChecklist(checklistId) {
-    const confirmed = window.confirm(
-      '¿Eliminar esta ejecución de checklist?'
-    )
-
-    if (!confirmed) return
-
-    const previous = executedChecklists.find(
-      checklist => checklist.id === checklistId
-    )
+    if (!window.confirm('¿Eliminar esta ejecución de checklist?')) return
+    const previous = executedChecklists.find(c => c.id === checklistId)
 
     const { data: sections, error: sectionsError } = await supabase
       .from('checklist_sections')
       .select('id')
       .eq('checklist_id', checklistId)
 
-    if (sectionsError) {
-      alert(sectionsError.message)
-      return
-    }
+    if (sectionsError) { alert(sectionsError.message); return }
 
-    const sectionIds = (sections || []).map(section => section.id)
+    const sectionIds = (sections || []).map(s => s.id)
 
     if (sectionIds.length > 0) {
       const { data: tasks, error: tasksError } = await supabase
@@ -840,49 +575,20 @@ export default function App() {
         .select('id')
         .in('section_id', sectionIds)
 
-      if (tasksError) {
-        alert(tasksError.message)
-        return
-      }
+      if (tasksError) { alert(tasksError.message); return }
 
-      const taskIds = (tasks || []).map(task => task.id)
-
+      const taskIds = (tasks || []).map(t => t.id)
       if (taskIds.length > 0) {
-        await supabase
-          .from('task_evidence')
-          .delete()
-          .in('task_id', taskIds)
-
-        await supabase
-          .from('checklist_tasks')
-          .delete()
-          .in('id', taskIds)
+        await supabase.from('task_evidence').delete().in('task_id', taskIds)
+        await supabase.from('checklist_tasks').delete().in('id', taskIds)
       }
-
-      await supabase
-        .from('checklist_sections')
-        .delete()
-        .in('id', sectionIds)
+      await supabase.from('checklist_sections').delete().in('id', sectionIds)
     }
 
-    const { error: deleteChecklistError } = await supabase
-      .from('checklists')
-      .delete()
-      .eq('id', checklistId)
+    const { error: deleteChecklistError } = await supabase.from('checklists').delete().eq('id', checklistId)
+    if (deleteChecklistError) { alert(deleteChecklistError.message); return }
 
-    if (deleteChecklistError) {
-      alert(deleteChecklistError.message)
-      return
-    }
-
-    await createActivityLog({
-      userId: session.user.id,
-      entityType: 'checklist',
-      entityId: checklistId,
-      action: 'delete',
-      oldValue: previous,
-    })
-
+    await createActivityLog({ userId: session.user.id, entityType: 'checklist', entityId: checklistId, action: 'delete', oldValue: previous })
     await loadExecutedChecklists()
   }
 
@@ -917,33 +623,11 @@ export default function App() {
   }
 
   function changePage(page) {
-    if (
-      page === 'audit' &&
-      profile?.role !== 'owner' &&
-      profile?.role !== 'admin'
-    ) {
+    const adminOnly = ['audit', 'settings', 'users']
+    if (adminOnly.includes(page) && profile?.role !== 'owner' && profile?.role !== 'admin') {
       setCurrentPage('dashboard')
       return
     }
-
-    if (
-      page === 'settings' &&
-      profile?.role !== 'owner' &&
-      profile?.role !== 'admin'
-    ) {
-      setCurrentPage('dashboard')
-      return
-    }
-
-    if (
-      page === 'users' &&
-      profile?.role !== 'owner' &&
-      profile?.role !== 'admin'
-    ) {
-      setCurrentPage('dashboard')
-      return
-    }
-
     setSelectedClientId(null)
     setCurrentPage(page)
   }
@@ -952,43 +636,14 @@ export default function App() {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
         <div className="w-full max-w-md rounded-3xl bg-white border border-[#E2E8F0] shadow-sm p-8">
-          <h1 className="text-3xl tracking-tight text-[#005643] font-medium">
-            Viteka
-          </h1>
-
-          <p className="mt-2 text-[#64748B] font-normal">
-            Acceso portal de soporte técnico
-          </p>
-
+          <h1 className="text-3xl tracking-tight text-[#005643] font-medium">Viteka</h1>
+          <p className="mt-2 text-[#64748B] font-normal">Acceso portal de soporte técnico</p>
           <form onSubmit={login} className="mt-8 space-y-4">
-            <input
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="input"
-              placeholder="Email"
-            />
-
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="input"
-              placeholder="Contraseña"
-            />
-
-            <button
-              type="submit"
-              className="btn-primary w-full"
-            >
-              Entrar
-            </button>
+            <input value={email} onChange={e => setEmail(e.target.value)} className="input" placeholder="Email" />
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="input" placeholder="Contraseña" />
+            <button type="submit" className="btn-primary w-full">Entrar</button>
           </form>
-
-          {errorMsg && (
-            <p className="mt-4 text-red-600 font-normal">
-              {errorMsg}
-            </p>
-          )}
+          {errorMsg && <p className="mt-4 text-red-600 font-normal">{errorMsg}</p>}
         </div>
       </div>
     )
@@ -998,15 +653,8 @@ export default function App() {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
         <div className="w-full max-w-md rounded-3xl bg-white border border-[#E2E8F0] shadow-sm p-8 text-center">
-          <p className="text-[#64748B]">
-            Tu cuenta no tiene un perfil asignado. Contacta con el administrador.
-          </p>
-          <button
-            onClick={logout}
-            className="mt-4 text-sm text-[#005643] underline"
-          >
-            Cerrar sesión
-          </button>
+          <p className="text-[#64748B]">Tu cuenta no tiene un perfil asignado. Contacta con el administrador.</p>
+          <button onClick={logout} className="mt-4 text-sm text-[#005643] underline">Cerrar sesión</button>
         </div>
       </div>
     )
@@ -1014,12 +662,7 @@ export default function App() {
 
   if (profile?.portal_type === 'client') {
     return (
-      <ClientLayout
-        onLogout={logout}
-        currentPage={currentPage}
-        setCurrentPage={changePage}
-        profile={profile}
-      >
+      <ClientLayout onLogout={logout} currentPage={currentPage} setCurrentPage={changePage} profile={profile}>
         <ClientPortalPage currentPage={currentPage} />
       </ClientLayout>
     )
@@ -1031,69 +674,34 @@ export default function App() {
       currentPage={currentPage}
       setCurrentPage={changePage}
       profile={profile}
+      theme={theme}
+      userTheme={userTheme}
+      onToggleTheme={toggleTheme}
     >
       <>
         {currentPage === 'dashboard' && (
-          <Dashboard
-            clients={clients}
-            projects={projects}
-            templates={templates}
-            checklists={executedChecklists}
-            onNavigate={changePage}
-          />
+          <Dashboard clients={clients} projects={projects} templates={templates} checklists={executedChecklists} onNavigate={changePage} />
         )}
-
         {currentPage === 'clients' && (
-          <ClientsPage
-            clients={clients}
-            onCreateClient={() => setIsCreateClientOpen(true)}
-            onEditClient={setEditingClient}
-            onDeleteClient={deleteClient}
-            onOpenClient={openClientDetail}
-          />
+          <ClientsPage clients={clients} onCreateClient={() => setIsCreateClientOpen(true)} onEditClient={setEditingClient} onDeleteClient={deleteClient} onOpenClient={openClientDetail} />
         )}
-
         {currentPage === 'client-detail' && selectedClientId && (
-          <ClientDetailPage
-            clientId={selectedClientId}
-            onBack={backToClients}
-          />
+          <ClientDetailPage clientId={selectedClientId} onBack={backToClients} />
         )}
-
         {currentPage === 'people' && (
           <PeoplePage profile={profile} pharmacies={clients} />
         )}
-
-        {currentPage === 'users' &&
-          (profile?.role === 'owner' || profile?.role === 'admin') && (
-            <UsersPage
-              currentUser={profile}
-              onUserUpdated={async (oldUser, newUser) => {
-                await createActivityLog({
-                  userId: session.user.id,
-                  entityType: 'profile',
-                  entityId: newUser.id,
-                  action: 'update',
-                  oldValue: oldUser,
-                  newValue: newUser,
-                })
-              }}
-            />
-          )}
-
-        {currentPage === 'projects' && (
-          <ProjectsPage
-            projects={projects}
-            onCreateProject={() => setIsCreateProjectOpen(true)}
-            onEditProject={setEditingProject}
-            onDeleteProject={deleteProject}
-          />
+        {currentPage === 'users' && (profile?.role === 'owner' || profile?.role === 'admin') && (
+          <UsersPage currentUser={profile} onUserUpdated={async (oldUser, newUser) => {
+            await createActivityLog({ userId: session.user.id, entityType: 'profile', entityId: newUser.id, action: 'update', oldValue: oldUser, newValue: newUser })
+          }} />
         )}
-
+        {currentPage === 'projects' && (
+          <ProjectsPage projects={projects} onCreateProject={() => setIsCreateProjectOpen(true)} onEditProject={setEditingProject} onDeleteProject={deleteProject} />
+        )}
         {currentPage === 'tasks' && (
           <TasksPage profile={profile} />
         )}
-
         {currentPage === 'checklists' && (
           <ChecklistsPage
             templates={templates}
@@ -1108,101 +716,38 @@ export default function App() {
             onOpenChecklist={openChecklist}
           />
         )}
-
         {currentPage === 'incidents' && (
-          <IncidentsPage
-            pharmacies={clients}
-            projects={projects}
-            profile={profile}
-          />
+          <IncidentsPage pharmacies={clients} projects={projects} profile={profile} />
         )}
-
         {currentPage === 'documents' && (
           <DocumentsPage profile={profile} />
         )}
-
         {currentPage === 'timeline' && (
           <TimelinePage profile={profile} />
         )}
-
         {currentPage === 'template-editor' && selectedTemplateId && (
-          <TemplateEditorPage
-            templateId={selectedTemplateId}
-            onBack={backToChecklists}
-          />
+          <TemplateEditorPage templateId={selectedTemplateId} onBack={backToChecklists} />
         )}
-
         {currentPage === 'checklist-execution' && selectedChecklistId && (
-          <ChecklistExecutionPage
-            checklistId={selectedChecklistId}
-            currentUserId={session.user.id}
-            onOpenReport={openChecklistReport}
-            onBack={backToChecklists}
-          />
+          <ChecklistExecutionPage checklistId={selectedChecklistId} currentUserId={session.user.id} onOpenReport={openChecklistReport} onBack={backToChecklists} />
         )}
-
         {currentPage === 'checklist-report' && selectedChecklistId && (
-          <ChecklistReportPage
-            checklistId={selectedChecklistId}
-            onBack={() => setCurrentPage('checklist-execution')}
-            onBackToList={backToChecklists}
-          />
+          <ChecklistReportPage checklistId={selectedChecklistId} onBack={() => setCurrentPage('checklist-execution')} onBackToList={backToChecklists} />
         )}
-
-        {currentPage === 'audit' &&
-          (profile?.role === 'owner' ||
-            profile?.role === 'admin') && (
-            <ActivityLogsPage />
-          )}
-
-        {currentPage === 'settings' &&
-          (profile?.role === 'owner' ||
-            profile?.role === 'admin') && (
-            <SettingsPage />
-          )}
+        {currentPage === 'audit' && (profile?.role === 'owner' || profile?.role === 'admin') && (
+          <ActivityLogsPage />
+        )}
+        {currentPage === 'settings' && (profile?.role === 'owner' || profile?.role === 'admin') && (
+          <SettingsPage />
+        )}
       </>
 
-      <CreateClientModal
-        isOpen={isCreateClientOpen}
-        onClose={() => setIsCreateClientOpen(false)}
-        onCreate={createClient}
-      />
-
-      <EditClientModal
-        isOpen={Boolean(editingClient)}
-        client={editingClient}
-        onClose={() => setEditingClient(null)}
-        onSave={updateClient}
-      />
-
-      <CreateProjectModal
-        isOpen={isCreateProjectOpen}
-        onClose={() => setIsCreateProjectOpen(false)}
-        onCreate={createProject}
-        clients={clients}
-      />
-
-      <EditProjectModal
-        isOpen={Boolean(editingProject)}
-        project={editingProject}
-        clients={clients}
-        onClose={() => setEditingProject(null)}
-        onSave={updateProject}
-      />
-
-      <CreateChecklistModal
-        isOpen={isCreateChecklistOpen}
-        onClose={() => setIsCreateChecklistOpen(false)}
-        onCreate={createChecklist}
-        projects={projects}
-        templates={templates}
-      />
-
-      <CreateTemplateModal
-        isOpen={isCreateTemplateOpen}
-        onClose={() => setIsCreateTemplateOpen(false)}
-        onCreate={createTemplate}
-      />
+      <CreateClientModal isOpen={isCreateClientOpen} onClose={() => setIsCreateClientOpen(false)} onCreate={createClient} />
+      <EditClientModal isOpen={Boolean(editingClient)} client={editingClient} onClose={() => setEditingClient(null)} onSave={updateClient} />
+      <CreateProjectModal isOpen={isCreateProjectOpen} onClose={() => setIsCreateProjectOpen(false)} onCreate={createProject} clients={clients} />
+      <EditProjectModal isOpen={Boolean(editingProject)} project={editingProject} clients={clients} onClose={() => setEditingProject(null)} onSave={updateProject} />
+      <CreateChecklistModal isOpen={isCreateChecklistOpen} onClose={() => setIsCreateChecklistOpen(false)} onCreate={createChecklist} projects={projects} templates={templates} />
+      <CreateTemplateModal isOpen={isCreateTemplateOpen} onClose={() => setIsCreateTemplateOpen(false)} onCreate={createTemplate} />
     </AppLayout>
   )
 }

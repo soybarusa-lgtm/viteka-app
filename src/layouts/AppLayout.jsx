@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { getCompanyBranding, getDefaultBranding } from '../lib/branding'
 import NotificationBell from '../components/NotificationBell'
+import ThemeToggle from '../components/ThemeToggle'
 
 // ---------------------------------------------------------------------------
 // SVG Icons
@@ -126,18 +127,12 @@ function NavDivider({ label, expanded }) {
 function MobileDrawer({ open, onClose, mainMenu, adminMenu, currentPage, setCurrentPage, onLogout, profile, branding }) {
   const drawerRef = useRef(null)
 
-  // Close on backdrop click
   function handleBackdrop(e) {
     if (e.target === e.currentTarget) onClose()
   }
 
-  // Prevent body scroll when open
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
+    document.body.style.overflow = open ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [open])
 
@@ -150,15 +145,10 @@ function MobileDrawer({ open, onClose, mainMenu, adminMenu, currentPage, setCurr
 
   return (
     <div className="fixed inset-0 z-[200] flex" onClick={handleBackdrop}>
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-
-      {/* Drawer panel */}
       <div ref={drawerRef}
         className="relative z-10 flex h-full w-[280px] flex-col overflow-hidden shadow-2xl"
         style={{ backgroundColor: '#0a2018' }}>
-
-        {/* Header */}
         <div className="flex h-[64px] items-center justify-between border-b border-white/5 px-4">
           <img src={branding.logo_white} alt={branding.company_name}
             className="h-auto max-h-8 w-auto max-w-[140px] object-contain"
@@ -168,27 +158,20 @@ function MobileDrawer({ open, onClose, mainMenu, adminMenu, currentPage, setCurr
             <IconClose />
           </button>
         </div>
-
-        {/* Nav */}
         <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 py-3">
           <div className="mb-2 text-[11px] font-medium uppercase tracking-widest text-[#4d7a6b] px-2">Principal</div>
           <div className="flex flex-col gap-0.5">
             {mainMenu.map(item => (
               <button key={item.id} type="button" onClick={() => navigate(item.id)}
                 className={`flex h-11 w-full items-center gap-3 rounded-xl px-3 text-[14px] transition ${
-                  currentPage === item.id
-                    ? 'bg-white/10 font-medium text-white'
-                    : 'text-[#8aab9e] hover:bg-white/5 hover:text-white'
+                  currentPage === item.id ? 'bg-white/10 font-medium text-white' : 'text-[#8aab9e] hover:bg-white/5 hover:text-white'
                 }`}>
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center">{item.icon}</span>
                 {item.label}
-                {currentPage === item.id && (
-                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#34d399]" />
-                )}
+                {currentPage === item.id && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#34d399]" />}
               </button>
             ))}
           </div>
-
           {adminMenu.length > 0 && (
             <>
               <div className="my-3 mx-2 h-px bg-white/10" />
@@ -197,9 +180,7 @@ function MobileDrawer({ open, onClose, mainMenu, adminMenu, currentPage, setCurr
                 {adminMenu.map(item => (
                   <button key={item.id} type="button" onClick={() => navigate(item.id)}
                     className={`flex h-11 w-full items-center gap-3 rounded-xl px-3 text-[14px] transition ${
-                      currentPage === item.id
-                        ? 'bg-white/10 font-medium text-white'
-                        : 'text-[#8aab9e] hover:bg-white/5 hover:text-white'
+                      currentPage === item.id ? 'bg-white/10 font-medium text-white' : 'text-[#8aab9e] hover:bg-white/5 hover:text-white'
                     }`}>
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center">{item.icon}</span>
                     {item.label}
@@ -209,8 +190,6 @@ function MobileDrawer({ open, onClose, mainMenu, adminMenu, currentPage, setCurr
             </>
           )}
         </nav>
-
-        {/* User + Logout */}
         <div className="shrink-0 border-t border-white/5 p-3">
           <div className="mb-2 flex items-center gap-3 rounded-xl p-2">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-semibold text-white"
@@ -234,34 +213,30 @@ function MobileDrawer({ open, onClose, mainMenu, adminMenu, currentPage, setCurr
 }
 
 // ---------------------------------------------------------------------------
-// Mobile bottom tab bar (5 main sections)
+// Mobile bottom tab bar
 // ---------------------------------------------------------------------------
 const BOTTOM_TABS = [
-  { id: 'dashboard',  label: 'Inicio',     icon: <IconDashboard size={20} /> },
-  { id: 'checklists', label: 'Checklists', icon: <IconChecklists size={20} /> },
-  { id: 'tasks',      label: 'Tareas',     icon: <IconTasks size={20} /> },
-  { id: 'incidents',  label: 'Incidencias',icon: <IconIncidents size={20} /> },
-  { id: 'more',       label: 'Más',        icon: <IconMore size={20} /> },
+  { id: 'dashboard',  label: 'Inicio',      icon: <IconDashboard size={20} /> },
+  { id: 'checklists', label: 'Checklists',  icon: <IconChecklists size={20} /> },
+  { id: 'tasks',      label: 'Tareas',      icon: <IconTasks size={20} /> },
+  { id: 'incidents',  label: 'Incidencias', icon: <IconIncidents size={20} /> },
+  { id: 'more',       label: 'Más',         icon: <IconMore size={20} /> },
 ]
 
 function BottomTabBar({ currentPage, onNavigate }) {
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] flex h-[60px] items-center border-t border-[#E8EDF2] bg-white"
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] flex h-[60px] items-center border-t border-[var(--border)] bg-[var(--surface)]"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {BOTTOM_TABS.map(tab => {
         const active = tab.id !== 'more' && currentPage === tab.id
         return (
           <button key={tab.id} type="button" onClick={() => onNavigate(tab.id)}
             className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2 transition ${
-              active ? 'text-[#005643]' : 'text-[#94A3B8]'
+              active ? 'text-[var(--primary)]' : 'text-[var(--muted)]'
             }`}>
-            <span className={`${ active ? 'text-[#005643]' : 'text-[#94A3B8]' }`}>
-              {tab.icon}
-            </span>
-            <span className={`text-[10px] font-medium ${ active ? 'text-[#005643]' : 'text-[#94A3B8]' }`}>
-              {tab.label}
-            </span>
-            {active && <span className="absolute bottom-0 h-[2px] w-8 rounded-full bg-[#005643]" />}
+            {tab.icon}
+            <span className="text-[10px] font-medium">{tab.label}</span>
+            {active && <span className="absolute bottom-0 h-[2px] w-8 rounded-full bg-[var(--primary)]" />}
           </button>
         )
       })}
@@ -278,10 +253,13 @@ export default function AppLayout({
   setCurrentPage,
   onLogout,
   profile,
+  theme,
+  userTheme,
+  onToggleTheme,
 }) {
-  const [expanded,    setExpanded]    = useState(false)
-  const [drawerOpen,  setDrawerOpen]  = useState(false)
-  const [branding,    setBranding]    = useState(getDefaultBranding())
+  const [expanded,   setExpanded]   = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [branding,   setBranding]   = useState(getDefaultBranding())
 
   useEffect(() => { loadBranding() }, [profile])
 
@@ -300,14 +278,14 @@ export default function AppLayout({
   const isAdmin = profile?.role === 'owner' || profile?.role === 'admin'
 
   const mainMenu = [
-    { id: 'dashboard',  label: 'Dashboard',      icon: <IconDashboard /> },
-    { id: 'clients',    label: 'Farmacias',       icon: <IconPharmacy /> },
-    { id: 'people',     label: 'Personas',        icon: <IconPeople /> },
-    { id: 'projects',   label: 'Proyectos',       icon: <IconProjects /> },
-    { id: 'tasks',      label: 'Tareas',          icon: <IconTasks /> },
-    { id: 'checklists', label: 'Checklists',      icon: <IconChecklists /> },
-    { id: 'incidents',  label: 'Incidencias',     icon: <IconIncidents /> },
-    { id: 'documents',  label: 'Documentación',   icon: <IconDocuments /> },
+    { id: 'dashboard',  label: 'Dashboard',    icon: <IconDashboard /> },
+    { id: 'clients',    label: 'Farmacias',     icon: <IconPharmacy /> },
+    { id: 'people',     label: 'Personas',      icon: <IconPeople /> },
+    { id: 'projects',   label: 'Proyectos',     icon: <IconProjects /> },
+    { id: 'tasks',      label: 'Tareas',        icon: <IconTasks /> },
+    { id: 'checklists', label: 'Checklists',    icon: <IconChecklists /> },
+    { id: 'incidents',  label: 'Incidencias',   icon: <IconIncidents /> },
+    { id: 'documents',  label: 'Documentación', icon: <IconDocuments /> },
   ]
 
   const adminMenu = isAdmin
@@ -329,21 +307,16 @@ export default function AppLayout({
     setCurrentPage(routes[notification.entity_type] || 'dashboard')
   }
 
-  // "Más" tab opens the drawer
   function handleBottomNav(id) {
-    if (id === 'more') {
-      setDrawerOpen(true)
-    } else {
-      setCurrentPage(id)
-    }
+    if (id === 'more') setDrawerOpen(true)
+    else setCurrentPage(id)
   }
 
   const pageLabel = PAGE_LABELS[currentPage] || ''
 
   return (
-    <div className="flex h-[100dvh] overflow-hidden bg-[#F4F6F8] text-[#0F172A]">
+    <div className="flex h-[100dvh] overflow-hidden bg-[var(--bg)] text-[var(--text)]">
 
-      {/* ====== MOBILE DRAWER ====== */}
       <MobileDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
@@ -365,7 +338,6 @@ export default function AppLayout({
         }`}
         style={{ backgroundColor: '#0a2018' }}
       >
-        {/* Logo */}
         <div className="flex h-[64px] shrink-0 items-center justify-center border-b border-white/5 px-3">
           {expanded ? (
             <img src={branding.logo_white} alt={branding.company_name}
@@ -378,7 +350,6 @@ export default function AppLayout({
           )}
         </div>
 
-        {/* Nav */}
         <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-2 py-3">
           {expanded && <NavDivider label="Principal" expanded={expanded} />}
           <div className="flex flex-col gap-0.5">
@@ -400,7 +371,6 @@ export default function AppLayout({
           )}
         </nav>
 
-        {/* User + Logout */}
         <div className="shrink-0 border-t border-white/5 p-2">
           <div className={`mb-1 flex items-center rounded-xl p-2 ${ expanded ? 'gap-3' : 'justify-center' }`}>
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-semibold text-white"
@@ -429,54 +399,55 @@ export default function AppLayout({
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
 
         {/* Header */}
-        <header className="flex h-[56px] md:h-[64px] shrink-0 items-center justify-between border-b border-[#E2E8F0] bg-white px-4 md:px-8">
-          {/* Mobile: hamburger + page label */}
+        <header className="flex h-[56px] md:h-[64px] shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-4 md:px-8">
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => setDrawerOpen(true)}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#E8EDF2] text-[#64748B] md:hidden hover:bg-[#F8FAFC]">
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] text-[var(--muted)] md:hidden hover:bg-[var(--surface-soft)]">
               <IconMenu />
             </button>
-
-            {/* Desktop: breadcrumb */}
             <div className="hidden md:flex items-center gap-2 text-sm">
-              <span className="text-[#94A3B8]">Portal interno</span>
+              <span className="text-[var(--muted)]">Portal interno</span>
               {pageLabel && (
                 <>
-                  <span className="text-[#CBD5E1]">/</span>
-                  <span className="font-medium text-[#0F172A]">{pageLabel}</span>
+                  <span className="text-[var(--border)]">/</span>
+                  <span className="font-medium text-[var(--text)]">{pageLabel}</span>
                 </>
               )}
             </div>
-
-            {/* Mobile: page label only */}
-            <span className="md:hidden text-[15px] font-semibold text-[#0F172A]">{pageLabel}</span>
+            <span className="md:hidden text-[15px] font-semibold text-[var(--text)]">{pageLabel}</span>
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
+            {/* ThemeToggle */}
+            <ThemeToggle
+              theme={theme}
+              userTheme={userTheme}
+              onToggle={onToggleTheme}
+            />
+            <div className="h-5 w-px bg-[var(--border)]" />
             <NotificationBell userId={profile?.id} onNavigate={navigateFromNotification} />
-            <div className="h-5 w-px bg-[#E2E8F0]" />
+            <div className="h-5 w-px bg-[var(--border)]" />
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold text-white"
                 style={{ backgroundColor: branding.primary_color }}>
                 {getInitials(profile?.full_name)}
               </div>
               <div className="hidden sm:block">
-                <p className="text-[13px] font-medium text-[#0F172A] leading-tight">{profile?.full_name || 'Usuario'}</p>
-                <p className="text-[11px] text-[#94A3B8] capitalize leading-tight">{profile?.role}</p>
+                <p className="text-[13px] font-medium text-[var(--text)] leading-tight">{profile?.full_name || 'Usuario'}</p>
+                <p className="text-[11px] text-[var(--muted)] capitalize leading-tight">{profile?.role}</p>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Content — with bottom padding on mobile for the tab bar */}
-        <main className="min-h-0 flex-1 overflow-y-auto">
+        {/* Content */}
+        <main className="min-h-0 flex-1 overflow-y-auto bg-[var(--bg)]">
           <div className="p-4 md:p-8 pb-[76px] md:pb-8">
             {children}
           </div>
         </main>
       </div>
 
-      {/* ====== MOBILE BOTTOM TAB BAR ====== */}
       <BottomTabBar currentPage={currentPage} onNavigate={handleBottomNav} />
     </div>
   )
