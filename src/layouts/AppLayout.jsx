@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { getCompanyBranding, getDefaultBranding } from '../lib/branding'
 import NotificationBell from '../components/NotificationBell'
-import ThemeToggle from '../components/ThemeToggle'
 
 // ---------------------------------------------------------------------------
 // SVG Icons
@@ -418,13 +417,6 @@ export default function AppLayout({
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
-            {/* ThemeToggle */}
-            <ThemeToggle
-              theme={theme}
-              userTheme={userTheme}
-              onToggle={onToggleTheme}
-            />
-            <div className="h-5 w-px bg-[var(--border)]" />
             <NotificationBell userId={profile?.id} onNavigate={navigateFromNotification} />
             <div className="h-5 w-px bg-[var(--border)]" />
             <div className="flex items-center gap-2">
