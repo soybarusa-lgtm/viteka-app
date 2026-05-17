@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 /* ── Tokens de tema ───────────────────────────────────────────────────────── */
 :root,
@@ -51,7 +49,6 @@
   --ring:              #1fa37e;
   --row-hover:         #112219;
 
-  /* Badges — fondos translúcidos para coherencia dark */
   --badge-green-bg:    rgba(31,163,126,0.18);
   --badge-green-text:  #6ee7b7;
   --badge-red-bg:      rgba(248,113,113,0.16);
@@ -131,6 +128,7 @@
 
 /* ── Componentes globales temáticos ───────────────────────────────────────── */
 @layer components {
+  @reference "tailwindcss";
 
   /* Tarjeta base */
   .card {
@@ -149,13 +147,13 @@
   /* Input / Select / Textarea */
   .input {
     @apply w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none
-           placeholder:text-[color:var(--muted)]
            focus:ring-2;
     background-color: var(--surface);
     border-color: var(--border);
     color: var(--text);
     --tw-ring-color: var(--ring);
   }
+  .input::placeholder { color: var(--muted); }
   .input:focus {
     border-color: var(--ring);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent);
@@ -239,27 +237,27 @@
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium;
   }
   .badge-green {
-    @apply badge;
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium;
     background-color: var(--badge-green-bg);
     color: var(--badge-green-text);
   }
   .badge-red {
-    @apply badge;
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium;
     background-color: var(--badge-red-bg);
     color: var(--badge-red-text);
   }
   .badge-amber {
-    @apply badge;
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium;
     background-color: var(--badge-amber-bg);
     color: var(--badge-amber-text);
   }
   .badge-blue {
-    @apply badge;
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium;
     background-color: var(--badge-blue-bg);
     color: var(--badge-blue-text);
   }
   .badge-gray {
-    @apply badge;
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium;
     background-color: var(--badge-gray-bg);
     color: var(--badge-gray-text);
   }
@@ -334,7 +332,9 @@
 
   /* ── KPI card ────────────────────────────────────────────────────────────── */
   .kpi-card {
-    @apply card flex flex-col justify-between gap-1 p-5;
+    @apply flex flex-col justify-between gap-1 p-5 rounded-2xl border;
+    background-color: var(--surface);
+    border-color: var(--border);
   }
   .kpi-label {
     @apply text-[12px];
