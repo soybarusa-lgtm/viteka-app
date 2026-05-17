@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-const COMPANY_ID = '53d152e5-8459-4996-aa9e-e27ecd97892d'
-
 // ── Config ───────────────────────────────────────────────────────────────────
 const PRIORITY = {
   low:      { label: 'Baja',    pill: 'bg-slate-100 text-slate-600 ring-slate-200',   dot: 'bg-slate-400' },
@@ -45,13 +43,16 @@ export default function IncidentsPage({ pharmacies = [], projects = [], profile 
   const [visibleToClient, setVisibleToClient] = useState(false)
   const [submitting, setSubmitting]   = useState(false)
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    if (profile?.company_id) load()
+  }, [profile?.company_id])
 
   async function load() {
     setLoading(true)
     const { data, error } = await supabase
       .from('incidents')
       .select('*, clients(id,name,pharmacy_name), projects(id,name)')
+      .eq('company_id', profile.company_id)
       .order('created_at', { ascending: false })
     if (!error) setIncidents(data || [])
     setLoading(false)
@@ -78,10 +79,10 @@ export default function IncidentsPage({ pharmacies = [], projects = [], profile 
 
   async function createIncident(e) {
     e.preventDefault()
-    if (!title.trim()) return
+    if (!title.trim() || !profile?.company_id) return
     setSubmitting(true)
     const { error } = await supabase.from('incidents').insert({
-      company_id: COMPANY_ID,
+      company_id: profile.company_id,
       pharmacy_id: pharmacyId || null,
       project_id: projectId || null,
       title, description, priority,
