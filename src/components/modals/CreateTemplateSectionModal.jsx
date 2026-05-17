@@ -1,83 +1,50 @@
 import { useState } from 'react'
 
-export default function CreateTemplateSectionModal({
-  isOpen,
-  onClose,
-  onCreate,
-}) {
-  const [title, setTitle] = useState('')
+export default function CreateTemplateSectionModal({ isOpen, onClose, onCreate }) {
+  const [title,   setTitle]   = useState('')
   const [loading, setLoading] = useState(false)
 
   if (!isOpen) return null
 
   async function submit(e) {
     e.preventDefault()
-
-    if (!title.trim()) {
-      alert('El nombre de la sección es obligatorio.')
-      return
-    }
-
+    if (!title.trim()) { alert('El nombre de la sección es obligatorio.'); return }
     setLoading(true)
-
-    await onCreate({
-      title,
-    })
-
+    await onCreate({ title })
     setLoading(false)
     setTitle('')
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6">
-      <div className="w-full max-w-lg rounded-2xl bg-white border border-[#DCE7E1] shadow-xl">
-        <div className="flex items-center justify-between border-b border-[#DCE7E1] px-6 py-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-[#E8EDF2] bg-white shadow-xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-[#F1F5F9] px-6 py-4">
           <div>
-            <h2 className="text-xl font-extrabold">
-              Nueva sección
-            </h2>
-
-            <p className="mt-1 text-sm text-[#8AAA96] font-medium">
-              Añade una sección a la plantilla.
-            </p>
+            <h2 className="text-[15px] font-semibold text-[#0F172A]">Nueva sección</h2>
+            <p className="text-[12px] text-[#94A3B8]">Añade una sección a la plantilla</p>
           </div>
-
-          <button
-            onClick={onClose}
-            className="rounded-lg px-3 py-2 font-bold text-[#4A6B58] hover:bg-[#F5FAF6]"
-          >
+          <button type="button" onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[#94A3B8] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition">
             ✕
           </button>
         </div>
 
         <form onSubmit={submit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-[#4A6B58] mb-2">
-              Nombre de la sección
-            </label>
+          <label className="block">
+            <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#94A3B8]">Nombre de la sección</span>
+            <input value={title} onChange={e => setTitle(e.target.value)} autoFocus
+              className="w-full rounded-xl border border-[#E8EDF2] bg-[#F8FAFC] px-4 py-2.5 text-[13px] outline-none focus:border-[#005643] focus:bg-white focus:ring-1 focus:ring-[#005643]/20"
+              placeholder="Ej. Instalación, Verificación, Entrega..." />
+          </label>
 
-            <input
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              className="w-full rounded-xl border border-[#DCE7E1] px-4 py-3 outline-none focus:border-[#005643]"
-              placeholder="Ej. Instalación, Verificación, Entrega..."
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-[#DCE7E1] px-5 py-3 font-bold hover:bg-[#F5FAF6]"
-            >
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={onClose}
+              className="rounded-xl border border-[#E8EDF2] bg-white px-5 py-2.5 text-[13px] font-medium text-[#64748B] hover:bg-[#F8FAFC]">
               Cancelar
             </button>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-xl bg-[#005643] px-5 py-3 text-white font-bold hover:bg-[#0E7A60] disabled:opacity-60"
-            >
+            <button type="submit" disabled={loading}
+              className="rounded-xl bg-[#005643] px-5 py-2.5 text-[13px] font-medium text-white hover:bg-[#00442f] disabled:opacity-60">
               {loading ? 'Creando...' : 'Crear sección'}
             </button>
           </div>
