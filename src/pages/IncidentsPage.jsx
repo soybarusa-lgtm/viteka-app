@@ -3,16 +3,16 @@ import { supabase } from '../lib/supabase'
 
 // ── Config ───────────────────────────────────────────────────────────────────
 const PRIORITY = {
-  low:      { label: 'Baja',    pill: 'bg-slate-100 text-slate-600 ring-slate-200',   dot: 'bg-slate-400' },
-  medium:   { label: 'Media',   pill: 'bg-amber-50 text-amber-700 ring-amber-200',    dot: 'bg-amber-400' },
-  high:     { label: 'Alta',    pill: 'bg-orange-50 text-orange-700 ring-orange-200', dot: 'bg-orange-500' },
-  critical: { label: 'Crítica', pill: 'bg-red-50 text-red-700 ring-red-200',         dot: 'bg-red-500' },
+  low:      { label: 'Baja',    cls: 'badge-gray',   dot: 'bg-slate-400' },
+  medium:   { label: 'Media',   cls: 'badge-amber',  dot: 'bg-amber-400' },
+  high:     { label: 'Alta',    cls: 'badge-orange', dot: 'bg-orange-500' },
+  critical: { label: 'Crítica', cls: 'badge-red',    dot: 'bg-red-500' },
 }
 const INC_STATUS = {
-  open:        { label: 'Abierta',  pill: 'bg-amber-50 text-amber-700 ring-amber-200' },
-  in_progress: { label: 'En curso', pill: 'bg-blue-50 text-blue-700 ring-blue-200' },
-  resolved:    { label: 'Resuelta', pill: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
-  closed:      { label: 'Cerrada',  pill: 'bg-slate-100 text-slate-500 ring-slate-200' },
+  open:        { label: 'Abierta',  cls: 'badge-amber' },
+  in_progress: { label: 'En curso', cls: 'badge-blue'  },
+  resolved:    { label: 'Resuelta', cls: 'badge-green' },
+  closed:      { label: 'Cerrada',  cls: 'badge-gray'  },
 }
 function fmtDate(str) {
   if (!str) return '—'
@@ -27,14 +27,13 @@ function IconX()      { return (<svg width="14" height="14" viewBox="0 0 24 24" 
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 export default function IncidentsPage({ pharmacies = [], projects = [], profile }) {
-  const [incidents, setIncidents]       = useState([])
-  const [loading, setLoading]           = useState(true)
-  const [formOpen, setFormOpen]         = useState(false)
-  const [search, setSearch]             = useState('')
-  const [filterStatus, setFilterStatus] = useState('all')
+  const [incidents, setIncidents]           = useState([])
+  const [loading, setLoading]               = useState(true)
+  const [formOpen, setFormOpen]             = useState(false)
+  const [search, setSearch]                 = useState('')
+  const [filterStatus, setFilterStatus]     = useState('all')
   const [filterPriority, setFilterPriority] = useState('all')
 
-  // Form state
   const [pharmacyId, setPharmacyId]   = useState('')
   const [projectId, setProjectId]     = useState('')
   const [title, setTitle]             = useState('')
@@ -43,9 +42,7 @@ export default function IncidentsPage({ pharmacies = [], projects = [], profile 
   const [visibleToClient, setVisibleToClient] = useState(false)
   const [submitting, setSubmitting]   = useState(false)
 
-  useEffect(() => {
-    if (profile?.company_id) load()
-  }, [profile?.company_id])
+  useEffect(() => { if (profile?.company_id) load() }, [profile?.company_id])
 
   async function load() {
     setLoading(true)
@@ -113,17 +110,13 @@ export default function IncidentsPage({ pharmacies = [], projects = [], profile 
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#0F172A]">Incidencias</h1>
-          <p className="mt-1 text-sm text-[#94A3B8]">Mantenimiento, soporte y problemas operativos</p>
+          <h1 className="page-title">Incidencias</h1>
+          <p className="page-subtitle">Mantenimiento, soporte y problemas operativos</p>
         </div>
         <button
           type="button"
           onClick={() => setFormOpen(o => !o)}
-          className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-medium shadow-sm transition ${
-            formOpen
-              ? 'border border-[#E8EDF2] bg-white text-[#334155] hover:bg-[#F8FAFC]'
-              : 'bg-[#005643] text-white hover:bg-[#00442f]'
-          }`}
+          className={formOpen ? 'btn-secondary flex shrink-0 items-center gap-2 text-[13px]' : 'btn-primary flex shrink-0 items-center gap-2 text-[13px]'}
         >
           {formOpen ? <><IconX /> Cancelar</> : <><IconPlus /> Nueva</>}
         </button>
@@ -138,35 +131,34 @@ export default function IncidentsPage({ pharmacies = [], projects = [], profile 
           { label: 'Críticas',  value: counts.critical, dot: 'bg-red-500',     alert: counts.critical > 0 },
           { label: 'Resueltas', value: counts.resolved, dot: 'bg-emerald-500', alert: false },
         ].map(k => (
-          <div key={k.label} className={`flex flex-col justify-between rounded-2xl border p-3.5 ${
-            k.alert ? 'border-red-200 bg-red-50' : 'border-[#E8EDF2] bg-white'
-          }`}>
+          <div
+            key={k.label}
+            className="card flex flex-col justify-between p-3.5"
+            style={k.alert ? { borderColor: 'var(--danger)', background: 'var(--danger-soft)' } : {}}
+          >
             <div className="flex items-center gap-1.5">
               <span className={`h-2 w-2 shrink-0 rounded-full ${k.dot}`} />
-              <p className="text-[11px] text-[#94A3B8] truncate">{k.label}</p>
+              <p className="truncate text-[11px]" style={{ color: k.alert ? 'var(--danger)' : 'var(--muted)' }}>{k.label}</p>
             </div>
-            <p className={`mt-1.5 text-2xl font-semibold tracking-tight ${
-              k.alert ? 'text-red-700' : 'text-[#0F172A]'
-            }`}>{k.value}</p>
+            <p className="mt-1.5 text-2xl font-semibold tracking-tight"
+              style={{ color: k.alert ? 'var(--danger)' : 'var(--text)' }}>{k.value}</p>
           </div>
         ))}
       </div>
 
-      {/* Form modal-sheet (collapsible inline) */}
+      {/* Inline form */}
       {formOpen && (
-        <form onSubmit={createIncident}
-          className="rounded-2xl border border-[#E8EDF2] bg-white p-5 space-y-4 shadow-sm">
-          <p className="text-[14px] font-semibold text-[#0F172A]">Nueva incidencia</p>
+        <form onSubmit={createIncident} className="card space-y-4 p-5 shadow-sm">
+          <p className="text-[14px] font-semibold" style={{ color: 'var(--text)' }}>Nueva incidencia</p>
 
-          {/* Título — full width siempre */}
           <FormField label="Título *">
             <input value={title} onChange={e => setTitle(e.target.value)}
-              className="field" placeholder="Describe el problema..." required />
+              className="input" placeholder="Describe el problema..." required />
           </FormField>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField label="Prioridad">
-              <select value={priority} onChange={e => setPriority(e.target.value)} className="field">
+              <select value={priority} onChange={e => setPriority(e.target.value)} className="input">
                 <option value="low">Baja</option>
                 <option value="medium">Media</option>
                 <option value="high">Alta</option>
@@ -174,13 +166,13 @@ export default function IncidentsPage({ pharmacies = [], projects = [], profile 
               </select>
             </FormField>
             <FormField label="Farmacia">
-              <select value={pharmacyId} onChange={e => setPharmacyId(e.target.value)} className="field">
+              <select value={pharmacyId} onChange={e => setPharmacyId(e.target.value)} className="input">
                 <option value="">Sin farmacia</option>
                 {pharmacies.map(p => <option key={p.id} value={p.id}>{p.pharmacy_name || p.name}</option>)}
               </select>
             </FormField>
-            <FormField label="Proyecto" className="sm:col-span-2">
-              <select value={projectId} onChange={e => setProjectId(e.target.value)} className="field">
+            <FormField label="Proyecto">
+              <select value={projectId} onChange={e => setProjectId(e.target.value)} className="input">
                 <option value="">Sin proyecto</option>
                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
@@ -189,22 +181,20 @@ export default function IncidentsPage({ pharmacies = [], projects = [], profile 
 
           <FormField label="Descripción">
             <textarea value={description} onChange={e => setDescription(e.target.value)}
-              rows={3} className="field resize-none" />
+              rows={3} className="input resize-none" />
           </FormField>
 
-          <label className="flex items-center gap-2 text-[13px] text-[#334155] cursor-pointer">
+          <label className="flex cursor-pointer items-center gap-2 text-[13px]" style={{ color: 'var(--text-soft)' }}>
             <input type="checkbox" checked={visibleToClient}
               onChange={e => setVisibleToClient(e.target.checked)} className="rounded" />
             Visible al cliente
           </label>
 
           <div className="flex gap-2 pt-1">
-            <button type="button" onClick={() => setFormOpen(false)}
-              className="flex-1 rounded-xl border border-[#E8EDF2] py-2.5 text-[13px] text-[#334155] hover:bg-[#F8FAFC]">
+            <button type="button" onClick={() => setFormOpen(false)} className="btn-secondary flex-1">
               Cancelar
             </button>
-            <button type="submit" disabled={submitting}
-              className="flex-1 rounded-xl bg-[#005643] py-2.5 text-[13px] font-medium text-white hover:bg-[#00442f] disabled:opacity-60">
+            <button type="submit" disabled={submitting} className="btn-primary flex-1 disabled:opacity-60">
               {submitting ? 'Guardando...' : 'Crear'}
             </button>
           </div>
@@ -214,81 +204,81 @@ export default function IncidentsPage({ pharmacies = [], projects = [], profile 
       {/* Toolbar */}
       <div className="flex flex-col gap-3">
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]"><IconSearch /></span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted)' }}><IconSearch /></span>
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Buscar incidencia, farmacia o proyecto..."
-            className="w-full rounded-xl border border-[#E8EDF2] bg-white py-2.5 pl-9 pr-4 text-[13px] outline-none placeholder:text-[#94A3B8] focus:border-[#005643] focus:ring-1 focus:ring-[#005643]/20" />
+            className="input w-full pl-9" />
         </div>
         <div className="flex gap-2">
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-            className="flex-1 rounded-xl border border-[#E8EDF2] bg-white px-3 py-2.5 text-[13px] outline-none focus:border-[#005643]">
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input flex-1">
             <option value="all">Estado: todos</option>
-            {Object.entries(INC_STATUS).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+            {Object.entries(INC_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
-          <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)}
-            className="flex-1 rounded-xl border border-[#E8EDF2] bg-white px-3 py-2.5 text-[13px] outline-none focus:border-[#005643]">
+          <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className="input flex-1">
             <option value="all">Prioridad: todas</option>
-            {Object.entries(PRIORITY).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+            {Object.entries(PRIORITY).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
         </div>
       </div>
 
-      <p className="text-[12px] text-[#94A3B8]">
+      <p className="text-[12px]" style={{ color: 'var(--muted)' }}>
         {filtered.length === incidents.length ? `${incidents.length} incidencias` : `${filtered.length} de ${incidents.length}`}
       </p>
 
       {/* List */}
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#005643] border-t-transparent" />
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#E8EDF2] bg-white py-12 text-center">
-          <p className="text-[14px] font-medium text-[#0F172A]">{incidents.length === 0 ? 'Sin incidencias' : 'Sin resultados'}</p>
-          <p className="mt-1 text-[13px] text-[#94A3B8]">{incidents.length === 0 ? 'Crea la primera incidencia' : 'Prueba con otros filtros'}</p>
+        <div className="empty-state border-dashed">
+          <p className="text-[14px] font-medium" style={{ color: 'var(--text)' }}>
+            {incidents.length === 0 ? 'Sin incidencias' : 'Sin resultados'}
+          </p>
+          <p className="mt-1 text-[13px]" style={{ color: 'var(--muted)' }}>
+            {incidents.length === 0 ? 'Crea la primera incidencia' : 'Prueba con otros filtros'}
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
           {filtered.map(inc => {
-            const pr = PRIORITY[inc.priority] || PRIORITY.medium
+            const pr = PRIORITY[inc.priority]  || PRIORITY.medium
             const st = INC_STATUS[inc.status]  || INC_STATUS.open
             return (
-              <div key={inc.id} className="rounded-2xl border border-[#E8EDF2] bg-white p-4">
-                {/* Pills row */}
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ${st.pill}`}>{st.label}</span>
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ${pr.pill}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${pr.dot}`}/>{pr.label}
+              <div key={inc.id} className="card p-4">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className={st.cls}>{st.label}</span>
+                  <span className={`inline-flex items-center gap-1 ${pr.cls}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${pr.dot}`} />{pr.label}
                   </span>
                   {inc.visible_to_client && (
-                    <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-medium text-violet-600 ring-1 ring-violet-200">Portal cliente</span>
+                    <span className="badge-purple">Portal cliente</span>
                   )}
                 </div>
 
-                {/* Title + meta */}
-                <p className="text-[14px] font-medium text-[#0F172A] leading-snug">{inc.title}</p>
-                <p className="mt-0.5 text-[12px] text-[#94A3B8]">
+                <p className="text-[14px] font-medium leading-snug" style={{ color: 'var(--text)' }}>{inc.title}</p>
+                <p className="mt-0.5 text-[12px]" style={{ color: 'var(--muted)' }}>
                   {inc.clients?.pharmacy_name || inc.clients?.name || 'Sin farmacia'}
                   {inc.projects?.name ? ` · ${inc.projects.name}` : ''}
                   {` · ${fmtDate(inc.created_at)}`}
                 </p>
                 {inc.description && (
-                  <p className="mt-2 text-[13px] leading-relaxed text-[#64748B] line-clamp-2">{inc.description}</p>
+                  <p className="mt-2 line-clamp-2 text-[13px] leading-relaxed" style={{ color: 'var(--text-soft)' }}>{inc.description}</p>
                 )}
 
-                {/* Actions row — full width on mobile */}
-                <div className="mt-3 flex items-center gap-2 border-t border-[#F1F5F9] pt-3">
+                <div className="mt-3 flex items-center gap-2 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
                   <select
                     value={inc.status}
                     onChange={e => updateStatus(inc.id, e.target.value)}
-                    className="flex-1 rounded-xl border border-[#E8EDF2] bg-white px-3 py-2 text-[12px] outline-none focus:border-[#005643]"
+                    className="input flex-1 py-2 text-[12px]"
                   >
-                    {Object.entries(INC_STATUS).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+                    {Object.entries(INC_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                   </select>
                   <button
                     type="button"
                     onClick={() => deleteIncident(inc.id)}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FEE2E2] text-[#991B1B] transition hover:bg-[#fecaca]"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition hover:opacity-80"
+                    style={{ background: 'var(--badge-red-bg)', color: 'var(--badge-red-text)' }}
                   >
                     <IconTrash />
                   </button>
@@ -305,7 +295,7 @@ export default function IncidentsPage({ pharmacies = [], projects = [], profile 
 function FormField({ label, children }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#94A3B8]">{label}</span>
+      <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{label}</span>
       {children}
     </label>
   )
