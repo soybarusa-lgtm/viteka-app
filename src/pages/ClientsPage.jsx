@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 // ---------------------------------------------------------------------------
 // Icons
@@ -35,7 +35,6 @@ const PROVINCE_COLORS = {
   'Sevilla': '#fb923c',
 }
 
-// Nixfarma = rojo, Cashlogy = amarillo, Hanshow = azul
 const VITEKA_PRODUCTS = [
   {
     key: 'nix',
@@ -71,43 +70,93 @@ function getInitials(name) {
 }
 
 // ---------------------------------------------------------------------------
-// ProvinceCard
+// ProvinceCard — gris en reposo, verde claro + scale al hover
 // ---------------------------------------------------------------------------
 function ProvinceCard({ province, clients }) {
+  const [hovered, setHovered] = useState(false)
   const provClients = clients.filter(c => c.province === province)
   const total = provClients.length
-  const color = PROVINCE_COLORS[province]
+  const provinceColor = PROVINCE_COLORS[province]
 
   return (
     <div
-      className="flex shrink-0 flex-col rounded-xl p-3"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
-        border: `1px solid ${color}30`,
-        background: `${color}08`,
-        minWidth: '108px',
+        flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        zIndex: hovered ? 10 : 1,
+        minWidth: hovered ? '132px' : '106px',
+        padding: hovered ? '14px' : '11px',
+        borderRadius: '12px',
+        border: hovered ? '1.5px solid #86efac' : '1px solid #e2e8f0',
+        background: hovered ? '#f0fdf4' : '#f8fafc',
+        boxShadow: hovered ? '0 6px 20px 0 #bbf7d055' : 'none',
+        transform: hovered ? 'scale(1.08)' : 'scale(1)',
+        transition: 'all 0.22s cubic-bezier(.4,0,.2,1)',
+        cursor: 'default',
       }}
     >
-      {/* Provincia + total */}
-      <p className="truncate text-[11px] font-semibold" style={{ color }}>{province}</p>
-      <p className="mt-0.5 text-[22px] font-bold leading-none" style={{ color: 'var(--text)' }}>{total}</p>
+      {/* Nombre provincia */}
+      <p style={{
+        fontSize: hovered ? '12px' : '10px',
+        fontWeight: 700,
+        color: hovered ? provinceColor : '#94a3b8',
+        transition: 'all 0.22s ease',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+      }}>{province}</p>
+
+      {/* Total farmacias */}
+      <p style={{
+        marginTop: '2px',
+        fontSize: hovered ? '30px' : '22px',
+        fontWeight: 800,
+        lineHeight: 1,
+        color: hovered ? '#15803d' : '#475569',
+        transition: 'all 0.22s ease',
+      }}>{total}</p>
 
       {/* Divisor */}
-      <div className="my-2" style={{ borderTop: `1px solid ${color}25` }} />
+      <div style={{
+        margin: hovered ? '10px 0' : '7px 0',
+        borderTop: `1px solid ${hovered ? '#86efac' : '#e2e8f0'}`,
+        transition: 'all 0.22s ease',
+      }} />
 
-      {/* Productos Viteka */}
-      <div className="space-y-1.5">
+      {/* Productos */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: hovered ? '7px' : '5px', transition: 'gap 0.22s ease' }}>
         {VITEKA_PRODUCTS.map(({ key, label, color: pc, test }) => {
           const count = provClients.filter(test).length
           return (
-            <div key={key} className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5">
-                <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: pc }} />
-                <span className="text-[10px]" style={{ color: 'var(--muted)' }}>{label}</span>
+            <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{
+                  display: 'inline-block',
+                  height: hovered ? '8px' : '6px',
+                  width:  hovered ? '8px' : '6px',
+                  borderRadius: '50%',
+                  backgroundColor: pc,
+                  flexShrink: 0,
+                  transition: 'all 0.22s ease',
+                }} />
+                <span style={{
+                  fontSize: hovered ? '11px' : '10px',
+                  color: hovered ? '#374151' : '#94a3b8',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.22s ease',
+                }}>{label}</span>
               </div>
-              <span
-                className="text-[10px] font-bold tabular-nums"
-                style={{ color: count > 0 ? pc : 'var(--muted)' }}
-              >{count}</span>
+              <span style={{
+                fontSize: hovered ? '12px' : '10px',
+                fontWeight: 700,
+                fontVariantNumeric: 'tabular-nums',
+                color: count > 0 ? pc : (hovered ? '#94a3b8' : '#cbd5e1'),
+                transition: 'all 0.22s ease',
+              }}>{count}</span>
             </div>
           )
         })}
@@ -157,12 +206,12 @@ export default function ClientsPage({
         </button>
       </div>
 
-      {/* Province cards — scroll horizontal */}
+      {/* Province cards */}
       <div className="card p-4">
         <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
           Farmacias por provincia
         </p>
-        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', paddingTop: '4px', scrollbarWidth: 'none', alignItems: 'flex-start' }}>
           {PROVINCES_AN.map(prov => (
             <ProvinceCard key={prov} province={prov} clients={clients} />
           ))}
