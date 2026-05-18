@@ -9,15 +9,17 @@ function Icon({ children, size = 16 }) {
       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
   )
 }
-function IconSearch() { return <Icon><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></Icon> }
-function IconEdit()   { return <Icon size={14}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></Icon> }
-function IconTrash()  { return <Icon size={14}><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></Icon> }
-function IconEye()    { return <Icon size={14}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></Icon> }
-function IconPin()    { return <Icon size={13}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></Icon> }
-function IconPhone()  { return <Icon size={13}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.35 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></Icon> }
-function IconMail()   { return <Icon size={13}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></Icon> }
-function IconGrid()   { return <Icon size={15}><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></Icon> }
-function IconList()   { return <Icon size={15}><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></Icon> }
+function IconSearch()    { return <Icon><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></Icon> }
+function IconEdit()      { return <Icon size={14}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></Icon> }
+function IconTrash()     { return <Icon size={14}><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></Icon> }
+function IconEye()       { return <Icon size={14}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></Icon> }
+function IconPin()       { return <Icon size={13}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></Icon> }
+function IconPhone()     { return <Icon size={13}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.35 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></Icon> }
+function IconMail()      { return <Icon size={13}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></Icon> }
+function IconGrid()      { return <Icon size={15}><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></Icon> }
+function IconList()      { return <Icon size={15}><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></Icon> }
+function IconChevronL()  { return <Icon size={18}><polyline points="15 18 9 12 15 6"/></Icon> }
+function IconChevronR()  { return <Icon size={18}><polyline points="9 18 15 12 9 6"/></Icon> }
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -36,24 +38,9 @@ const PROVINCE_COLORS = {
 }
 
 const VITEKA_PRODUCTS = [
-  {
-    key: 'nix',
-    label: 'Nixfarma',
-    color: '#ef4444',
-    test: c => c.products?.erp?.brand === 'Nixfarma' && c.products?.erp?.viteka_support === 'SI',
-  },
-  {
-    key: 'cash',
-    label: 'Cashlogy',
-    color: '#eab308',
-    test: c => c.products?.caja_cobro?.brand === 'Cashlogy' && c.products?.caja_cobro?.viteka_support === 'SI',
-  },
-  {
-    key: 'han',
-    label: 'Hanshow',
-    color: '#3b82f6',
-    test: c => c.products?.etiquetas?.brand === 'Hanshow' && c.products?.etiquetas?.viteka_support === 'SI',
-  },
+  { key: 'nix',  label: 'Nixfarma', color: '#ef4444', test: c => c.products?.erp?.brand === 'Nixfarma' && c.products?.erp?.viteka_support === 'SI' },
+  { key: 'cash', label: 'Cashlogy', color: '#eab308', test: c => c.products?.caja_cobro?.brand === 'Cashlogy' && c.products?.caja_cobro?.viteka_support === 'SI' },
+  { key: 'han',  label: 'Hanshow',  color: '#3b82f6', test: c => c.products?.etiquetas?.brand === 'Hanshow' && c.products?.etiquetas?.viteka_support === 'SI' },
 ]
 
 // ---------------------------------------------------------------------------
@@ -70,7 +57,7 @@ function getInitials(name) {
 }
 
 // ---------------------------------------------------------------------------
-// ProvinceCard
+// ProvinceCard — desktop: hover verde + scale
 // ---------------------------------------------------------------------------
 function ProvinceCard({ province, clients }) {
   const [hovered, setHovered] = useState(false)
@@ -79,19 +66,13 @@ function ProvinceCard({ province, clients }) {
   const provinceColor = PROVINCE_COLORS[province]
 
   return (
-    // Contenedor de tamaño fijo — nunca cambia, evita layout shift
     <div style={{ flexShrink: 0, width: '116px', height: '120px', position: 'relative' }}>
-      {/* Card real con transform — flota sobre el contenedor */}
       <div
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
+          position: 'absolute', top: 0, left: 0, width: '100%',
+          display: 'flex', flexDirection: 'column',
           zIndex: hovered ? 20 : 1,
           padding: hovered ? '14px' : '11px',
           borderRadius: '12px',
@@ -104,68 +85,132 @@ function ProvinceCard({ province, clients }) {
           cursor: 'default',
         }}
       >
-        {/* Nombre provincia */}
-        <p style={{
-          fontSize: hovered ? '12px' : '10px',
-          fontWeight: 700,
-          color: hovered ? provinceColor : '#94a3b8',
-          transition: 'all 0.22s ease',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}>{province}</p>
-
-        {/* Total farmacias */}
-        <p style={{
-          marginTop: '2px',
-          fontSize: hovered ? '30px' : '22px',
-          fontWeight: 800,
-          lineHeight: 1,
-          color: hovered ? '#15803d' : '#475569',
-          transition: 'all 0.22s ease',
-        }}>{total}</p>
-
-        {/* Divisor */}
-        <div style={{
-          margin: hovered ? '10px 0' : '7px 0',
-          borderTop: `1px solid ${hovered ? '#86efac' : '#e2e8f0'}`,
-          transition: 'border-color 0.22s ease, margin 0.22s ease',
-        }} />
-
-        {/* Productos */}
+        <p style={{ fontSize: hovered ? '12px' : '10px', fontWeight: 700, color: hovered ? provinceColor : '#94a3b8', transition: 'all 0.22s ease', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{province}</p>
+        <p style={{ marginTop: '2px', fontSize: hovered ? '30px' : '22px', fontWeight: 800, lineHeight: 1, color: hovered ? '#15803d' : '#475569', transition: 'all 0.22s ease' }}>{total}</p>
+        <div style={{ margin: hovered ? '10px 0' : '7px 0', borderTop: `1px solid ${hovered ? '#86efac' : '#e2e8f0'}`, transition: 'all 0.22s ease' }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: hovered ? '7px' : '5px', transition: 'gap 0.22s ease' }}>
           {VITEKA_PRODUCTS.map(({ key, label, color: pc, test }) => {
             const count = provClients.filter(test).length
             return (
               <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span style={{
-                    display: 'inline-block',
-                    height: hovered ? '8px' : '6px',
-                    width: hovered ? '8px' : '6px',
-                    borderRadius: '50%',
-                    backgroundColor: pc,
-                    flexShrink: 0,
-                    transition: 'all 0.22s ease',
-                  }} />
-                  <span style={{
-                    fontSize: hovered ? '11px' : '10px',
-                    color: hovered ? '#374151' : '#94a3b8',
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.22s ease',
-                  }}>{label}</span>
+                  <span style={{ display: 'inline-block', height: hovered ? '8px' : '6px', width: hovered ? '8px' : '6px', borderRadius: '50%', backgroundColor: pc, flexShrink: 0, transition: 'all 0.22s ease' }} />
+                  <span style={{ fontSize: hovered ? '11px' : '10px', color: hovered ? '#374151' : '#94a3b8', whiteSpace: 'nowrap', transition: 'all 0.22s ease' }}>{label}</span>
                 </div>
-                <span style={{
-                  fontSize: hovered ? '12px' : '10px',
-                  fontWeight: 700,
-                  fontVariantNumeric: 'tabular-nums',
-                  color: count > 0 ? pc : (hovered ? '#94a3b8' : '#cbd5e1'),
-                  transition: 'all 0.22s ease',
-                }}>{count}</span>
+                <span style={{ fontSize: hovered ? '12px' : '10px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: count > 0 ? pc : (hovered ? '#94a3b8' : '#cbd5e1'), transition: 'all 0.22s ease' }}>{count}</span>
               </div>
             )
           })}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// MobileProvinceCarousel — una card a la vez con flechas + dots
+// ---------------------------------------------------------------------------
+function MobileProvinceCarousel({ clients }) {
+  const [idx, setIdx] = useState(0)
+  const province = PROVINCES_AN[idx]
+  const provClients = clients.filter(c => c.province === province)
+  const total = provClients.length
+  const color = PROVINCE_COLORS[province]
+
+  const prev = () => setIdx(i => (i - 1 + PROVINCES_AN.length) % PROVINCES_AN.length)
+  const next = () => setIdx(i => (i + 1) % PROVINCES_AN.length)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+      {/* Fila: flecha izq + card + flecha dcha */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
+        {/* Flecha izquierda */}
+        <button
+          onClick={prev}
+          style={{
+            flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: '34px', height: '34px', borderRadius: '50%',
+            border: '1px solid #e2e8f0', background: '#f8fafc',
+            color: '#64748b', cursor: 'pointer', transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#f0fdf4'; e.currentTarget.style.borderColor = '#86efac'; e.currentTarget.style.color = '#15803d' }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#64748b' }}
+        >
+          <IconChevronL />
+        </button>
+
+        {/* Card central */}
+        <div style={{
+          flex: 1,
+          borderRadius: '14px',
+          border: `1.5px solid ${color}40`,
+          background: `${color}08`,
+          padding: '16px',
+          boxShadow: `0 4px 16px 0 ${color}20`,
+          transition: 'all 0.25s ease',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <div>
+              <p style={{ fontSize: '13px', fontWeight: 700, color }}>{province}</p>
+              <p style={{ fontSize: '36px', fontWeight: 800, lineHeight: 1, color: '#15803d', marginTop: '2px' }}>{total}</p>
+              <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>farmacias</p>
+            </div>
+            {/* Mini indicador de posición */}
+            <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>{idx + 1} / {PROVINCES_AN.length}</span>
+          </div>
+
+          <div style={{ margin: '12px 0', borderTop: `1px solid ${color}30` }} />
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {VITEKA_PRODUCTS.map(({ key, label, color: pc, test }) => {
+              const count = provClients.filter(test).length
+              return (
+                <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                    <span style={{ display: 'inline-block', height: '9px', width: '9px', borderRadius: '50%', backgroundColor: pc, flexShrink: 0 }} />
+                    <span style={{ fontSize: '12px', color: '#374151' }}>{label}</span>
+                  </div>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: count > 0 ? pc : '#cbd5e1', fontVariantNumeric: 'tabular-nums' }}>{count}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Flecha derecha */}
+        <button
+          onClick={next}
+          style={{
+            flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: '34px', height: '34px', borderRadius: '50%',
+            border: '1px solid #e2e8f0', background: '#f8fafc',
+            color: '#64748b', cursor: 'pointer', transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#f0fdf4'; e.currentTarget.style.borderColor = '#86efac'; e.currentTarget.style.color = '#15803d' }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#64748b' }}
+        >
+          <IconChevronR />
+        </button>
+      </div>
+
+      {/* Dots de paginación */}
+      <div style={{ display: 'flex', gap: '5px' }}>
+        {PROVINCES_AN.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setIdx(i)}
+            style={{
+              width: i === idx ? '18px' : '6px',
+              height: '6px',
+              borderRadius: '3px',
+              border: 'none',
+              background: i === idx ? color : '#cbd5e1',
+              padding: 0,
+              cursor: 'pointer',
+              transition: 'all 0.22s ease',
+            }}
+          />
+        ))}
       </div>
     </div>
   )
@@ -212,21 +257,22 @@ export default function ClientsPage({
         </button>
       </div>
 
-      {/* Province cards */}
+      {/* Province section */}
       <div className="card p-4">
         <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
           Farmacias por provincia
         </p>
-        {/* overflow-visible para que las cards al hacer scale no se corten */}
-        <div style={{
-          display: 'flex',
-          gap: '8px',
-          overflowX: 'auto',
-          overflowY: 'visible',
-          paddingBottom: '4px',
-          paddingTop: '4px',
-          scrollbarWidth: 'none',
-        }}>
+
+        {/* MOBILE: carrusel con flechas */}
+        <div className="sm:hidden">
+          <MobileProvinceCarousel clients={clients} />
+        </div>
+
+        {/* DESKTOP: scroll horizontal con hover */}
+        <div
+          className="hidden sm:flex"
+          style={{ gap: '8px', overflowX: 'auto', overflowY: 'visible', paddingBottom: '4px', paddingTop: '4px', scrollbarWidth: 'none' }}
+        >
           {PROVINCES_AN.map(prov => (
             <ProvinceCard key={prov} province={prov} clients={clients} />
           ))}
