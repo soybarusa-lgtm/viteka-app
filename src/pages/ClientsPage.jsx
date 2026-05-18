@@ -28,18 +28,18 @@ const VITEKA_ROWS = [
   { label: 'Nixfarma',           cat: 'erp',         test: p => p?.brand === 'Nixfarma'           && p?.viteka_support === 'SI' },
   { label: 'Cashlogy',           cat: 'caja_cobro',  test: p => p?.brand === 'Cashlogy'           && p?.viteka_support === 'SI' },
   { label: 'Hanshow',            cat: 'etiquetas',   test: p => p?.brand === 'Hanshow'            && p?.viteka_support === 'SI' },
-  { label: 'Equipos Viteka',     cat: 'equipos',     test: p => p?.brand === 'Viteka' },
-  { label: 'Básculas Pondus',    cat: 'basculas',    test: p => p?.brand === 'Pondus'             && p?.viteka_support === 'SI' },
-  { label: 'Viteka Pro Gestión', cat: 'consultoria', test: p => p?.brand === 'Viteka Pro Gestión' },
+  { label: 'Equipos',            cat: 'equipos',     test: p => p?.brand === 'Viteka' },
+  { label: 'Básculas',           cat: 'basculas',    test: p => p?.brand === 'Pondus'             && p?.viteka_support === 'SI' },
+  { label: 'Pro Gestión',        cat: 'consultoria', test: p => p?.brand === 'Viteka Pro Gestión' },
 ]
 
 const THIRD_ROWS = [
-  { label: 'ERP (no Nixfarma)',        cat: 'erp',        test: p => p?.brand && p.brand !== 'Nixfarma'  && p.brand !== '' },
-  { label: 'Caja cobro (no Cashlogy)', cat: 'caja_cobro', test: p => p?.brand && p.brand !== 'Cashlogy'  && p.brand !== 'NO' && p.brand !== '' },
-  { label: 'ESL (no Hanshow)',         cat: 'etiquetas',  test: p => p?.brand && p.brand !== 'Hanshow'   && p.brand !== 'NO' && p.brand !== '' },
-  { label: 'Báscula (otro proveedor)', cat: 'basculas',   test: p => p?.brand && p.brand !== 'Pondus'    && p.brand !== 'NO' && p.brand !== '' },
-  { label: 'Consultoría (terceros)',   cat: 'consultoria',test: p => p?.brand && !p.brand.toLowerCase().includes('viteka') && p.brand !== 'NO' && p.brand !== '' },
-  { label: 'Robot dispensador',        cat: 'robot',      test: p => p?.brand && p.brand !== 'NO'        && p.brand !== '' },
+  { label: 'ERP',          cat: 'erp',        test: p => p?.brand && p.brand !== 'Nixfarma'  && p.brand !== '' },
+  { label: 'Caja cobro',   cat: 'caja_cobro', test: p => p?.brand && p.brand !== 'Cashlogy'  && p.brand !== 'NO' && p.brand !== '' },
+  { label: 'ESL',          cat: 'etiquetas',  test: p => p?.brand && p.brand !== 'Hanshow'   && p.brand !== 'NO' && p.brand !== '' },
+  { label: 'Báscula',      cat: 'basculas',   test: p => p?.brand && p.brand !== 'Pondus'    && p.brand !== 'NO' && p.brand !== '' },
+  { label: 'Consultoría',  cat: 'consultoria',test: p => p?.brand && !p.brand.toLowerCase().includes('viteka') && p.brand !== 'NO' && p.brand !== '' },
+  { label: 'Robot',        cat: 'robot',      test: p => p?.brand && p.brand !== 'NO'        && p.brand !== '' },
 ]
 
 // ---------------------------------------------------------------------------
@@ -53,6 +53,18 @@ function avatarColor(str = '') {
 function getInitials(name) {
   if (!name) return '?'
   return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
+}
+
+// ---------------------------------------------------------------------------
+// StatCard — caja tipo provincia: número grande + label
+// ---------------------------------------------------------------------------
+function StatCard({ label, count, accentColor = 'var(--primary)' }) {
+  return (
+    <div className="card flex min-w-[90px] flex-col items-center justify-center gap-1 p-4 text-center">
+      <span className="text-2xl font-bold" style={{ color: accentColor }}>{count}</span>
+      <span className="text-[11px] leading-tight" style={{ color: 'var(--muted)' }}>{label}</span>
+    </div>
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -114,7 +126,7 @@ export default function ClientsPage({
         </button>
       </div>
 
-      {/* Provincias — una sola fila, scroll horizontal en mobile */}
+      {/* Provincias */}
       <section>
         <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
           Farmacias por provincia
@@ -122,42 +134,43 @@ export default function ClientsPage({
         <div className="overflow-x-auto pb-1">
           <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
             {byProvince.map(({ label, count }) => (
-              <div key={label} className="card flex min-w-[90px] flex-col items-center justify-center gap-1 p-4 text-center">
-                <span className="text-2xl font-bold" style={{ color: 'var(--primary)' }}>{count}</span>
-                <span className="text-[11px] leading-tight" style={{ color: 'var(--muted)' }}>{label}</span>
-              </div>
+              <StatCard key={label} label={label} count={count} />
             ))}
           </div>
         </div>
       </section>
 
-      {/* Productos */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <section className="card p-5">
-          <div className="mb-4 flex items-center gap-2">
-            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-            <h2 className="text-[13px] font-semibold" style={{ color: 'var(--text)' }}>Productos Viteka</h2>
-            <span className="ml-auto text-[11px]" style={{ color: 'var(--muted)' }}>distribuidor y/o soporte</span>
-          </div>
-          <div className="space-y-2">
+      {/* Productos Viteka */}
+      <section>
+        <div className="mb-3 flex items-center gap-2">
+          <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+          <h2 className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>Productos Viteka</h2>
+          <span className="text-[11px]" style={{ color: 'var(--muted)' }}>— distribuidor y/o soporte</span>
+        </div>
+        <div className="overflow-x-auto pb-1">
+          <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
             {vitekaCounters.map(({ label, count }) => (
-              <ProductBar key={label} label={label} count={count} total={clients.length} color="emerald" />
+              <StatCard key={label} label={label} count={count} accentColor="#10b981" />
             ))}
           </div>
-        </section>
-        <section className="card p-5">
-          <div className="mb-4 flex items-center gap-2">
-            <span className="inline-flex h-2 w-2 rounded-full bg-amber-500" />
-            <h2 className="text-[13px] font-semibold" style={{ color: 'var(--text)' }}>Productos de terceros</h2>
-            <span className="ml-auto text-[11px]" style={{ color: 'var(--muted)' }}>sin distribución Viteka</span>
-          </div>
-          <div className="space-y-2">
+        </div>
+      </section>
+
+      {/* Productos Terceros */}
+      <section>
+        <div className="mb-3 flex items-center gap-2">
+          <span className="inline-flex h-2 w-2 rounded-full bg-amber-500" />
+          <h2 className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>Productos de terceros</h2>
+          <span className="text-[11px]" style={{ color: 'var(--muted)' }}>— sin distribución Viteka</span>
+        </div>
+        <div className="overflow-x-auto pb-1">
+          <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
             {thirdCounters.map(({ label, count }) => (
-              <ProductBar key={label} label={label} count={count} total={clients.length} color="amber" />
+              <StatCard key={label} label={label} count={count} accentColor="#f59e0b" />
             ))}
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
 
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -194,28 +207,6 @@ export default function ClientsPage({
           ? <TableView clients={filtered} onOpen={onOpenClient} onEdit={onEditClient} onDelete={onDeleteClient} />
           : <GridView  clients={filtered} onOpen={onOpenClient} onEdit={onEditClient} onDelete={onDeleteClient} />
       }
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// ProductBar
-// ---------------------------------------------------------------------------
-function ProductBar({ label, count, total, color }) {
-  const pct = total > 0 ? Math.round((count / total) * 100) : 0
-  const colors = {
-    emerald: { bar: 'bg-emerald-500', text: 'text-emerald-600' },
-    amber:   { bar: 'bg-amber-400',   text: 'text-amber-600'   },
-  }
-  return (
-    <div>
-      <div className="mb-1 flex items-center justify-between">
-        <span className="text-[12px]" style={{ color: 'var(--text-soft)' }}>{label}</span>
-        <span className={`text-[12px] font-semibold ${colors[color].text}`}>{count}</span>
-      </div>
-      <div className="h-1.5 w-full rounded-full" style={{ background: 'var(--surface-soft)' }}>
-        <div className={`h-1.5 rounded-full transition-all ${colors[color].bar}`} style={{ width: `${pct}%` }} />
-      </div>
     </div>
   )
 }
@@ -389,3 +380,8 @@ function ActionBtn({ onClick, title, color = 'slate', children }) {
       style={styles[color]}>{children}</button>
   )
 }
+
+// ---------------------------------------------------------------------------
+// Unused — kept for reference
+// ---------------------------------------------------------------------------
+function IconPin() { return <Icon size={13}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></Icon> }
