@@ -19,6 +19,21 @@ const SCALE_BRANDS = ['NO','Pondus','Keito','Otro']
 const ROBOT_BRANDS = ['NO','BD Rowa','Gollmann','Meditech','Willach','Fablox','Luse','KLS','Tecnyfarma']
 const CONSULT_OPTIONS = ['NO','Viteka Pro Gestión','Avantia Plus Gestión','Otro']
 
+const EQUIPO_ITEMS = [
+  'Ordenadores sobremesa',
+  'Portátiles',
+  'Servidores',
+  'Impresoras tickets',
+  'Impresoras etiquetas',
+  'Impresoras laser/tinta',
+  'Monitores extra',
+  'Terminales TPV',
+  'SAI/UPS',
+  'Switch/Router',
+  'NAS/Almacenamiento',
+  'Otro',
+]
+
 const CURRENT_YEAR = new Date().getFullYear()
 const YEARS = Array.from({ length: 30 }, (_, i) => CURRENT_YEAR - i)
 const MONTHS = [
@@ -126,7 +141,6 @@ function Step1({ data, onChange }) {
     if (types.includes(t)) {
       next = types.filter(x => x !== t)
     } else {
-      // mutual exclusion: autonomo <-> cb
       if (t === 'autonomo') next = [...types.filter(x => x !== 'cb'), 'autonomo']
       else if (t === 'cb')  next = [...types.filter(x => x !== 'autonomo'), 'cb']
       else next = [...types, t]
@@ -509,11 +523,47 @@ function Step2({ products, onChange }) {
           </Select>
         </Field>
         {get('equipos','brand') && (
-          <p className="text-[12px] rounded-lg px-3 py-2" style={{ background: 'var(--surface-soft)', color: 'var(--text-soft)' }}>
-            {get('equipos','brand') === 'Viteka'
-              ? 'Se podrán gestionar garantías y seguimiento desde la página de la farmacia.'
-              : 'Se registrará la infraestructura existente para planificación de sustitución.'}
-          </p>
+          <>
+            <p className="text-[12px] rounded-lg px-3 py-2" style={{ background: 'var(--surface-soft)', color: 'var(--text-soft)' }}>
+              {get('equipos','brand') === 'Viteka'
+                ? 'Se podrán gestionar garantías y seguimiento desde la página de la farmacia.'
+                : 'Se registrará la infraestructura existente para planificación de sustitución.'}
+            </p>
+            <Field label="Equipamiento instalado">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-3 mt-1">
+                {EQUIPO_ITEMS.map(item => {
+                  const selected = (get('equipos','items') || []).includes(item)
+                  return (
+                    <label key={item}
+                      className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition select-none"
+                      style={selected
+                        ? { background: 'var(--primary-soft, rgba(0,86,67,0.08))', color: 'var(--primary)' }
+                        : { color: 'var(--text-soft)' }
+                      }>
+                      <input
+                        type="checkbox"
+                        className="h-3.5 w-3.5 accent-[var(--primary)] shrink-0"
+                        checked={selected}
+                        onChange={() => {
+                          const prev = get('equipos','items') || []
+                          const next = selected ? prev.filter(i => i !== item) : [...prev, item]
+                          set('equipos','items', next)
+                        }}
+                      />
+                      <span className="text-[12px] leading-tight">{item}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </Field>
+            <Field label="Notas equipos">
+              <Input
+                placeholder="Nº unidades, marcas específicas, observaciones..."
+                value={get('equipos','notes')}
+                onChange={e => set('equipos','notes',e.target.value)}
+              />
+            </Field>
+          </>
         )}
       </ProductSection>
 
@@ -678,7 +728,7 @@ function ProductSection({ title, children }) {
 // ---------------------------------------------------------------------------
 // CreateClientModal — main
 // ---------------------------------------------------------------------------
-export default function CreateClientModal({ profile, onSave, onClose }) {
+export default function CreateClientModal({ isOpen, onClose, onCreate }) {
   const [step, setStep] = useState(1)
   const [clientData, setClientData] = useState({ legal_type: [], cb_owners: [
     { name:'', nif:'', collegiate_number:'' },
@@ -686,6 +736,9 @@ export default function CreateClientModal({ profile, onSave, onClose }) {
   ]})
   const [products, setProducts] = useState({})
   const [saving, setSaving] = useState(false)
+
+  // ── GUARD: no renderizar si el modal está cerrado ──
+  if (!isOpen) return null
 
   function validateStep1() {
     if (!clientData.legal_type?.length) return 'Selecciona al menos un tipo jurídico.'
@@ -695,7 +748,7 @@ export default function CreateClientModal({ profile, onSave, onClose }) {
 
   async function handleSave() {
     setSaving(true)
-    await onSave({ clientData, products })
+    await onCreate({ ...clientData, products })
     setSaving(false)
   }
 
