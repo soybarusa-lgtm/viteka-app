@@ -20,26 +20,15 @@ const ROBOT_BRANDS = ['NO','BD Rowa','Gollmann','Meditech','Willach','Fablox','L
 const CONSULT_OPTIONS = ['NO','Viteka Pro Gestión','Avantia Plus Gestión','Otro']
 
 const EQUIPO_ITEMS = [
-  'Ordenadores sobremesa',
-  'Portátiles',
-  'Servidores',
-  'Impresoras tickets',
-  'Impresoras etiquetas',
-  'Impresoras laser/tinta',
-  'Monitores extra',
-  'Terminales TPV',
-  'SAI/UPS',
-  'Switch/Router',
-  'NAS/Almacenamiento',
-  'Otro',
+  'Ordenadores sobremesa','Portátiles','Servidores',
+  'Impresoras tickets','Impresoras etiquetas','Impresoras laser/tinta',
+  'Monitores extra','Terminales TPV','SAI/UPS',
+  'Switch/Router','NAS/Almacenamiento','Otro',
 ]
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEARS = Array.from({ length: 30 }, (_, i) => CURRENT_YEAR - i)
-const MONTHS = [
-  'Enero','Febrero','Marzo','Abril','Mayo','Junio',
-  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre',
-]
+const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -54,72 +43,48 @@ function Field({ label, required, children }) {
     </div>
   )
 }
-function Input({ ...p }) {
-  return <input className="input w-full" {...p} />
-}
-function Select({ children, ...p }) {
-  return <select className="input w-full" {...p}>{children}</select>
-}
-function Textarea({ ...p }) {
-  return <textarea className="input w-full" rows={3} {...p} />
-}
+function Input(p) { return <input className="input w-full" {...p} /> }
+function Sel({ children, ...p }) { return <select className="input w-full" {...p}>{children}</select> }
+function Textarea(p) { return <textarea className="input w-full" rows={3} {...p} /> }
+
 function SatisfactionField({ value, onChange }) {
   return (
     <div>
-      <label className="mb-1 block text-[12px] font-medium" style={{ color: 'var(--text-soft)' }}>
-        Satisfacción con proveedor actual
-      </label>
+      <label className="mb-1 block text-[12px] font-medium" style={{ color: 'var(--text-soft)' }}>Satisfacción con proveedor actual</label>
       <div className="flex gap-2">
         {[1,2,3,4,5].map(n => (
-          <button key={n} type="button"
-            onClick={() => onChange(n)}
+          <button key={n} type="button" onClick={() => onChange(n)}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-[13px] font-semibold transition"
-            style={value === n
-              ? { background: 'var(--primary)', color: '#fff' }
-              : { background: 'var(--surface-soft)', color: 'var(--text-soft)' }
-            }>{n}</button>
+            style={value === n ? { background: 'var(--primary)', color: '#fff' } : { background: 'var(--surface-soft)', color: 'var(--text-soft)' }}>{n}</button>
         ))}
       </div>
-    </div>
-  )
-}
-function VitekaToggle({ value, notes, onChangeValue, onChangeNotes }) {
-  return (
-    <div className="space-y-2">
-      <label className="mb-1 block text-[12px] font-medium" style={{ color: 'var(--text-soft)' }}>
-        ¿Viteka es distribuidor y/o soporte?
-      </label>
-      <div className="flex gap-2">
-        {['SI','NO'].map(opt => (
-          <button key={opt} type="button"
-            onClick={() => onChangeValue(opt)}
-            className="flex-1 rounded-lg py-2 text-[13px] font-medium transition"
-            style={value === opt
-              ? { background: 'var(--primary)', color: '#fff' }
-              : { background: 'var(--surface-soft)', color: 'var(--text-soft)' }
-            }>{opt}</button>
-        ))}
-      </div>
-      {value === 'SI' && (
-        <Input placeholder="Notas sobre el contrato/soporte (opcional)" value={notes} onChange={e => onChangeNotes(e.target.value)} />
-      )}
     </div>
   )
 }
 
-// ---------------------------------------------------------------------------
-// Step indicator
-// ---------------------------------------------------------------------------
+function VitekaToggle({ value, notes, onChangeValue, onChangeNotes }) {
+  return (
+    <div className="space-y-2">
+      <label className="mb-1 block text-[12px] font-medium" style={{ color: 'var(--text-soft)' }}>¿Viteka es distribuidor y/o soporte?</label>
+      <div className="flex gap-2">
+        {['SI','NO'].map(opt => (
+          <button key={opt} type="button" onClick={() => onChangeValue(opt)}
+            className="flex-1 rounded-lg py-2 text-[13px] font-medium transition"
+            style={value === opt ? { background: 'var(--primary)', color: '#fff' } : { background: 'var(--surface-soft)', color: 'var(--text-soft)' }}>{opt}</button>
+        ))}
+      </div>
+      {value === 'SI' && <Input placeholder="Notas sobre el contrato/soporte (opcional)" value={notes} onChange={e => onChangeNotes(e.target.value)} />}
+    </div>
+  )
+}
+
 function StepIndicator({ step }) {
   return (
     <div className="flex items-center gap-3 mb-6">
       {[1, 2].map(n => (
         <div key={n} className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-semibold transition"
-            style={step >= n
-              ? { background: 'var(--primary)', color: '#fff' }
-              : { background: 'var(--surface-soft)', color: 'var(--muted)' }
-            }>{n}</div>
+            style={step >= n ? { background: 'var(--primary)', color: '#fff' } : { background: 'var(--surface-soft)', color: 'var(--muted)' }}>{n}</div>
           <span className="text-[12px]" style={{ color: step >= n ? 'var(--text)' : 'var(--muted)' }}>
             {n === 1 ? 'Tipo jurídico' : 'Productos'}
           </span>
@@ -131,20 +96,17 @@ function StepIndicator({ step }) {
 }
 
 // ---------------------------------------------------------------------------
-// STEP 1 — Legal type
+// STEP 1
 // ---------------------------------------------------------------------------
 function Step1({ data, onChange }) {
   const types = data.legal_type || []
 
   function toggleType(t) {
     let next
-    if (types.includes(t)) {
-      next = types.filter(x => x !== t)
-    } else {
-      if (t === 'autonomo') next = [...types.filter(x => x !== 'cb'), 'autonomo']
-      else if (t === 'cb')  next = [...types.filter(x => x !== 'autonomo'), 'cb']
-      else next = [...types, t]
-    }
+    if (types.includes(t)) { next = types.filter(x => x !== t) }
+    else if (t === 'autonomo') next = [...types.filter(x => x !== 'cb'), 'autonomo']
+    else if (t === 'cb')      next = [...types.filter(x => x !== 'autonomo'), 'cb']
+    else next = [...types, t]
     onChange({ ...data, legal_type: next })
   }
 
@@ -154,13 +116,9 @@ function Step1({ data, onChange }) {
     owners[i] = { ...owners[i], [field]: val }
     onChange({ ...data, cb_owners: owners })
   }
-  function addOwner() {
-    const owners = [...(data.cb_owners || [])]
-    owners.push({ name:'', nif:'', collegiate_number:'' })
-    onChange({ ...data, cb_owners: owners })
-  }
+  function addOwner() { onChange({ ...data, cb_owners: [...(data.cb_owners||[]), { name:'', nif:'', collegiate_number:'' }] }) }
   function removeOwner(i) {
-    const owners = [...(data.cb_owners || [])]
+    const owners = [...(data.cb_owners||[])]
     if (owners.length <= 2) return
     owners.splice(i, 1)
     onChange({ ...data, cb_owners: owners })
@@ -173,7 +131,6 @@ function Step1({ data, onChange }) {
 
   return (
     <div className="space-y-6">
-
       {/* Type selector */}
       <div>
         <label className="mb-2 block text-[13px] font-semibold" style={{ color: 'var(--text)' }}>Tipo jurídico</label>
@@ -190,7 +147,7 @@ function Step1({ data, onChange }) {
         </div>
       </div>
 
-      {/* Autónomo fields */}
+      {/* Autónomo */}
       {hasAuto && (
         <fieldset className="rounded-xl p-4 space-y-4" style={{ border: '1px solid var(--border)' }}>
           <legend className="px-2 text-[12px] font-semibold uppercase tracking-wider" style={{ color: 'var(--primary)' }}>Autónomo</legend>
@@ -203,68 +160,54 @@ function Step1({ data, onChange }) {
             <Field label="Email farmacia"><Input type="email" value={data.contact_email||''} onChange={e=>set('contact_email',e.target.value)} /></Field>
             <Field label="Dirección"><Input value={data.address||''} onChange={e=>set('address',e.target.value)} /></Field>
             <Field label="Provincia">
-              <Select value={data.province||''} onChange={e=>set('province',e.target.value)}>
+              <Sel value={data.province||''} onChange={e=>set('province',e.target.value)}>
                 <option value="">Seleccionar...</option>
                 {PROVINCES_AN.map(p=><option key={p} value={p}>{p}</option>)}
-              </Select>
+              </Sel>
             </Field>
             <Field label="Población"><Input value={data.city||''} onChange={e=>set('city',e.target.value)} /></Field>
             <Field label="C.P."><Input value={data.postal_code||''} onChange={e=>set('postal_code',e.target.value)} /></Field>
             <Field label="Horario"><Input value={data.schedule||''} onChange={e=>set('schedule',e.target.value)} /></Field>
             <Field label="Guardias">
-              <Select value={data.has_guards?'si':'no'} onChange={e=>set('has_guards',e.target.value==='si')}>
-                <option value="no">NO</option>
-                <option value="si">SI</option>
-              </Select>
+              <Sel value={data.has_guards?'si':'no'} onChange={e=>set('has_guards',e.target.value==='si')}>
+                <option value="no">NO</option><option value="si">SI</option>
+              </Sel>
             </Field>
           </div>
           <Field label="Observaciones"><Textarea value={data.observations||''} onChange={e=>set('observations',e.target.value)} /></Field>
         </fieldset>
       )}
 
-      {/* C.B. fields */}
+      {/* C.B. */}
       {hasCB && (
         <fieldset className="rounded-xl p-4 space-y-4" style={{ border: '1px solid var(--border)' }}>
           <legend className="px-2 text-[12px] font-semibold uppercase tracking-wider" style={{ color: 'var(--primary)' }}>Comunidad de Bienes</legend>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Razón social" required><Input value={data.name||''} onChange={e=>set('name',e.target.value)} /></Field>
             <Field label="CIF"><Input value={data.nif_cif||''} onChange={e=>set('nif_cif',e.target.value)} /></Field>
-            <Field label="Teléfono farmacia"><Input type="tel" value={data.contact_phone||''} onChange={e=>set('contact_phone',e.target.value)} /></Field>
-            <Field label="Email farmacia"><Input type="email" value={data.contact_email||''} onChange={e=>set('contact_email',e.target.value)} /></Field>
+            <Field label="Teléfono"><Input type="tel" value={data.contact_phone||''} onChange={e=>set('contact_phone',e.target.value)} /></Field>
+            <Field label="Email"><Input type="email" value={data.contact_email||''} onChange={e=>set('contact_email',e.target.value)} /></Field>
             <Field label="Dirección"><Input value={data.address||''} onChange={e=>set('address',e.target.value)} /></Field>
             <Field label="Provincia">
-              <Select value={data.province||''} onChange={e=>set('province',e.target.value)}>
+              <Sel value={data.province||''} onChange={e=>set('province',e.target.value)}>
                 <option value="">Seleccionar...</option>
                 {PROVINCES_AN.map(p=><option key={p} value={p}>{p}</option>)}
-              </Select>
+              </Sel>
             </Field>
             <Field label="Población"><Input value={data.city||''} onChange={e=>set('city',e.target.value)} /></Field>
-            <Field label="C.P."><Input value={data.postal_code||''} onChange={e=>set('postal_code',e.target.value)} /></Field>
             <Field label="SOE"><Input value={data.soe_number||''} onChange={e=>set('soe_number',e.target.value)} /></Field>
-            <Field label="Horario"><Input value={data.schedule||''} onChange={e=>set('schedule',e.target.value)} /></Field>
-            <Field label="Guardias">
-              <Select value={data.has_guards?'si':'no'} onChange={e=>set('has_guards',e.target.value==='si')}>
-                <option value="no">NO</option>
-                <option value="si">SI</option>
-              </Select>
-            </Field>
           </div>
-          {/* Titulares */}
           <div>
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[12px] font-semibold" style={{ color: 'var(--text)' }}>Titulares (mín. 2)</span>
-              <button type="button" onClick={addOwner}
-                className="text-[12px] font-medium hover:underline" style={{ color: 'var(--primary)' }}>+ Añadir titular</button>
+              <button type="button" onClick={addOwner} className="text-[12px] font-medium hover:underline" style={{ color: 'var(--primary)' }}>+ Añadir titular</button>
             </div>
             <div className="space-y-3">
               {cbOwners.map((owner, i) => (
                 <div key={i} className="rounded-lg p-3 space-y-2" style={{ background: 'var(--surface-soft)' }}>
                   <div className="flex items-center justify-between">
                     <span className="text-[12px] font-medium" style={{ color: 'var(--muted)' }}>Titular {i+1}</span>
-                    {i >= 2 && (
-                      <button type="button" onClick={() => removeOwner(i)}
-                        className="text-[11px]" style={{ color: 'var(--badge-red-text)' }}>Eliminar</button>
-                    )}
+                    {i >= 2 && <button type="button" onClick={() => removeOwner(i)} className="text-[11px]" style={{ color: 'var(--badge-red-text)' }}>Eliminar</button>}
                   </div>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     <Field label="Nombre"><Input value={owner.name||''} onChange={e=>setOwner(i,'name',e.target.value)} /></Field>
@@ -279,7 +222,7 @@ function Step1({ data, onChange }) {
         </fieldset>
       )}
 
-      {/* S.L. fields */}
+      {/* S.L. */}
       {hasSL && (
         <fieldset className="rounded-xl p-4 space-y-4" style={{ border: '1px solid var(--border)' }}>
           <legend className="px-2 text-[12px] font-semibold uppercase tracking-wider" style={{ color: 'var(--primary)' }}>Sociedad Limitada</legend>
@@ -288,21 +231,11 @@ function Step1({ data, onChange }) {
             <Field label="CIF"><Input value={data.sl_cif||''} onChange={e=>set('sl_cif',e.target.value)} /></Field>
             <Field label="Teléfono S.L."><Input type="tel" value={data.sl_phone||''} onChange={e=>set('sl_phone',e.target.value)} /></Field>
             <Field label="Email S.L."><Input type="email" value={data.sl_email||''} onChange={e=>set('sl_email',e.target.value)} /></Field>
-            <Field label="Dirección S.L."><Input value={data.sl_address||''} onChange={e=>set('sl_address',e.target.value)} /></Field>
-            <Field label="Provincia S.L.">
-              <Select value={data.sl_province||''} onChange={e=>set('sl_province',e.target.value)}>
-                <option value="">Seleccionar...</option>
-                {PROVINCES_AN.map(p=><option key={p} value={p}>{p}</option>)}
-              </Select>
-            </Field>
-            <Field label="Población S.L."><Input value={data.sl_city||''} onChange={e=>set('sl_city',e.target.value)} /></Field>
-            <Field label="C.P. S.L."><Input value={data.sl_postal_code||''} onChange={e=>set('sl_postal_code',e.target.value)} /></Field>
           </div>
-          <Field label="Observaciones S.L."><Textarea value={data.sl_observations||''} onChange={e=>set('sl_observations',e.target.value)} /></Field>
         </fieldset>
       )}
 
-      {/* Pharmacy name (always) */}
+      {/* Nombre farmacia — siempre visible */}
       <Field label="Nombre de la farmacia" required>
         <Input value={data.pharmacy_name||''} onChange={e=>set('pharmacy_name',e.target.value)} placeholder="Farmacia San Juan" />
       </Field>
@@ -311,216 +244,170 @@ function Step1({ data, onChange }) {
 }
 
 // ---------------------------------------------------------------------------
-// STEP 2 — Products
+// STEP 2
 // ---------------------------------------------------------------------------
 function Step2({ products, onChange }) {
-  function set(cat, field, val) {
-    onChange({ ...products, [cat]: { ...(products[cat] || {}), [field]: val } })
-  }
-  function get(cat, field, def = '') {
-    return products[cat]?.[field] ?? def
-  }
+  function set(cat, field, val) { onChange({ ...products, [cat]: { ...(products[cat]||{}), [field]: val } }) }
+  function get(cat, field, def = '') { return products[cat]?.[field] ?? def }
 
   return (
     <div className="space-y-6">
 
-      {/* ── ERP ── */}
       <ProductSection title="ERP">
         <Field label="Sistema ERP">
-          <Select value={get('erp','brand')} onChange={e => set('erp','brand',e.target.value)}>
+          <Sel value={get('erp','brand')} onChange={e => set('erp','brand',e.target.value)}>
             <option value="">Seleccionar...</option>
             {ERP_BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
-          </Select>
+          </Sel>
         </Field>
         {get('erp','brand') === 'Nixfarma' && (
-          <VitekaToggle
-            value={get('erp','viteka_support')}
-            notes={get('erp','viteka_notes')}
-            onChangeValue={v => set('erp','viteka_support',v)}
-            onChangeNotes={v => set('erp','viteka_notes',v)}
-          />
+          <VitekaToggle value={get('erp','viteka_support')} notes={get('erp','viteka_notes')}
+            onChangeValue={v=>set('erp','viteka_support',v)} onChangeNotes={v=>set('erp','viteka_notes',v)} />
         )}
         {get('erp','brand') && get('erp','brand') !== 'Nixfarma' && (
-          <SatisfactionField value={get('erp','satisfaction',null)} onChange={v => set('erp','satisfaction',v)} />
+          <SatisfactionField value={get('erp','satisfaction',null)} onChange={v=>set('erp','satisfaction',v)} />
         )}
         {get('erp','brand') === 'Nixfarma' && get('erp','viteka_support') === 'NO' && (
-          <SatisfactionField value={get('erp','satisfaction',null)} onChange={v => set('erp','satisfaction',v)} />
+          <SatisfactionField value={get('erp','satisfaction',null)} onChange={v=>set('erp','satisfaction',v)} />
         )}
       </ProductSection>
 
-      {/* ── Caja de cobro ── */}
       <ProductSection title="Caja de cobro">
         <Field label="Marca">
-          <Select value={get('caja_cobro','brand')} onChange={e => { set('caja_cobro','brand',e.target.value); set('caja_cobro','model','') }}>
+          <Sel value={get('caja_cobro','brand')} onChange={e=>{set('caja_cobro','brand',e.target.value);set('caja_cobro','model','')}}>
             <option value="">Seleccionar...</option>
-            {CASH_BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
-          </Select>
+            {CASH_BRANDS.map(b=><option key={b} value={b}>{b}</option>)}
+          </Sel>
         </Field>
         {get('caja_cobro','brand') && get('caja_cobro','brand') !== 'NO' && (
           <>
             {CASH_MODELS[get('caja_cobro','brand')] && (
               <Field label="Modelo">
-                <Select value={get('caja_cobro','model')} onChange={e => set('caja_cobro','model',e.target.value)}>
+                <Sel value={get('caja_cobro','model')} onChange={e=>set('caja_cobro','model',e.target.value)}>
                   <option value="">Seleccionar...</option>
-                  {CASH_MODELS[get('caja_cobro','brand')].map(m => <option key={m} value={m}>{m}</option>)}
-                </Select>
+                  {CASH_MODELS[get('caja_cobro','brand')].map(m=><option key={m} value={m}>{m}</option>)}
+                </Sel>
               </Field>
             )}
-            {get('caja_cobro','brand') === 'Otro' && (
-              <Field label="Marca (indicar)"><Input value={get('caja_cobro','brand_custom')} onChange={e => set('caja_cobro','brand_custom',e.target.value)} /></Field>
-            )}
-            <Field label="Año de instalación">
-              <Select value={get('caja_cobro','install_year')} onChange={e => set('caja_cobro','install_year',e.target.value)}>
+            <Field label="Año">
+              <Sel value={get('caja_cobro','install_year')} onChange={e=>set('caja_cobro','install_year',e.target.value)}>
                 <option value="">Seleccionar...</option>
-                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-              </Select>
+                {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
+              </Sel>
             </Field>
             {get('caja_cobro','brand') === 'Cashlogy' && (
-              <VitekaToggle
-                value={get('caja_cobro','viteka_support')}
-                notes={get('caja_cobro','viteka_notes')}
-                onChangeValue={v => set('caja_cobro','viteka_support',v)}
-                onChangeNotes={v => set('caja_cobro','viteka_notes',v)}
-              />
+              <VitekaToggle value={get('caja_cobro','viteka_support')} notes={get('caja_cobro','viteka_notes')}
+                onChangeValue={v=>set('caja_cobro','viteka_support',v)} onChangeNotes={v=>set('caja_cobro','viteka_notes',v)} />
             )}
-            {((get('caja_cobro','brand') !== 'Cashlogy') ||
-              (get('caja_cobro','brand') === 'Cashlogy' && get('caja_cobro','viteka_support') === 'NO')) && (
-              <SatisfactionField value={get('caja_cobro','satisfaction',null)} onChange={v => set('caja_cobro','satisfaction',v)} />
+            {(get('caja_cobro','brand') !== 'Cashlogy' || get('caja_cobro','viteka_support') === 'NO') && (
+              <SatisfactionField value={get('caja_cobro','satisfaction',null)} onChange={v=>set('caja_cobro','satisfaction',v)} />
             )}
           </>
         )}
       </ProductSection>
 
-      {/* ── Etiquetas electrónicas ── */}
       <ProductSection title="Etiquetas electrónicas">
         <Field label="Marca">
-          <Select value={get('etiquetas','brand')} onChange={e => set('etiquetas','brand',e.target.value)}>
+          <Sel value={get('etiquetas','brand')} onChange={e=>set('etiquetas','brand',e.target.value)}>
             <option value="">Seleccionar...</option>
-            {ESL_BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
-          </Select>
+            {ESL_BRANDS.map(b=><option key={b} value={b}>{b}</option>)}
+          </Sel>
         </Field>
         {get('etiquetas','brand') && get('etiquetas','brand') !== 'NO' && (
           <>
-            {get('etiquetas','brand') === 'Otro' && (
-              <Field label="Marca (indicar)"><Input value={get('etiquetas','brand_custom')} onChange={e => set('etiquetas','brand_custom',e.target.value)} /></Field>
-            )}
-            <Field label="Año de instalación">
-              <Select value={get('etiquetas','install_year')} onChange={e => set('etiquetas','install_year',e.target.value)}>
+            <Field label="Año">
+              <Sel value={get('etiquetas','install_year')} onChange={e=>set('etiquetas','install_year',e.target.value)}>
                 <option value="">Seleccionar...</option>
-                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-              </Select>
+                {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
+              </Sel>
             </Field>
             {['Hanshow','Pricer'].includes(get('etiquetas','brand')) && (
-              <VitekaToggle
-                value={get('etiquetas','viteka_support')}
-                notes={get('etiquetas','viteka_notes')}
-                onChangeValue={v => set('etiquetas','viteka_support',v)}
-                onChangeNotes={v => set('etiquetas','viteka_notes',v)}
-              />
+              <VitekaToggle value={get('etiquetas','viteka_support')} notes={get('etiquetas','viteka_notes')}
+                onChangeValue={v=>set('etiquetas','viteka_support',v)} onChangeNotes={v=>set('etiquetas','viteka_notes',v)} />
             )}
-            {(!['Hanshow','Pricer'].includes(get('etiquetas','brand')) ||
-              get('etiquetas','viteka_support') === 'NO') && (
-              <SatisfactionField value={get('etiquetas','satisfaction',null)} onChange={v => set('etiquetas','satisfaction',v)} />
+            {(!['Hanshow','Pricer'].includes(get('etiquetas','brand')) || get('etiquetas','viteka_support') === 'NO') && (
+              <SatisfactionField value={get('etiquetas','satisfaction',null)} onChange={v=>set('etiquetas','satisfaction',v)} />
             )}
           </>
         )}
       </ProductSection>
 
-      {/* ── Básculas ── */}
       <ProductSection title="Báscula">
         <Field label="Marca">
-          <Select value={get('basculas','brand')} onChange={e => set('basculas','brand',e.target.value)}>
+          <Sel value={get('basculas','brand')} onChange={e=>set('basculas','brand',e.target.value)}>
             <option value="">Seleccionar...</option>
-            {SCALE_BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
-          </Select>
+            {SCALE_BRANDS.map(b=><option key={b} value={b}>{b}</option>)}
+          </Sel>
         </Field>
         {get('basculas','brand') && get('basculas','brand') !== 'NO' && (
           <>
-            {get('basculas','brand') === 'Otro' && (
-              <Field label="Marca (indicar)"><Input value={get('basculas','brand_custom')} onChange={e => set('basculas','brand_custom',e.target.value)} /></Field>
-            )}
-            <Field label="Año de instalación">
-              <Select value={get('basculas','install_year')} onChange={e => set('basculas','install_year',e.target.value)}>
+            <Field label="Año">
+              <Sel value={get('basculas','install_year')} onChange={e=>set('basculas','install_year',e.target.value)}>
                 <option value="">Seleccionar...</option>
-                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-              </Select>
+                {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
+              </Sel>
             </Field>
             {get('basculas','brand') === 'Pondus' && (
-              <VitekaToggle
-                value={get('basculas','viteka_support')}
-                notes={get('basculas','viteka_notes')}
-                onChangeValue={v => set('basculas','viteka_support',v)}
-                onChangeNotes={v => set('basculas','viteka_notes',v)}
-              />
+              <VitekaToggle value={get('basculas','viteka_support')} notes={get('basculas','viteka_notes')}
+                onChangeValue={v=>set('basculas','viteka_support',v)} onChangeNotes={v=>set('basculas','viteka_notes',v)} />
             )}
           </>
         )}
       </ProductSection>
 
-      {/* ── Antihurto ── */}
       <ProductSection title="Arcos antihurto">
         <Field label="Marca">
-          <Select value={get('antihurto','brand')} onChange={e => set('antihurto','brand',e.target.value)}>
+          <Sel value={get('antihurto','brand')} onChange={e=>set('antihurto','brand',e.target.value)}>
             <option value="">Seleccionar...</option>
-            {['Checkpoint','Otro'].map(b => <option key={b} value={b}>{b}</option>)}
-          </Select>
+            {['Checkpoint','Otro'].map(b=><option key={b} value={b}>{b}</option>)}
+          </Sel>
         </Field>
         {get('antihurto','brand') && (
-          <>
-            {get('antihurto','brand') === 'Otro' && (
-              <Field label="Marca (indicar)"><Input value={get('antihurto','brand_custom')} onChange={e => set('antihurto','brand_custom',e.target.value)} /></Field>
-            )}
-            <Field label="Año de instalación">
-              <Select value={get('antihurto','install_year')} onChange={e => set('antihurto','install_year',e.target.value)}>
-                <option value="">Seleccionar...</option>
-                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-              </Select>
-            </Field>
-          </>
+          <Field label="Año">
+            <Sel value={get('antihurto','install_year')} onChange={e=>set('antihurto','install_year',e.target.value)}>
+              <option value="">Seleccionar...</option>
+              {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
+            </Sel>
+          </Field>
         )}
       </ProductSection>
 
-      {/* ── Consultoría ── */}
       <ProductSection title="Consultoría">
         <Field label="Servicio">
-          <Select value={get('consultoria','brand')} onChange={e => set('consultoria','brand',e.target.value)}>
+          <Sel value={get('consultoria','brand')} onChange={e=>set('consultoria','brand',e.target.value)}>
             <option value="">Seleccionar...</option>
-            {CONSULT_OPTIONS.map(b => <option key={b} value={b}>{b}</option>)}
-          </Select>
+            {CONSULT_OPTIONS.map(b=><option key={b} value={b}>{b}</option>)}
+          </Sel>
         </Field>
         {get('consultoria','brand') && get('consultoria','brand') !== 'NO' && (
           <>
-            {get('consultoria','brand') === 'Otro' && (
-              <Field label="Indicar servicio"><Input value={get('consultoria','brand_custom')} onChange={e => set('consultoria','brand_custom',e.target.value)} /></Field>
-            )}
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Mes de inicio">
-                <Select value={get('consultoria','install_month')} onChange={e => set('consultoria','install_month',e.target.value)}>
+              <Field label="Mes">
+                <Sel value={get('consultoria','install_month')} onChange={e=>set('consultoria','install_month',e.target.value)}>
                   <option value="">Mes...</option>
-                  {MONTHS.map((m,i) => <option key={i} value={i+1}>{m}</option>)}
-                </Select>
+                  {MONTHS.map((m,i)=><option key={i} value={i+1}>{m}</option>)}
+                </Sel>
               </Field>
-              <Field label="Año de inicio">
-                <Select value={get('consultoria','install_year')} onChange={e => set('consultoria','install_year',e.target.value)}>
+              <Field label="Año">
+                <Sel value={get('consultoria','install_year')} onChange={e=>set('consultoria','install_year',e.target.value)}>
                   <option value="">Año...</option>
-                  {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-                </Select>
+                  {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
+                </Sel>
               </Field>
             </div>
             {!get('consultoria','brand').toLowerCase().includes('viteka') && (
-              <SatisfactionField value={get('consultoria','satisfaction',null)} onChange={v => set('consultoria','satisfaction',v)} />
+              <SatisfactionField value={get('consultoria','satisfaction',null)} onChange={v=>set('consultoria','satisfaction',v)} />
             )}
           </>
         )}
       </ProductSection>
 
-      {/* ── Equipos informáticos ── */}
       <ProductSection title="Equipos informáticos">
         <Field label="Proveedor">
-          <Select value={get('equipos','brand')} onChange={e => set('equipos','brand',e.target.value)}>
+          <Sel value={get('equipos','brand')} onChange={e=>set('equipos','brand',e.target.value)}>
             <option value="">Seleccionar...</option>
-            {['Viteka','Otros'].map(b => <option key={b} value={b}>{b}</option>)}
-          </Select>
+            {['Viteka','Otros'].map(b=><option key={b} value={b}>{b}</option>)}
+          </Sel>
         </Field>
         {get('equipos','brand') && (
           <>
@@ -532,24 +419,18 @@ function Step2({ products, onChange }) {
             <Field label="Equipamiento instalado">
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-3 mt-1">
                 {EQUIPO_ITEMS.map(item => {
-                  const selected = (get('equipos','items') || []).includes(item)
+                  const selected = (get('equipos','items')||[]).includes(item)
                   return (
                     <label key={item}
                       className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition select-none"
-                      style={selected
-                        ? { background: 'var(--primary-soft, rgba(0,86,67,0.08))', color: 'var(--primary)' }
-                        : { color: 'var(--text-soft)' }
-                      }>
-                      <input
-                        type="checkbox"
+                      style={selected ? { background: 'var(--primary-soft, rgba(0,86,67,0.08))', color: 'var(--primary)' } : { color: 'var(--text-soft)' }}>
+                      <input type="checkbox"
                         className="h-3.5 w-3.5 accent-[var(--primary)] shrink-0"
                         checked={selected}
                         onChange={() => {
                           const prev = get('equipos','items') || []
-                          const next = selected ? prev.filter(i => i !== item) : [...prev, item]
-                          set('equipos','items', next)
-                        }}
-                      />
+                          set('equipos','items', selected ? prev.filter(i=>i!==item) : [...prev,item])
+                        }} />
                       <span className="text-[12px] leading-tight">{item}</span>
                     </label>
                   )
@@ -557,124 +438,106 @@ function Step2({ products, onChange }) {
               </div>
             </Field>
             <Field label="Notas equipos">
-              <Input
-                placeholder="Nº unidades, marcas específicas, observaciones..."
-                value={get('equipos','notes')}
-                onChange={e => set('equipos','notes',e.target.value)}
-              />
+              <Input placeholder="Nº unidades, marcas específicas..." value={get('equipos','notes')} onChange={e=>set('equipos','notes',e.target.value)} />
             </Field>
           </>
         )}
       </ProductSection>
 
-      {/* ── Robot dispensador ── */}
       <ProductSection title="Robot dispensador">
         <Field label="Marca">
-          <Select value={get('robot','brand')} onChange={e => set('robot','brand',e.target.value)}>
+          <Sel value={get('robot','brand')} onChange={e=>set('robot','brand',e.target.value)}>
             <option value="">Seleccionar...</option>
-            {ROBOT_BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
-          </Select>
+            {ROBOT_BRANDS.map(b=><option key={b} value={b}>{b}</option>)}
+          </Sel>
         </Field>
         {get('robot','brand') && get('robot','brand') !== 'NO' && (
-          <Field label="Año de instalación">
-            <Select value={get('robot','install_year')} onChange={e => set('robot','install_year',e.target.value)}>
+          <Field label="Año">
+            <Sel value={get('robot','install_year')} onChange={e=>set('robot','install_year',e.target.value)}>
               <option value="">Seleccionar...</option>
-              {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-            </Select>
+              {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
+            </Sel>
           </Field>
         )}
       </ProductSection>
 
-      {/* ── Cruz ── */}
       <ProductSection title="Cruz">
         <Field label="Estado">
-          <Select value={get('cruz','brand')} onChange={e => set('cruz','brand',e.target.value)}>
+          <Sel value={get('cruz','brand')} onChange={e=>set('cruz','brand',e.target.value)}>
             <option value="">Seleccionar...</option>
-            {['SI','NO','Puede ampliar'].map(b => <option key={b} value={b}>{b}</option>)}
-          </Select>
+            {['SI','NO','Puede ampliar'].map(b=><option key={b} value={b}>{b}</option>)}
+          </Sel>
         </Field>
       </ProductSection>
 
-      {/* ── Gestor de turnos ── */}
       <ProductSection title="Gestor de turnos">
         <Field label="¿Tiene gestor?">
-          <Select value={get('turnos','has')} onChange={e => set('turnos','has',e.target.value)}>
+          <Sel value={get('turnos','has')} onChange={e=>set('turnos','has',e.target.value)}>
             <option value="">Seleccionar...</option>
-            <option value="SI">SI</option>
-            <option value="NO">NO</option>
-          </Select>
+            <option value="SI">SI</option><option value="NO">NO</option>
+          </Sel>
         </Field>
         {get('turnos','has') === 'SI' && (
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Marca"><Input value={get('turnos','brand')} onChange={e => set('turnos','brand',e.target.value)} /></Field>
+            <Field label="Marca"><Input value={get('turnos','brand')} onChange={e=>set('turnos','brand',e.target.value)} /></Field>
             <Field label="Año">
-              <Select value={get('turnos','install_year')} onChange={e => set('turnos','install_year',e.target.value)}>
+              <Sel value={get('turnos','install_year')} onChange={e=>set('turnos','install_year',e.target.value)}>
                 <option value="">Seleccionar...</option>
-                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-              </Select>
+                {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
+              </Sel>
             </Field>
           </div>
         )}
       </ProductSection>
 
-      {/* ── SPD ── */}
       <ProductSection title="SPD">
         <Field label="¿Tiene SPD?">
-          <Select value={get('spd','has')} onChange={e => set('spd','has',e.target.value)}>
+          <Sel value={get('spd','has')} onChange={e=>set('spd','has',e.target.value)}>
             <option value="">Seleccionar...</option>
-            <option value="SI">SI</option>
-            <option value="NO">NO</option>
-          </Select>
+            <option value="SI">SI</option><option value="NO">NO</option>
+          </Sel>
         </Field>
         {get('spd','has') === 'SI' && (
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Marca"><Input value={get('spd','brand')} onChange={e => set('spd','brand',e.target.value)} /></Field>
+            <Field label="Marca"><Input value={get('spd','brand')} onChange={e=>set('spd','brand',e.target.value)} /></Field>
             <Field label="Año">
-              <Select value={get('spd','install_year')} onChange={e => set('spd','install_year',e.target.value)}>
+              <Sel value={get('spd','install_year')} onChange={e=>set('spd','install_year',e.target.value)}>
                 <option value="">Seleccionar...</option>
-                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-              </Select>
+                {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
+              </Sel>
             </Field>
           </div>
         )}
       </ProductSection>
 
-      {/* ── Pantallas ── */}
       <ProductSection title="Pantallas">
         <Field label="¿Tiene pantallas?">
-          <Select value={get('pantallas','has')} onChange={e => set('pantallas','has',e.target.value)}>
+          <Sel value={get('pantallas','has')} onChange={e=>set('pantallas','has',e.target.value)}>
             <option value="">Seleccionar...</option>
-            <option value="SI">SI</option>
-            <option value="NO">NO</option>
-          </Select>
+            <option value="SI">SI</option><option value="NO">NO</option>
+          </Sel>
         </Field>
         {get('pantallas','has') === 'SI' && (
           <>
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Marca"><Input value={get('pantallas','brand')} onChange={e => set('pantallas','brand',e.target.value)} /></Field>
+              <Field label="Marca"><Input value={get('pantallas','brand')} onChange={e=>set('pantallas','brand',e.target.value)} /></Field>
               <Field label="Año">
-                <Select value={get('pantallas','install_year')} onChange={e => set('pantallas','install_year',e.target.value)}>
+                <Sel value={get('pantallas','install_year')} onChange={e=>set('pantallas','install_year',e.target.value)}>
                   <option value="">Seleccionar...</option>
-                  {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-                </Select>
+                  {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
+                </Sel>
               </Field>
             </div>
-            <Field label="Ubicación (selección múltiple)">
+            <Field label="Ubicación">
               <div className="flex flex-wrap gap-2">
                 {['Interior','Escaparate','Exterior'].map(loc => {
                   const locs = get('pantallas','locations') || []
                   const active = locs.includes(loc)
                   return (
                     <button key={loc} type="button"
-                      onClick={() => {
-                        const next = active ? locs.filter(l=>l!==loc) : [...locs, loc]
-                        set('pantallas','locations',next)
-                      }}
+                      onClick={() => set('pantallas','locations', active ? locs.filter(l=>l!==loc) : [...locs,loc])}
                       className="rounded-lg px-3 py-1.5 text-[12px] font-medium transition"
-                      style={active
-                        ? { background: 'var(--primary)', color: '#fff' }
-                        : { background: 'var(--surface-soft)', color: 'var(--text-soft)' }
-                      }>{loc}</button>
+                      style={active ? { background: 'var(--primary)', color: '#fff' } : { background: 'var(--surface-soft)', color: 'var(--text-soft)' }}>{loc}</button>
                   )
                 })}
               </div>
@@ -683,15 +546,14 @@ function Step2({ products, onChange }) {
         )}
       </ProductSection>
 
-      {/* ── Frigorífico ── */}
       <ProductSection title="Frigorífico">
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Marca"><Input value={get('frigorifico','brand')} onChange={e => set('frigorifico','brand',e.target.value)} /></Field>
+          <Field label="Marca"><Input value={get('frigorifico','brand')} onChange={e=>set('frigorifico','brand',e.target.value)} /></Field>
           <Field label="Año">
-            <Select value={get('frigorifico','install_year')} onChange={e => set('frigorifico','install_year',e.target.value)}>
+            <Sel value={get('frigorifico','install_year')} onChange={e=>set('frigorifico','install_year',e.target.value)}>
               <option value="">Seleccionar...</option>
-              {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-            </Select>
+              {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
+            </Sel>
           </Field>
         </div>
       </ProductSection>
@@ -701,7 +563,7 @@ function Step2({ products, onChange }) {
 }
 
 // ---------------------------------------------------------------------------
-// ProductSection wrapper
+// ProductSection
 // ---------------------------------------------------------------------------
 function ProductSection({ title, children }) {
   const [open, setOpen] = useState(false)
@@ -711,8 +573,8 @@ function ProductSection({ title, children }) {
         className="flex w-full items-center justify-between px-4 py-3 text-left">
         <span className="text-[13px] font-semibold" style={{ color: 'var(--text)' }}>{title}</span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-          strokeLinecap="round" strokeLinejoin="round"
-          className="transition-transform" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', color: 'var(--muted)' }}>
+          strokeLinecap="round" strokeLinejoin="round" className="transition-transform"
+          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', color: 'var(--muted)' }}>
           <polyline points="6 9 12 15 18 9"/>
         </svg>
       </button>
@@ -726,18 +588,17 @@ function ProductSection({ title, children }) {
 }
 
 // ---------------------------------------------------------------------------
-// CreateClientModal — main
+// CreateClientModal
 // ---------------------------------------------------------------------------
 export default function CreateClientModal({ isOpen, onClose, onCreate }) {
   const [step, setStep] = useState(1)
-  const [clientData, setClientData] = useState({ legal_type: [], cb_owners: [
-    { name:'', nif:'', collegiate_number:'' },
-    { name:'', nif:'', collegiate_number:'' },
-  ]})
+  const [clientData, setClientData] = useState({
+    legal_type: [],
+    cb_owners: [{ name:'', nif:'', collegiate_number:'' }, { name:'', nif:'', collegiate_number:'' }],
+  })
   const [products, setProducts] = useState({})
   const [saving, setSaving] = useState(false)
 
-  // ── GUARD: no renderizar si el modal está cerrado ──
   if (!isOpen) return null
 
   function validateStep1() {
@@ -748,8 +609,12 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
 
   async function handleSave() {
     setSaving(true)
-    await onCreate({ ...clientData, products })
-    setSaving(false)
+    try {
+      // Enviamos el payload plano: campos del cliente + products como clave separada
+      await onCreate({ ...clientData, products })
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -758,7 +623,6 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
       <div className="relative w-full max-w-2xl rounded-2xl shadow-2xl"
         style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
 
-        {/* Header */}
         <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: 'var(--border)' }}>
           <h2 className="text-[16px] font-semibold" style={{ color: 'var(--text)' }}>Nueva farmacia</h2>
           <button type="button" onClick={onClose}
@@ -770,7 +634,6 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
           </button>
         </div>
 
-        {/* Body */}
         <div className="max-h-[70vh] overflow-y-auto px-6 py-5">
           <StepIndicator step={step} />
           {step === 1
@@ -779,7 +642,6 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
           }
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-between border-t px-6 py-4" style={{ borderColor: 'var(--border)' }}>
           <button type="button"
             onClick={step === 1 ? onClose : () => setStep(1)}
@@ -788,10 +650,9 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
             {step === 1 ? 'Cancelar' : '← Anterior'}
           </button>
           {step === 1 ? (
-            <button type="button" onClick={() => { const e = validateStep1(); if(e) { alert(e); return; } setStep(2) }}
-              className="btn-primary px-5 py-2 text-[13px]">
-              Siguiente →
-            </button>
+            <button type="button"
+              onClick={() => { const e = validateStep1(); if (e) { alert(e); return } setStep(2) }}
+              className="btn-primary px-5 py-2 text-[13px]">Siguiente →</button>
           ) : (
             <button type="button" onClick={handleSave} disabled={saving}
               className="btn-primary px-5 py-2 text-[13px] disabled:opacity-60">

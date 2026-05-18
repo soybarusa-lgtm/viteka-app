@@ -179,43 +179,59 @@ export default function App() {
     setTasks(data || [])
   }
 
-  // ── createClient: acepta el objeto unificado { clientData, products } que
-  //    envía CreateClientModal, o bien un objeto plano (compatibilidad).
+  // ---------------------------------------------------------------------------
+  // createClient
+  // El modal envía: { pharmacy_name, pharmacist_owner, legal_type, products, ... }
+  // La columna NOT NULL en Supabase es "name" → la igualamos siempre a pharmacy_name
+  // ---------------------------------------------------------------------------
   async function createClient(payload) {
-    if (!profile?.company_id) return
+    if (!profile?.company_id) {
+      alert('No se encontró el perfil de empresa. Recarga la página.')
+      return
+    }
 
-    // Soporte para el nuevo formato { clientData, products } y el plano legacy
+    // El modal puede enviar el payload directamente (campos planos + products)
+    // o con el wrapper { clientData, products } (compatibilidad futura)
     const cd = payload.clientData ?? payload
+    const pharmacyName = (cd.pharmacy_name || cd.name || '').trim()
+
+    if (!pharmacyName) {
+      alert('El nombre de la farmacia es obligatorio.')
+      return
+    }
+
+    // Solo mapeamos columnas que existen en la tabla `clients`
+    const insertData = {
+      company_id:       profile.company_id,
+      name:             pharmacyName,          // NOT NULL
+      pharmacy_name:    pharmacyName,
+      pharmacist_owner: cd.pharmacist_owner  || '',
+      province:         cd.province         || '',
+      city:             cd.city             || '',
+      contact_phone:    cd.contact_phone    || cd.phone  || '',
+      contact_email:    cd.contact_email    || cd.email  || '',
+      email:            cd.email            || cd.contact_email || '',
+      phone:            cd.phone            || cd.contact_phone || '',
+      nif_cif:          cd.nif_cif          || '',
+      soe_number:       cd.soe_number       || '',
+      address:          cd.address          || '',
+      observations:     cd.observations     || cd.notes || '',
+      notes:            cd.notes            || cd.observations || '',
+    }
+
+    console.log('[createClient] insertData:', insertData)
 
     const { data, error } = await supabase
       .from('clients')
-      .insert({
-        company_id:        profile.company_id,
-        name:              cd.pharmacy_name || cd.name || '',
-        pharmacy_name:     cd.pharmacy_name || cd.name || '',
-        pharmacist_owner:  cd.pharmacist_owner || '',
-        province:          cd.province || '',
-        city:              cd.city || '',
-        contact_phone:     cd.contact_phone || cd.phone || '',
-        contact_email:     cd.contact_email || cd.email || '',
-        nif_cif:           cd.nif_cif || '',
-        soe_number:        cd.soe_number || '',
-        business_email:    cd.business_email || cd.email || '',
-        business_phone:    cd.business_phone || cd.phone || '',
-        address:           cd.address || '',
-        collegiate_data:   cd.collegiate_data || '',
-        company_data:      cd.company_data || '',
-        operators:         cd.operators || '',
-        cip:               cd.cip || '',
-        observations:      cd.observations || cd.notes || '',
-        email:             cd.email || cd.contact_email || '',
-        phone:             cd.phone || cd.contact_phone || '',
-        notes:             cd.notes || cd.observations || '',
-      })
+      .insert(insertData)
       .select()
       .single()
 
-    if (error) { alert(error.message); return }
+    if (error) {
+      console.error('[createClient] Supabase error:', error)
+      alert(`Error al crear farmacia:\n${error.message}`)
+      return
+    }
 
     await createActivityLog({ userId: session.user.id, entityType: 'client', entityId: data.id, action: 'create', newValue: data })
     await createNotification({ userId: session.user.id, title: 'Farmacia creada', message: `Se creó la farmacia "${data.pharmacy_name || data.name}".`, type: 'success', entityType: 'client', entityId: data.id })
@@ -227,29 +243,24 @@ export default function App() {
 
   async function updateClient(clientId, clientData) {
     const previous = clients.find(c => c.id === clientId)
+    const pharmacyName = (clientData.pharmacy_name || clientData.name || '').trim()
     const { data, error } = await supabase
       .from('clients')
       .update({
-        name:              clientData.name,
-        pharmacy_name:     clientData.pharmacy_name || clientData.name,
-        pharmacist_owner:  clientData.pharmacist_owner || '',
-        province:          clientData.province || '',
-        city:              clientData.city || '',
-        contact_phone:     clientData.contact_phone || clientData.phone || '',
-        contact_email:     clientData.contact_email || clientData.email || '',
-        nif_cif:           clientData.nif_cif || '',
-        soe_number:        clientData.soe_number || '',
-        business_email:    clientData.business_email || clientData.email || '',
-        business_phone:    clientData.business_phone || clientData.phone || '',
-        address:           clientData.address || '',
-        collegiate_data:   clientData.collegiate_data || '',
-        company_data:      clientData.company_data || '',
-        operators:         clientData.operators || '',
-        cip:               clientData.cip || '',
-        observations:      clientData.observations || clientData.notes || '',
-        email:             clientData.email || clientData.contact_email || '',
-        phone:             clientData.phone || clientData.contact_phone || '',
-        notes:             clientData.notes || clientData.observations || '',
+        name:             pharmacyName,
+        pharmacy_name:    pharmacyName,
+        pharmacist_owner: clientData.pharmacist_owner || '',
+        province:         clientData.province         || '',
+        city:             clientData.city             || '',
+        contact_phone:    clientData.contact_phone    || clientData.phone || '',
+        contact_email:    clientData.contact_email    || clientData.email || '',
+        email:            clientData.email            || clientData.contact_email || '',
+        phone:            clientData.phone            || clientData.contact_phone || '',
+        nif_cif:          clientData.nif_cif          || '',
+        soe_number:       clientData.soe_number       || '',
+        address:          clientData.address          || '',
+        observations:     clientData.observations     || clientData.notes || '',
+        notes:            clientData.notes            || clientData.observations || '',
       })
       .eq('id', clientId)
       .select()
