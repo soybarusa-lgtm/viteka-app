@@ -4,24 +4,24 @@ import { useSpanishLocations } from '../../hooks/useSpanishLocations';
 const PRODUCT_CATEGORIES = [
   { label: 'ERP',                   key: 'erp',          options: ['Nixfarma', 'Farmatic', 'Unycop', 'Kroll', 'Farmatools', 'Otros'] },
   { label: 'Caja de cobro',         key: 'caja',         options: ['Cashlogy', 'Glory', 'Crane', 'Suzohapp', 'Otros'] },
-  { label: 'Etiquetas electrónicas',key: 'etiquetas',    options: ['Hanshow', 'SES-imagotag', 'Pricer', 'Otros'] },
-  { label: 'Báscula',               key: 'bascula',      options: ['Epelsa', 'Radwag', 'Kern', 'Otros'] },
+  { label: 'Etiquetas electr\u00f3nicas',key: 'etiquetas',    options: ['Hanshow', 'SES-imagotag', 'Pricer', 'Otros'] },
+  { label: 'B\u00e1scula',               key: 'bascula',      options: ['Epelsa', 'Radwag', 'Kern', 'Otros'] },
   { label: 'Arcos antihurto',       key: 'arcos',        options: ['Checkpoint', 'Sensormatic', 'Otros'] },
-  { label: 'Consultoría',           key: 'consultoria',  options: ['Consultoría Viteka', 'Otros'] },
-  { label: 'Equipos informáticos',  key: 'equipos',      options: ['Ordenadores', 'Periféricos', 'Servidores', 'Otros'] },
+  { label: 'Consultor\u00eda',           key: 'consultoria',  options: ['Consultor\u00eda Viteka', 'Otros'] },
+  { label: 'Equipos inform\u00e1ticos',  key: 'equipos',      options: ['Ordenadores', 'Perif\u00e9ricos', 'Servidores', 'Otros'] },
   { label: 'Robot',                 key: 'robot',        options: ['Rowa', 'BD Rowa', 'Apostore', 'Otros'] },
-  { label: 'Cruz',                  key: 'cruz',         options: ['Rótulos LED', 'Cruz luminosa', 'Otros'] },
+  { label: 'Cruz',                  key: 'cruz',         options: ['R\u00f3tulos LED', 'Cruz luminosa', 'Otros'] },
   { label: 'Turnos',                key: 'turnos',       options: ['Sistema de turnos', 'Otros'] },
   { label: 'SPD',                   key: 'spd',          options: ['Sistema SPD', 'Otros'] },
   { label: 'Pantallas',             key: 'pantallas',    options: ['Pantalla mostrador', 'Pantalla escaparate', 'Otros'] },
-  { label: 'Frigorífico',           key: 'frigorifico',  options: ['Frigorifico farmacia', 'Otros'] },
+  { label: 'Frigor\u00edfico',           key: 'frigorifico',  options: ['Frigorifico farmacia', 'Otros'] },
 ];
 
 const emptyProducts = () =>
   Object.fromEntries(PRODUCT_CATEGORIES.map((c) => [c.key, { active: false, brand: '' }]));
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Subcomponentes FUERA del componente padre para evitar re-mount en cada render
+// Subcomponentes FUERA del componente padre
 // ─────────────────────────────────────────────────────────────────────────────
 const inputCls = 'w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-teal-500';
 const labelCls = 'block text-xs font-medium text-gray-600 mb-1';
@@ -38,7 +38,7 @@ function Field({ label, children }) {
 function ProvinceSelect({ provinces, value, onChange }) {
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)} className={inputCls}>
-      <option value="">Selecciona provincia…</option>
+      <option value="">Selecciona provincia\u2026</option>
       {provinces.map((p) => (
         <option key={p.code + p.label} value={p.label}>{p.label}</option>
       ))}
@@ -49,7 +49,7 @@ function ProvinceSelect({ provinces, value, onChange }) {
 function CitySelect({ towns, value, onChange }) {
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)} className={inputCls} disabled={!towns.length}>
-      <option value="">{towns.length ? 'Selecciona población…' : 'Elige provincia primero'}</option>
+      <option value="">{towns.length ? 'Selecciona poblaci\u00f3n\u2026' : 'Elige provincia primero'}</option>
       {towns.map((t) => (
         <option key={t} value={t}>{t}</option>
       ))}
@@ -86,7 +86,6 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
 
   const [products, setProducts] = useState(emptyProducts());
 
-  // ── Bug 1 fix: si no está abierto, no renderizar nada ──
   if (!isOpen) return null;
 
   const townsAuto = getTowns(autonomo.province);
@@ -117,11 +116,10 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
 
   const renderStep1 = () => (
     <div className="space-y-6">
-      {/* Tipo jurídico */}
       <div>
-        <p className={labelCls}>Tipo jurídico</p>
+        <p className={labelCls}>Tipo jur\u00eddico</p>
         <div className="flex gap-2">
-          {[['autonomo', 'Autónomo'], ['cb', 'C.B.'], ['sl', 'S.L.']].map(([val, lbl]) => (
+          {[['autonomo', 'Aut\u00f3nomo'], ['cb', 'C.B.'], ['sl', 'S.L.']].map(([val, lbl]) => (
             <button key={val} type="button" onClick={() => setLegalType(val)}
               className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
                 legalType === val ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -153,27 +151,27 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
             <Field label="NIF">
               <input className={inputCls} value={autonomo.nif} onChange={(e) => setAutonomo((p) => ({ ...p, nif: e.target.value }))} placeholder="12345678A" />
             </Field>
-            <Field label="Nº Colegiado">
+            <Field label="N\u00ba Colegiado">
               <input className={inputCls} value={autonomo.colegiado} onChange={(e) => setAutonomo((p) => ({ ...p, colegiado: e.target.value }))} />
             </Field>
             <Field label="SOE">
               <input className={inputCls} value={autonomo.soe} onChange={(e) => setAutonomo((p) => ({ ...p, soe: e.target.value }))} />
             </Field>
-            <Field label="Teléfono">
+            <Field label="Tel\u00e9fono">
               <input className={inputCls} value={autonomo.phone} onChange={(e) => setAutonomo((p) => ({ ...p, phone: e.target.value }))} />
             </Field>
             <Field label="Email">
               <input className={inputCls} value={autonomo.email} onChange={(e) => setAutonomo((p) => ({ ...p, email: e.target.value }))} type="email" />
             </Field>
           </div>
-          <Field label="Dirección">
+          <Field label="Direcci\u00f3n">
             <input className={inputCls} value={autonomo.address} onChange={(e) => setAutonomo((p) => ({ ...p, address: e.target.value }))} />
           </Field>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Field label="Provincia">
               <ProvinceSelect provinces={provinces} value={autonomo.province} onChange={(v) => setAutonomo((p) => ({ ...p, province: v, city: '' }))} />
             </Field>
-            <Field label="Población">
+            <Field label="Poblaci\u00f3n">
               <CitySelect towns={townsAuto} value={autonomo.city} onChange={(v) => setAutonomo((p) => ({ ...p, city: v }))} />
             </Field>
             <Field label="C.P.">
@@ -197,27 +195,27 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
       {legalType === 'cb' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Razón social">
+            <Field label="Raz\u00f3n social">
               <input className={inputCls} value={cb.razon_social} onChange={(e) => setCb((p) => ({ ...p, razon_social: e.target.value }))} />
             </Field>
             <Field label="CIF">
               <input className={inputCls} value={cb.cif} onChange={(e) => setCb((p) => ({ ...p, cif: e.target.value }))} />
             </Field>
-            <Field label="Teléfono">
+            <Field label="Tel\u00e9fono">
               <input className={inputCls} value={cb.phone} onChange={(e) => setCb((p) => ({ ...p, phone: e.target.value }))} />
             </Field>
             <Field label="Email">
               <input className={inputCls} value={cb.email} onChange={(e) => setCb((p) => ({ ...p, email: e.target.value }))} type="email" />
             </Field>
           </div>
-          <Field label="Dirección">
+          <Field label="Direcci\u00f3n">
             <input className={inputCls} value={cb.address} onChange={(e) => setCb((p) => ({ ...p, address: e.target.value }))} />
           </Field>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Field label="Provincia">
               <ProvinceSelect provinces={provinces} value={cb.province} onChange={(v) => setCb((p) => ({ ...p, province: v, city: '' }))} />
             </Field>
-            <Field label="Población">
+            <Field label="Poblaci\u00f3n">
               <CitySelect towns={townsCb} value={cb.city} onChange={(v) => setCb((p) => ({ ...p, city: v }))} />
             </Field>
             <Field label="C.P.">
@@ -255,13 +253,13 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
                     <input className={inputCls} value={owner.nif} onChange={(e) => updateCbOwner(i, 'nif', e.target.value)} />
                   </div>
                   <div>
-                    <label className={labelCls}>Nº Colegiado</label>
+                    <label className={labelCls}>N\u00ba Colegiado</label>
                     <input className={inputCls} value={owner.colegiado} onChange={(e) => updateCbOwner(i, 'colegiado', e.target.value)} />
                   </div>
                 </div>
               </div>
             ))}
-            <button type="button" onClick={addCbOwner} className="text-teal-600 hover:text-teal-800 text-sm font-medium">+ Añadir titular</button>
+            <button type="button" onClick={addCbOwner} className="text-teal-600 hover:text-teal-800 text-sm font-medium">+ A\u00f1adir titular</button>
           </div>
           <Field label="Observaciones">
             <textarea rows={3} className={inputCls} value={cb.notes} onChange={(e) => setCb((p) => ({ ...p, notes: e.target.value }))} />
@@ -272,13 +270,13 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
       {legalType === 'sl' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Razón social">
+            <Field label="Raz\u00f3n social">
               <input className={inputCls} value={sl.razon_social} onChange={(e) => setSl((p) => ({ ...p, razon_social: e.target.value }))} />
             </Field>
             <Field label="CIF">
               <input className={inputCls} value={sl.cif} onChange={(e) => setSl((p) => ({ ...p, cif: e.target.value }))} />
             </Field>
-            <Field label="Teléfono">
+            <Field label="Tel\u00e9fono">
               <input className={inputCls} value={sl.phone} onChange={(e) => setSl((p) => ({ ...p, phone: e.target.value }))} />
             </Field>
             <Field label="Email">
@@ -313,7 +311,7 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
               <label className={labelCls}>Marca / Modelo</label>
               <select className={inputCls} value={products[key].brand}
                 onChange={(e) => setProducts((prev) => ({ ...prev, [key]: { ...prev[key], brand: e.target.value } }))}>
-                <option value="">Seleccionar…</option>
+                <option value="">Seleccionar\u2026</option>
                 {options.map((o) => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
@@ -324,36 +322,66 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
   );
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+    /*
+     * OVERLAY: cubre todo el viewport incluyendo el área del teclado virtual.
+     * En móvil usamos `items-end` para que el sheet suba desde abajo,
+     * y en desktop volvemos a centrar con sm:items-center.
+     * El sheet usa `h-[100dvh] sm:h-auto sm:max-h-[90vh]` para responder
+     * al Dynamic Viewport Height que el navegador recalcula cuando aparece
+     * el teclado virtual, garantizando que el footer sea siempre visible.
+     */
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 sm:p-4">
+      <div
+        className="
+          w-full sm:max-w-2xl
+          flex flex-col
+          bg-white
+          rounded-t-2xl sm:rounded-2xl
+          shadow-2xl
+          sm:max-h-[90vh]
+        "
+        style={{ maxHeight: '100dvh' }}
+      >
+        {/* Cabecera */}
+        <div className="flex shrink-0 items-center justify-between px-5 py-4 border-b border-gray-100">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Nueva Farmacia</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{step === 1 ? 'Datos del titular / empresa' : 'Productos instalados'}</p>
+            <h2 className="text-base font-bold text-gray-900">Nueva Farmacia</h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {step === 1 ? 'Datos del titular / empresa' : 'Productos instalados'}
+            </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="flex items-center justify-center w-8 h-8 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
 
-        <div className="flex items-center px-6 py-3 gap-2">
+        {/* Barra de progreso */}
+        <div className="shrink-0 flex items-center px-5 py-3 gap-2">
           {[1, 2].map((s) => (
             <div key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${s <= step ? 'bg-teal-500' : 'bg-gray-200'}`} />
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        {/* Contenido scrollable — ocupa el espacio restante */}
+        <div className="flex-1 overflow-y-auto px-5 py-4">
           {step === 1 ? renderStep1() : renderStep2()}
         </div>
 
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
-          <button type="button" onClick={step === 1 ? onClose : () => setStep(1)}
-            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">
-            {step === 1 ? 'Cancelar' : 'Atrás'}
+        {/* Footer SIEMPRE visible — shrink-0 impide que se comprima */}
+        <div className="shrink-0 flex items-center justify-between gap-3 px-5 py-4 border-t border-gray-100 bg-white">
+          <button
+            type="button"
+            onClick={step === 1 ? onClose : () => setStep(1)}
+            className="flex-1 py-3 rounded-xl text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+          >
+            {step === 1 ? 'Cancelar' : 'Atr\u00e1s'}
           </button>
-          <button type="button" onClick={step === 1 ? () => setStep(2) : handleSubmit}
-            className="px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors">
-            {step === 1 ? 'Siguiente' : 'Guardar farmacia'}
+          <button
+            type="button"
+            onClick={step === 1 ? () => setStep(2) : handleSubmit}
+            className="flex-1 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold transition-colors"
+          >
+            {step === 1 ? 'Siguiente \u2192' : 'Guardar farmacia'}
           </button>
         </div>
       </div>
