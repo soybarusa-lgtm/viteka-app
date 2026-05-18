@@ -4,23 +4,21 @@ import { useSpanishLocations } from '../../hooks/useSpanishLocations';
 const PRODUCT_CATEGORIES = [
   { label: 'ERP',                    key: 'erp',          options: ['Nixfarma', 'Farmatic', 'Unycop', 'Kroll', 'Farmatools', 'Otros'] },
   { label: 'Caja de cobro',          key: 'caja',         options: ['Cashlogy', 'Glory', 'Crane', 'Suzohapp', 'Otros'] },
-  { label: 'Etiquetas electr\u00f3nicas', key: 'etiquetas',    options: ['Hanshow', 'SES-imagotag', 'Pricer', 'Otros'] },
-  { label: 'B\u00e1scula',                key: 'bascula',      options: ['Epelsa', 'Radwag', 'Kern', 'Otros'] },
+  { label: 'Etiquetas electrónicas', key: 'etiquetas',    options: ['Hanshow', 'SES-imagotag', 'Pricer', 'Otros'] },
+  { label: 'Báscula',                key: 'bascula',      options: ['Epelsa', 'Radwag', 'Kern', 'Otros'] },
   { label: 'Arcos antihurto',        key: 'arcos',        options: ['Checkpoint', 'Sensormatic', 'Otros'] },
-  { label: 'Consultor\u00eda',            key: 'consultoria',  options: ['Consultor\u00eda Viteka', 'Otros'] },
-  { label: 'Equipos inform\u00e1ticos',   key: 'equipos',      options: ['Ordenadores', 'Perif\u00e9ricos', 'Servidores', 'Otros'] },
+  { label: 'Consultoría',            key: 'consultoria',  options: ['Consultoría Viteka', 'Otros'] },
+  { label: 'Equipos informáticos',   key: 'equipos',      options: ['Ordenadores', 'Periféricos', 'Servidores', 'Otros'] },
   { label: 'Robot',                  key: 'robot',        options: ['Rowa', 'BD Rowa', 'Apostore', 'Otros'] },
-  { label: 'Cruz',                   key: 'cruz',         options: ['R\u00f3tulos LED', 'Cruz luminosa', 'Otros'] },
+  { label: 'Cruz',                   key: 'cruz',         options: ['Rótulos LED', 'Cruz luminosa', 'Otros'] },
   { label: 'Turnos',                 key: 'turnos',       options: ['Sistema de turnos', 'Otros'] },
   { label: 'SPD',                    key: 'spd',          options: ['Sistema SPD', 'Otros'] },
   { label: 'Pantallas',              key: 'pantallas',    options: ['Pantalla mostrador', 'Pantalla escaparate', 'Otros'] },
-  { label: 'Frigor\u00edfico',            key: 'frigorifico',  options: ['Frigor\u00edfico farmacia', 'Otros'] },
+  { label: 'Frigorífico',            key: 'frigorifico',  options: ['Frigorífico farmacia', 'Otros'] },
 ];
 
 const emptyProducts = () =>
   Object.fromEntries(PRODUCT_CATEGORIES.map((c) => [c.key, { active: false, brand: '' }]));
-
-// ─── Subcomponentes FUERA del padre para evitar re-mount en cada render ───
 
 const inputCls =
   'w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white ' +
@@ -39,7 +37,7 @@ function Field({ label, children }) {
 function ProvinceSelect({ provinces, value, onChange }) {
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)} className={inputCls}>
-      <option value="">Selecciona provincia…</option>
+      <option value="">Selecciona provincia...</option>
       {provinces.map((p) => (
         <option key={p.code + p.label} value={p.label}>{p.label}</option>
       ))}
@@ -55,16 +53,20 @@ function CitySelect({ towns, value, onChange }) {
       className={inputCls}
       disabled={!towns.length}
     >
-      <option value="">{towns.length ? 'Selecciona poblaci\u00f3n…' : 'Elige provincia primero'}</option>
+      <option value="">{towns.length ? 'Selecciona población...' : 'Elige provincia primero'}</option>
       {towns.map((t) => <option key={t} value={t}>{t}</option>)}
     </select>
   );
 }
 
-// ─── Componente principal ───
-
+// Wrapper que controla el montaje — el modal solo se monta cuando isOpen=true
+// Así los hooks SIEMPRE se ejecutan en el mismo orden sin condiciones.
 export default function CreateClientModal({ isOpen, onClose, onCreate }) {
-  // ⚠️ TODOS los hooks SIEMPRE antes de cualquier return condicional
+  if (!isOpen) return null;
+  return <CreateClientForm onClose={onClose} onCreate={onCreate} />;
+}
+
+function CreateClientForm({ onClose, onCreate }) {
   const [step, setStep] = useState(1);
   const [legalType, setLegalType] = useState('autonomo');
   const [expanded, setExpanded] = useState({});
@@ -89,11 +91,13 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
     pharmacy_name: '', razon_social: '', cif: '', phone: '', email: '',
   });
 
-  // ── Guard: DESPU\u00c9S de todos los hooks ──
-  if (!isOpen) return null;
-
   const townsAuto = getTowns(autonomo.province);
   const townsCb   = getTowns(cb.province);
+
+  const pharmacyName =
+    legalType === 'autonomo' ? autonomo.pharmacy_name
+    : legalType === 'cb'     ? cb.pharmacy_name
+    : sl.pharmacy_name;
 
   const toggleExpanded = (key) =>
     setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -118,19 +122,12 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
     onCreate(payload);
   };
 
-  const pharmacyName =
-    legalType === 'autonomo' ? autonomo.pharmacy_name
-    : legalType === 'cb'     ? cb.pharmacy_name
-    : sl.pharmacy_name;
-
-  // ── Step 1: datos generales ──
   const renderStep1 = () => (
     <div className="space-y-5">
-      {/* Tipo jur\u00eddico */}
       <div>
-        <p className={labelCls}>Tipo jur\u00eddico</p>
+        <p className={labelCls}>Tipo jurídico</p>
         <div className="flex gap-2">
-          {[['autonomo', 'Aut\u00f3nomo'], ['cb', 'C.B.'], ['sl', 'S.L.']].map(([val, lbl]) => (
+          {[['autonomo', 'Autónomo'], ['cb', 'C.B.'], ['sl', 'S.L.']].map(([val, lbl]) => (
             <button
               key={val}
               type="button"
@@ -145,7 +142,6 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
         </div>
       </div>
 
-      {/* Nombre farmacia — com\u00fan a todos */}
       <Field label="Nombre de la farmacia *">
         <input
           className={inputCls}
@@ -160,7 +156,6 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
         />
       </Field>
 
-      {/* ── Aut\u00f3nomo ── */}
       {legalType === 'autonomo' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -172,7 +167,7 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
               <input className={inputCls} placeholder="12345678A" value={autonomo.nif}
                 onChange={(e) => setAutonomo((p) => ({ ...p, nif: e.target.value }))} />
             </Field>
-            <Field label="N\u00ba Colegiado">
+            <Field label="Nº Colegiado">
               <input className={inputCls} value={autonomo.colegiado}
                 onChange={(e) => setAutonomo((p) => ({ ...p, colegiado: e.target.value }))} />
             </Field>
@@ -180,7 +175,7 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
               <input className={inputCls} value={autonomo.soe}
                 onChange={(e) => setAutonomo((p) => ({ ...p, soe: e.target.value }))} />
             </Field>
-            <Field label="Tel\u00e9fono">
+            <Field label="Teléfono">
               <input className={inputCls} type="tel" value={autonomo.phone}
                 onChange={(e) => setAutonomo((p) => ({ ...p, phone: e.target.value }))} />
             </Field>
@@ -189,7 +184,7 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
                 onChange={(e) => setAutonomo((p) => ({ ...p, email: e.target.value }))} />
             </Field>
           </div>
-          <Field label="Direcci\u00f3n">
+          <Field label="Dirección">
             <input className={inputCls} value={autonomo.address}
               onChange={(e) => setAutonomo((p) => ({ ...p, address: e.target.value }))} />
           </Field>
@@ -198,7 +193,7 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
               <ProvinceSelect provinces={provinces} value={autonomo.province}
                 onChange={(v) => setAutonomo((p) => ({ ...p, province: v, city: '' }))} />
             </Field>
-            <Field label="Poblaci\u00f3n">
+            <Field label="Población">
               <CitySelect towns={townsAuto} value={autonomo.city}
                 onChange={(v) => setAutonomo((p) => ({ ...p, city: v }))} />
             </Field>
@@ -224,11 +219,10 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
         </div>
       )}
 
-      {/* ── C.B. ── */}
       {legalType === 'cb' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Raz\u00f3n social">
+            <Field label="Razón social">
               <input className={inputCls} value={cb.razon_social}
                 onChange={(e) => setCb((p) => ({ ...p, razon_social: e.target.value }))} />
             </Field>
@@ -236,7 +230,7 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
               <input className={inputCls} value={cb.cif}
                 onChange={(e) => setCb((p) => ({ ...p, cif: e.target.value }))} />
             </Field>
-            <Field label="Tel\u00e9fono">
+            <Field label="Teléfono">
               <input className={inputCls} type="tel" value={cb.phone}
                 onChange={(e) => setCb((p) => ({ ...p, phone: e.target.value }))} />
             </Field>
@@ -245,7 +239,7 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
                 onChange={(e) => setCb((p) => ({ ...p, email: e.target.value }))} />
             </Field>
           </div>
-          <Field label="Direcci\u00f3n">
+          <Field label="Dirección">
             <input className={inputCls} value={cb.address}
               onChange={(e) => setCb((p) => ({ ...p, address: e.target.value }))} />
           </Field>
@@ -254,7 +248,7 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
               <ProvinceSelect provinces={provinces} value={cb.province}
                 onChange={(v) => setCb((p) => ({ ...p, province: v, city: '' }))} />
             </Field>
-            <Field label="Poblaci\u00f3n">
+            <Field label="Población">
               <CitySelect towns={townsCb} value={cb.city}
                 onChange={(v) => setCb((p) => ({ ...p, city: v }))} />
             </Field>
@@ -277,7 +271,6 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
                 onChange={(e) => setCb((p) => ({ ...p, guards: e.target.value }))} />
             </Field>
           </div>
-          {/* Titulares C.B. */}
           <div>
             <p className="text-xs font-semibold text-gray-700 mb-2">Titulares de la C.B.</p>
             {cb.owners.map((owner, i) => (
@@ -301,7 +294,7 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
                       onChange={(e) => updateCbOwner(i, 'nif', e.target.value)} />
                   </div>
                   <div>
-                    <label className={labelCls}>N\u00ba Colegiado</label>
+                    <label className={labelCls}>Nº Colegiado</label>
                     <input className={inputCls} value={owner.colegiado}
                       onChange={(e) => updateCbOwner(i, 'colegiado', e.target.value)} />
                   </div>
@@ -310,7 +303,7 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
             ))}
             <button type="button" onClick={addCbOwner}
               className="text-teal-600 hover:text-teal-800 text-sm font-medium">
-              + A\u00f1adir titular
+              + Añadir titular
             </button>
           </div>
           <Field label="Observaciones">
@@ -320,11 +313,10 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
         </div>
       )}
 
-      {/* ── S.L. ── */}
       {legalType === 'sl' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Raz\u00f3n social">
+            <Field label="Razón social">
               <input className={inputCls} value={sl.razon_social}
                 onChange={(e) => setSl((p) => ({ ...p, razon_social: e.target.value }))} />
             </Field>
@@ -332,7 +324,7 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
               <input className={inputCls} value={sl.cif}
                 onChange={(e) => setSl((p) => ({ ...p, cif: e.target.value }))} />
             </Field>
-            <Field label="Tel\u00e9fono">
+            <Field label="Teléfono">
               <input className={inputCls} type="tel" value={sl.phone}
                 onChange={(e) => setSl((p) => ({ ...p, phone: e.target.value }))} />
             </Field>
@@ -346,7 +338,6 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
     </div>
   );
 
-  // ── Step 2: productos ──
   const renderStep2 = () => (
     <div className="space-y-3">
       {PRODUCT_CATEGORIES.map(({ label, key, options }) => (
@@ -386,7 +377,7 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
                   setProducts((prev) => ({ ...prev, [key]: { ...prev[key], brand: e.target.value } }))
                 }
               >
-                <option value="">Seleccionar…</option>
+                <option value="">Seleccionar...</option>
                 {options.map((o) => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
@@ -396,7 +387,6 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
     </div>
   );
 
-  // ── Render principal ──
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 sm:p-4"
@@ -447,21 +437,21 @@ export default function CreateClientModal({ isOpen, onClose, onCreate }) {
           {step === 1 ? renderStep1() : renderStep2()}
         </div>
 
-        {/* Footer — siempre visible */}
+        {/* Footer siempre visible */}
         <div className="shrink-0 flex items-center gap-3 px-5 py-4 border-t border-gray-100 bg-white">
           <button
             type="button"
             onClick={step === 1 ? onClose : () => setStep(1)}
             className="flex-1 py-3 rounded-xl text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
           >
-            {step === 1 ? 'Cancelar' : 'Atr\u00e1s'}
+            {step === 1 ? 'Cancelar' : 'Atrás'}
           </button>
           <button
             type="button"
             onClick={step === 1 ? () => setStep(2) : handleSubmit}
             className="flex-1 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold transition-colors"
           >
-            {step === 1 ? 'Siguiente \u2192' : 'Crear farmacia'}
+            {step === 1 ? 'Siguiente →' : 'Crear farmacia'}
           </button>
         </div>
       </div>
