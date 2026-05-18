@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSpanishLocations } from '../../hooks/useSpanishLocations';
 
 const PRODUCT_CATEGORIES = [
@@ -26,37 +27,15 @@ const inputCls =
 const labelCls = 'block text-xs font-medium text-gray-600 mb-1';
 
 function Field({ label, children }) {
-  return (
-    <div>
-      <label className={labelCls}>{label}</label>
-      {children}
-    </div>
-  );
-}
-
-function ProvinceSelect({ provinces, value, onChange }) {
-  return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} className={inputCls}>
-      <option value="">Selecciona provincia...</option>
-      {provinces.map((p) => (
-        <option key={p.code + p.label} value={p.label}>{p.label}</option>
-      ))}
-    </select>
-  );
-}
-
-function CitySelect({ towns, value, onChange }) {
-  return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} className={inputCls} disabled={!towns.length}>
-      <option value="">{towns.length ? 'Selecciona población...' : 'Elige provincia primero'}</option>
-      {towns.map((t) => <option key={t} value={t}>{t}</option>)}
-    </select>
-  );
+  return <div><label className={labelCls}>{label}</label>{children}</div>;
 }
 
 export default function CreateClientModal({ isOpen, onClose, onCreate }) {
   if (!isOpen) return null;
-  return <CreateClientForm onClose={onClose} onCreate={onCreate} />;
+  return createPortal(
+    <CreateClientForm onClose={onClose} onCreate={onCreate} />,
+    document.body
+  );
 }
 
 function CreateClientForm({ onClose, onCreate }) {
@@ -94,200 +73,215 @@ function CreateClientForm({ onClose, onCreate }) {
   const handleSubmit = () => {
     let payload = { legal_type: legalType, products };
     if (legalType === 'autonomo') payload = { ...payload, ...autonomo };
-    if (legalType === 'cb')       payload = { ...payload, ...cb };
+    if (legalType === 'cb')       payload = { ...payload, ...cb, cb_owners: cb.owners };
     if (legalType === 'sl')       payload = { ...payload, ...sl };
     onCreate(payload);
   };
 
-  // overlay cubre toda la pantalla; el panel usa position absolute con inset conocido
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/50"
+      style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
       onClick={onClose}
     >
-      {/* Panel: posicionado desde abajo en móvil, centrado en desktop */}
       <div
-        className="absolute bottom-0 left-0 right-0 sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-4"
+        style={{
+          width: '100%',
+          maxWidth: '42rem',
+          backgroundColor: '#fff',
+          borderRadius: '1rem 1rem 0 0',
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: '90vh',
+          overflow: 'hidden',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div
-          className="w-full sm:max-w-2xl bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            maxHeight: '92vh',
-            overflow: 'hidden',   /* clave: corta todo lo que sobresalga */
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* CABECERA */}
-          <div style={{ flexShrink: 0 }} className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <div>
-              <h2 className="text-base font-bold text-gray-900">Nueva Farmacia</h2>
-              {pharmacyName && <p className="text-xs text-teal-600 font-medium mt-0.5">{pharmacyName}</p>}
-              <p className="text-xs text-gray-400">{step === 1 ? 'Datos del titular / empresa' : 'Productos instalados'}</p>
-            </div>
-            <button type="button" onClick={onClose}
-              className="flex items-center justify-center w-9 h-9 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+        {/* CABECERA */}
+        <div style={{ flexShrink: 0, borderBottom: '1px solid #f1f5f9', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#111827' }}>Nueva Farmacia</h2>
+            {pharmacyName && <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#0d9488', fontWeight: 600 }}>{pharmacyName}</p>}
+            <p style={{ margin: 0, fontSize: '0.75rem', color: '#9ca3af' }}>{step === 1 ? 'Datos del titular / empresa' : 'Productos instalados'}</p>
           </div>
+          <button type="button" onClick={onClose}
+            style={{ width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
-          {/* PROGRESO */}
-          <div style={{ flexShrink: 0 }} className="flex items-center px-5 py-3 gap-2">
-            {[1, 2].map((s) => (
-              <div key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${s <= step ? 'bg-teal-500' : 'bg-gray-200'}`} />
-            ))}
-          </div>
+        {/* PROGRESO */}
+        <div style={{ flexShrink: 0, display: 'flex', gap: 8, padding: '0.75rem 1.25rem' }}>
+          {[1, 2].map((s) => (
+            <div key={s} style={{ flex: 1, height: 6, borderRadius: 9999, backgroundColor: s <= step ? '#0d9488' : '#e5e7eb', transition: 'background-color 0.3s' }} />
+          ))}
+        </div>
 
-          {/* CONTENIDO SCROLLABLE */}
-          <div style={{ flex: '1 1 0', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }} className="px-5 py-2">
-            {step === 1 ? (
-              <div className="space-y-5 pb-4">
-                <div>
-                  <p className={labelCls}>Tipo jurídico</p>
-                  <div className="flex gap-2">
-                    {[['autonomo', 'Autónomo'], ['cb', 'C.B.'], ['sl', 'S.L.']].map(([val, lbl]) => (
-                      <button key={val} type="button" onClick={() => setLegalType(val)}
-                        className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          legalType === val ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}>{lbl}</button>
+        {/* CONTENIDO SCROLLABLE */}
+        <div style={{ flex: '1 1 0', overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '0.5rem 1.25rem' }}>
+          {step === 1 ? (
+            <div className="space-y-5 pb-4">
+              {/* Tipo jurídico */}
+              <div>
+                <p className={labelCls}>Tipo jurídico</p>
+                <div className="flex gap-2">
+                  {[['autonomo', 'Autónomo'], ['cb', 'C.B.'], ['sl', 'S.L.']].map(([val, lbl]) => (
+                    <button key={val} type="button" onClick={() => setLegalType(val)}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        legalType === val ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}>{lbl}</button>
+                  ))}
+                </div>
+              </div>
+
+              <Field label="Nombre de la farmacia *">
+                <input className={inputCls} placeholder="Farmacia Ejemplo" value={pharmacyName}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (legalType === 'autonomo') setAutonomo((p) => ({ ...p, pharmacy_name: v }));
+                    else if (legalType === 'cb')  setCb((p) => ({ ...p, pharmacy_name: v }));
+                    else                          setSl((p) => ({ ...p, pharmacy_name: v }));
+                  }} />
+              </Field>
+
+              {legalType === 'autonomo' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Titular *"><input className={inputCls} value={autonomo.owner_name} onChange={(e) => setAutonomo((p) => ({ ...p, owner_name: e.target.value }))} /></Field>
+                    <Field label="NIF"><input className={inputCls} value={autonomo.nif} onChange={(e) => setAutonomo((p) => ({ ...p, nif: e.target.value }))} /></Field>
+                    <Field label="Nº Colegiado"><input className={inputCls} value={autonomo.colegiado} onChange={(e) => setAutonomo((p) => ({ ...p, colegiado: e.target.value }))} /></Field>
+                    <Field label="SOE"><input className={inputCls} value={autonomo.soe} onChange={(e) => setAutonomo((p) => ({ ...p, soe: e.target.value }))} /></Field>
+                    <Field label="Teléfono"><input className={inputCls} type="tel" value={autonomo.phone} onChange={(e) => setAutonomo((p) => ({ ...p, phone: e.target.value }))} /></Field>
+                    <Field label="Email"><input className={inputCls} type="email" value={autonomo.email} onChange={(e) => setAutonomo((p) => ({ ...p, email: e.target.value }))} /></Field>
+                  </div>
+                  <Field label="Dirección"><input className={inputCls} value={autonomo.address} onChange={(e) => setAutonomo((p) => ({ ...p, address: e.target.value }))} /></Field>
+                  <div className="grid grid-cols-3 gap-3">
+                    <Field label="Provincia">
+                      <select className={inputCls} value={autonomo.province} onChange={(e) => setAutonomo((p) => ({ ...p, province: e.target.value, city: '' }))}>
+                        <option value="">Provincia...</option>
+                        {provinces.map((p) => <option key={p.code} value={p.label}>{p.label}</option>)}
+                      </select>
+                    </Field>
+                    <Field label="Población">
+                      <select className={inputCls} value={autonomo.city} onChange={(e) => setAutonomo((p) => ({ ...p, city: e.target.value }))} disabled={!townsAuto.length}>
+                        <option value="">{townsAuto.length ? 'Población...' : 'Elige provincia'}</option>
+                        {townsAuto.map((t) => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </Field>
+                    <Field label="C.P."><input className={inputCls} value={autonomo.postal_code} onChange={(e) => setAutonomo((p) => ({ ...p, postal_code: e.target.value }))} /></Field>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Horario"><input className={inputCls} value={autonomo.schedule} onChange={(e) => setAutonomo((p) => ({ ...p, schedule: e.target.value }))} /></Field>
+                    <Field label="Guardias"><input className={inputCls} value={autonomo.guards} onChange={(e) => setAutonomo((p) => ({ ...p, guards: e.target.value }))} /></Field>
+                  </div>
+                  <Field label="Observaciones"><textarea rows={3} className={inputCls} value={autonomo.notes} onChange={(e) => setAutonomo((p) => ({ ...p, notes: e.target.value }))} /></Field>
+                </div>
+              )}
+
+              {legalType === 'cb' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Razón social"><input className={inputCls} value={cb.razon_social} onChange={(e) => setCb((p) => ({ ...p, razon_social: e.target.value }))} /></Field>
+                    <Field label="CIF"><input className={inputCls} value={cb.cif} onChange={(e) => setCb((p) => ({ ...p, cif: e.target.value }))} /></Field>
+                    <Field label="Teléfono"><input className={inputCls} type="tel" value={cb.phone} onChange={(e) => setCb((p) => ({ ...p, phone: e.target.value }))} /></Field>
+                    <Field label="Email"><input className={inputCls} type="email" value={cb.email} onChange={(e) => setCb((p) => ({ ...p, email: e.target.value }))} /></Field>
+                  </div>
+                  <Field label="Dirección"><input className={inputCls} value={cb.address} onChange={(e) => setCb((p) => ({ ...p, address: e.target.value }))} /></Field>
+                  <div className="grid grid-cols-3 gap-3">
+                    <Field label="Provincia">
+                      <select className={inputCls} value={cb.province} onChange={(e) => setCb((p) => ({ ...p, province: e.target.value, city: '' }))}>
+                        <option value="">Provincia...</option>
+                        {provinces.map((p) => <option key={p.code} value={p.label}>{p.label}</option>)}
+                      </select>
+                    </Field>
+                    <Field label="Población">
+                      <select className={inputCls} value={cb.city} onChange={(e) => setCb((p) => ({ ...p, city: e.target.value }))} disabled={!townsCb.length}>
+                        <option value="">{townsCb.length ? 'Población...' : 'Elige provincia'}</option>
+                        {townsCb.map((t) => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </Field>
+                    <Field label="C.P."><input className={inputCls} value={cb.postal_code} onChange={(e) => setCb((p) => ({ ...p, postal_code: e.target.value }))} /></Field>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <Field label="SOE"><input className={inputCls} value={cb.soe} onChange={(e) => setCb((p) => ({ ...p, soe: e.target.value }))} /></Field>
+                    <Field label="Horario"><input className={inputCls} value={cb.schedule} onChange={(e) => setCb((p) => ({ ...p, schedule: e.target.value }))} /></Field>
+                    <Field label="Guardias"><input className={inputCls} value={cb.guards} onChange={(e) => setCb((p) => ({ ...p, guards: e.target.value }))} /></Field>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-700 mb-2">Titulares de la C.B.</p>
+                    {cb.owners.map((owner, i) => (
+                      <div key={i} className="border border-gray-200 rounded-lg p-3 mb-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-gray-500">Titular {i + 1}</span>
+                          {cb.owners.length > 1 && <button type="button" onClick={() => removeCbOwner(i)} className="text-red-400 text-xs">Eliminar</button>}
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div><label className={labelCls}>Nombre</label><input className={inputCls} value={owner.name} onChange={(e) => updateCbOwner(i, 'name', e.target.value)} /></div>
+                          <div><label className={labelCls}>NIF</label><input className={inputCls} value={owner.nif} onChange={(e) => updateCbOwner(i, 'nif', e.target.value)} /></div>
+                          <div><label className={labelCls}>Colegiado</label><input className={inputCls} value={owner.colegiado} onChange={(e) => updateCbOwner(i, 'colegiado', e.target.value)} /></div>
+                        </div>
+                      </div>
                     ))}
+                    <button type="button" onClick={addCbOwner} className="text-teal-600 text-sm font-medium">+ Añadir titular</button>
+                  </div>
+                  <Field label="Observaciones"><textarea rows={3} className={inputCls} value={cb.notes} onChange={(e) => setCb((p) => ({ ...p, notes: e.target.value }))} /></Field>
+                </div>
+              )}
+
+              {legalType === 'sl' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Razón social"><input className={inputCls} value={sl.razon_social} onChange={(e) => setSl((p) => ({ ...p, razon_social: e.target.value }))} /></Field>
+                    <Field label="CIF"><input className={inputCls} value={sl.cif} onChange={(e) => setSl((p) => ({ ...p, cif: e.target.value }))} /></Field>
+                    <Field label="Teléfono"><input className={inputCls} type="tel" value={sl.phone} onChange={(e) => setSl((p) => ({ ...p, phone: e.target.value }))} /></Field>
+                    <Field label="Email"><input className={inputCls} type="email" value={sl.email} onChange={(e) => setSl((p) => ({ ...p, email: e.target.value }))} /></Field>
                   </div>
                 </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3 pb-4">
+              {PRODUCT_CATEGORIES.map(({ label, key, options }) => (
+                <div key={key} className="border border-gray-200 rounded-lg overflow-hidden">
+                  <button type="button" onClick={() => toggleExpanded(key)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100">
+                    <div className="flex items-center gap-3">
+                      <input type="checkbox" checked={products[key]?.active || false}
+                        onChange={(e) => { e.stopPropagation(); setProducts((prev) => ({ ...prev, [key]: { ...prev[key], active: e.target.checked } })); }}
+                        onClick={(e) => e.stopPropagation()} className="w-4 h-4 accent-teal-600" />
+                      <span className="text-sm font-medium text-gray-700">{label}</span>
+                    </div>
+                    <svg className={`w-4 h-4 text-gray-400 transition-transform ${expanded[key] ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {expanded[key] && (
+                    <div className="px-4 py-3">
+                      <label className={labelCls}>Marca / Modelo</label>
+                      <select className={inputCls} value={products[key]?.brand || ''}
+                        onChange={(e) => setProducts((prev) => ({ ...prev, [key]: { ...prev[key], brand: e.target.value } }))}>
+                        <option value="">Seleccionar...</option>
+                        {options.map((o) => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-                <Field label="Nombre de la farmacia *">
-                  <input className={inputCls} placeholder="Farmacia Ejemplo" value={pharmacyName}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (legalType === 'autonomo') setAutonomo((p) => ({ ...p, pharmacy_name: v }));
-                      else if (legalType === 'cb')  setCb((p) => ({ ...p, pharmacy_name: v }));
-                      else                          setSl((p) => ({ ...p, pharmacy_name: v }));
-                    }} />
-                </Field>
-
-                {legalType === 'autonomo' && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Field label="Titular *"><input className={inputCls} value={autonomo.owner_name} onChange={(e) => setAutonomo((p) => ({ ...p, owner_name: e.target.value }))} /></Field>
-                      <Field label="NIF"><input className={inputCls} value={autonomo.nif} onChange={(e) => setAutonomo((p) => ({ ...p, nif: e.target.value }))} /></Field>
-                      <Field label="Nº Colegiado"><input className={inputCls} value={autonomo.colegiado} onChange={(e) => setAutonomo((p) => ({ ...p, colegiado: e.target.value }))} /></Field>
-                      <Field label="SOE"><input className={inputCls} value={autonomo.soe} onChange={(e) => setAutonomo((p) => ({ ...p, soe: e.target.value }))} /></Field>
-                      <Field label="Teléfono"><input className={inputCls} type="tel" value={autonomo.phone} onChange={(e) => setAutonomo((p) => ({ ...p, phone: e.target.value }))} /></Field>
-                      <Field label="Email"><input className={inputCls} type="email" value={autonomo.email} onChange={(e) => setAutonomo((p) => ({ ...p, email: e.target.value }))} /></Field>
-                    </div>
-                    <Field label="Dirección"><input className={inputCls} value={autonomo.address} onChange={(e) => setAutonomo((p) => ({ ...p, address: e.target.value }))} /></Field>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <Field label="Provincia"><ProvinceSelect provinces={provinces} value={autonomo.province} onChange={(v) => setAutonomo((p) => ({ ...p, province: v, city: '' }))} /></Field>
-                      <Field label="Población"><CitySelect towns={townsAuto} value={autonomo.city} onChange={(v) => setAutonomo((p) => ({ ...p, city: v }))} /></Field>
-                      <Field label="C.P."><input className={inputCls} value={autonomo.postal_code} onChange={(e) => setAutonomo((p) => ({ ...p, postal_code: e.target.value }))} /></Field>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Field label="Horario"><input className={inputCls} value={autonomo.schedule} onChange={(e) => setAutonomo((p) => ({ ...p, schedule: e.target.value }))} /></Field>
-                      <Field label="Guardias"><input className={inputCls} value={autonomo.guards} onChange={(e) => setAutonomo((p) => ({ ...p, guards: e.target.value }))} /></Field>
-                    </div>
-                    <Field label="Observaciones"><textarea rows={3} className={inputCls} value={autonomo.notes} onChange={(e) => setAutonomo((p) => ({ ...p, notes: e.target.value }))} /></Field>
-                  </div>
-                )}
-
-                {legalType === 'cb' && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Field label="Razón social"><input className={inputCls} value={cb.razon_social} onChange={(e) => setCb((p) => ({ ...p, razon_social: e.target.value }))} /></Field>
-                      <Field label="CIF"><input className={inputCls} value={cb.cif} onChange={(e) => setCb((p) => ({ ...p, cif: e.target.value }))} /></Field>
-                      <Field label="Teléfono"><input className={inputCls} type="tel" value={cb.phone} onChange={(e) => setCb((p) => ({ ...p, phone: e.target.value }))} /></Field>
-                      <Field label="Email"><input className={inputCls} type="email" value={cb.email} onChange={(e) => setCb((p) => ({ ...p, email: e.target.value }))} /></Field>
-                    </div>
-                    <Field label="Dirección"><input className={inputCls} value={cb.address} onChange={(e) => setCb((p) => ({ ...p, address: e.target.value }))} /></Field>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <Field label="Provincia"><ProvinceSelect provinces={provinces} value={cb.province} onChange={(v) => setCb((p) => ({ ...p, province: v, city: '' }))} /></Field>
-                      <Field label="Población"><CitySelect towns={townsCb} value={cb.city} onChange={(v) => setCb((p) => ({ ...p, city: v }))} /></Field>
-                      <Field label="C.P."><input className={inputCls} value={cb.postal_code} onChange={(e) => setCb((p) => ({ ...p, postal_code: e.target.value }))} /></Field>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <Field label="SOE"><input className={inputCls} value={cb.soe} onChange={(e) => setCb((p) => ({ ...p, soe: e.target.value }))} /></Field>
-                      <Field label="Horario"><input className={inputCls} value={cb.schedule} onChange={(e) => setCb((p) => ({ ...p, schedule: e.target.value }))} /></Field>
-                      <Field label="Guardias"><input className={inputCls} value={cb.guards} onChange={(e) => setCb((p) => ({ ...p, guards: e.target.value }))} /></Field>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700 mb-2">Titulares de la C.B.</p>
-                      {cb.owners.map((owner, i) => (
-                        <div key={i} className="border border-gray-200 rounded-lg p-3 mb-2">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-medium text-gray-500">Titular {i + 1}</span>
-                            {cb.owners.length > 1 && <button type="button" onClick={() => removeCbOwner(i)} className="text-red-400 hover:text-red-600 text-xs">Eliminar</button>}
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div><label className={labelCls}>Nombre</label><input className={inputCls} value={owner.name} onChange={(e) => updateCbOwner(i, 'name', e.target.value)} /></div>
-                            <div><label className={labelCls}>NIF</label><input className={inputCls} value={owner.nif} onChange={(e) => updateCbOwner(i, 'nif', e.target.value)} /></div>
-                            <div><label className={labelCls}>Nº Colegiado</label><input className={inputCls} value={owner.colegiado} onChange={(e) => updateCbOwner(i, 'colegiado', e.target.value)} /></div>
-                          </div>
-                        </div>
-                      ))}
-                      <button type="button" onClick={addCbOwner} className="text-teal-600 hover:text-teal-800 text-sm font-medium">+ Añadir titular</button>
-                    </div>
-                    <Field label="Observaciones"><textarea rows={3} className={inputCls} value={cb.notes} onChange={(e) => setCb((p) => ({ ...p, notes: e.target.value }))} /></Field>
-                  </div>
-                )}
-
-                {legalType === 'sl' && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Field label="Razón social"><input className={inputCls} value={sl.razon_social} onChange={(e) => setSl((p) => ({ ...p, razon_social: e.target.value }))} /></Field>
-                      <Field label="CIF"><input className={inputCls} value={sl.cif} onChange={(e) => setSl((p) => ({ ...p, cif: e.target.value }))} /></Field>
-                      <Field label="Teléfono"><input className={inputCls} type="tel" value={sl.phone} onChange={(e) => setSl((p) => ({ ...p, phone: e.target.value }))} /></Field>
-                      <Field label="Email"><input className={inputCls} type="email" value={sl.email} onChange={(e) => setSl((p) => ({ ...p, email: e.target.value }))} /></Field>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-3 pb-4">
-                {PRODUCT_CATEGORIES.map(({ label, key, options }) => (
-                  <div key={key} className="border border-gray-200 rounded-lg overflow-hidden">
-                    <button type="button" onClick={() => toggleExpanded(key)}
-                      className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <input type="checkbox" checked={products[key]?.active || false}
-                          onChange={(e) => { e.stopPropagation(); setProducts((prev) => ({ ...prev, [key]: { ...prev[key], active: e.target.checked } })); }}
-                          onClick={(e) => e.stopPropagation()} className="w-4 h-4 accent-teal-600" />
-                        <span className="text-sm font-medium text-gray-700">{label}</span>
-                      </div>
-                      <svg className={`w-4 h-4 text-gray-400 transition-transform ${expanded[key] ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    {expanded[key] && (
-                      <div className="px-4 py-3 bg-white">
-                        <label className={labelCls}>Marca / Modelo</label>
-                        <select className={inputCls} value={products[key]?.brand || ''}
-                          onChange={(e) => setProducts((prev) => ({ ...prev, [key]: { ...prev[key], brand: e.target.value } }))}>
-                          <option value="">Seleccionar...</option>
-                          {options.map((o) => <option key={o} value={o}>{o}</option>)}
-                        </select>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* FOOTER — siempre visible, fuera del scroll */}
-          <div style={{ flexShrink: 0 }} className="flex items-center gap-3 px-5 py-4 border-t border-gray-100 bg-white">
-            <button type="button"
-              onClick={step === 1 ? onClose : () => setStep(1)}
-              className="flex-1 py-3 rounded-xl text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors">
-              {step === 1 ? 'Cancelar' : '← Atrás'}
-            </button>
-            <button type="button"
-              onClick={step === 1 ? () => setStep(2) : handleSubmit}
-              className="flex-1 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold transition-colors">
-              {step === 1 ? 'Siguiente →' : 'Crear farmacia'}
-            </button>
-          </div>
+        {/* FOOTER */}
+        <div style={{ flexShrink: 0, borderTop: '1px solid #f1f5f9', padding: '1rem 1.25rem', display: 'flex', gap: 12, backgroundColor: '#fff' }}>
+          <button type="button" onClick={step === 1 ? onClose : () => setStep(1)}
+            style={{ flex: 1, padding: '0.75rem', borderRadius: '0.75rem', border: 'none', backgroundColor: '#f3f4f6', color: '#374151', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
+            {step === 1 ? 'Cancelar' : '← Atrás'}
+          </button>
+          <button type="button" onClick={step === 1 ? () => setStep(2) : handleSubmit}
+            style={{ flex: 1, padding: '0.75rem', borderRadius: '0.75rem', border: 'none', backgroundColor: '#0d9488', color: '#fff', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
+            {step === 1 ? 'Siguiente →' : 'Crear farmacia'}
+          </button>
         </div>
       </div>
     </div>
