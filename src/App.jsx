@@ -68,7 +68,6 @@ export default function App() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data, error }) => {
       if (error || !data.session) {
-        // Token inválido → limpiar y dejar pantalla de login
         Object.keys(localStorage).forEach(k => { if (k.startsWith('sb-')) localStorage.removeItem(k) })
         setSession(null)
       } else {
@@ -107,7 +106,6 @@ export default function App() {
   async function loadProfile() {
     const userId = session?.user?.id
     if (!userId) return null
-    // select solo columnas que existen — sin full_name que causaba 400
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -205,7 +203,6 @@ export default function App() {
     setIncidents(data || [])
   }
 
-  // CORREGIDO: la tabla real es checklist_tasks, NO tasks
   async function loadTaskStats(userProfile = profile) {
     if (!userProfile?.company_id) return
     const { data, error } = await supabase
@@ -216,12 +213,14 @@ export default function App() {
   }
 
   // ---------------------------------------------------------------------------
-  // createClient — todas las columnas reales confirmadas
+  // createClient — solo columnas reales de la tabla clients
+  // El modal envía un payload plano con campos del formulario (legal_type,
+  // cb_owners, products, has_guards, etc.) que NO existen en la BD.
+  // Aquí extraemos ÚNICAMENTE las columnas conocidas.
   // ---------------------------------------------------------------------------
   async function createClient(payload) {
     let activeProfile = profile
 
-    // Refrescar profile si company_id es null (race condition)
     if (!activeProfile?.company_id) {
       const { data: { user } } = await supabase.auth.getUser()
       if (user?.id) {
@@ -237,14 +236,16 @@ export default function App() {
       return
     }
 
+    // El modal siempre envía el payload plano (no anidado en clientData)
     const cd = payload.clientData ?? payload
-    const pharmacyName = (cd.pharmacy_name || cd.name || '').trim()
 
+    const pharmacyName = (cd.pharmacy_name || cd.name || '').trim()
     if (!pharmacyName) {
       alert('El nombre de la farmacia es obligatorio.')
       return
     }
 
+    // ---- Solo columnas que existen en la tabla clients ----
     const insertData = {
       company_id:       activeProfile.company_id,
       name:             pharmacyName,
@@ -253,23 +254,18 @@ export default function App() {
       province:         cd.province          || null,
       city:             cd.city              || null,
       address:          cd.address           || null,
+      postal_code:      cd.postal_code       || null,
       contact_phone:    cd.contact_phone     || null,
       contact_email:    cd.contact_email     || null,
-      phone:            cd.phone             || cd.contact_phone  || null,
-      email:            cd.email             || cd.contact_email  || null,
       nif_cif:          cd.nif_cif           || null,
       soe_number:       cd.soe_number        || null,
-      cip:              cd.cip               || null,
-      business_email:   cd.business_email    || null,
-      business_phone:   cd.business_phone    || null,
-      collegiate_data:  cd.collegiate_data   || null,
-      company_data:     cd.company_data      || null,
-      operators:        cd.operators         || null,
-      observations:     cd.observations      || cd.notes || null,
-      notes:            cd.notes             || cd.observations   || null,
+      observations:     cd.observations      || null,
     }
 
-    console.log('[createClient] insertData:', insertData)
+    // Eliminar claves con valor null para no enviar columnas opcionales vacías
+    Object.keys(insertData).forEach(k => { if (insertData[k] === null) delete insertData[k] })
+
+    console.log('[createClient] insertData final:', insertData)
 
     const { data, error } = await supabase
       .from('clients')
@@ -303,14 +299,12 @@ export default function App() {
         province:         clientData.province         || null,
         city:             clientData.city             || null,
         address:          clientData.address          || null,
+        postal_code:      clientData.postal_code      || null,
         contact_phone:    clientData.contact_phone    || null,
         contact_email:    clientData.contact_email    || null,
-        phone:            clientData.phone            || clientData.contact_phone || null,
-        email:            clientData.email            || clientData.contact_email || null,
         nif_cif:          clientData.nif_cif          || null,
         soe_number:       clientData.soe_number       || null,
-        observations:     clientData.observations     || clientData.notes || null,
-        notes:            clientData.notes            || clientData.observations  || null,
+        observations:     clientData.observations     || null,
       })
       .eq('id', clientId)
       .select()
@@ -477,7 +471,6 @@ export default function App() {
     setCurrentPage(page)
   }
 
-  // Pantalla de carga inicial mientras se verifica sesión
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
