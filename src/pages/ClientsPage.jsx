@@ -70,7 +70,7 @@ function getInitials(name) {
 }
 
 // ---------------------------------------------------------------------------
-// ProvinceCard — gris en reposo, verde claro + scale al hover
+// ProvinceCard
 // ---------------------------------------------------------------------------
 function ProvinceCard({ province, clients }) {
   const [hovered, setHovered] = useState(false)
@@ -79,87 +79,93 @@ function ProvinceCard({ province, clients }) {
   const provinceColor = PROVINCE_COLORS[province]
 
   return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-        zIndex: hovered ? 10 : 1,
-        minWidth: hovered ? '132px' : '106px',
-        padding: hovered ? '14px' : '11px',
-        borderRadius: '12px',
-        border: hovered ? '1.5px solid #86efac' : '1px solid #e2e8f0',
-        background: hovered ? '#f0fdf4' : '#f8fafc',
-        boxShadow: hovered ? '0 6px 20px 0 #bbf7d055' : 'none',
-        transform: hovered ? 'scale(1.08)' : 'scale(1)',
-        transition: 'all 0.22s cubic-bezier(.4,0,.2,1)',
-        cursor: 'default',
-      }}
-    >
-      {/* Nombre provincia */}
-      <p style={{
-        fontSize: hovered ? '12px' : '10px',
-        fontWeight: 700,
-        color: hovered ? provinceColor : '#94a3b8',
-        transition: 'all 0.22s ease',
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-      }}>{province}</p>
+    // Contenedor de tamaño fijo — nunca cambia, evita layout shift
+    <div style={{ flexShrink: 0, width: '116px', height: '120px', position: 'relative' }}>
+      {/* Card real con transform — flota sobre el contenedor */}
+      <div
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: hovered ? 20 : 1,
+          padding: hovered ? '14px' : '11px',
+          borderRadius: '12px',
+          border: hovered ? '1.5px solid #86efac' : '1px solid #e2e8f0',
+          background: hovered ? '#f0fdf4' : '#f8fafc',
+          boxShadow: hovered ? '0 8px 24px 0 #bbf7d066' : 'none',
+          transform: hovered ? 'scale(1.1)' : 'scale(1)',
+          transformOrigin: 'top center',
+          transition: 'all 0.22s cubic-bezier(.4,0,.2,1)',
+          cursor: 'default',
+        }}
+      >
+        {/* Nombre provincia */}
+        <p style={{
+          fontSize: hovered ? '12px' : '10px',
+          fontWeight: 700,
+          color: hovered ? provinceColor : '#94a3b8',
+          transition: 'all 0.22s ease',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}>{province}</p>
 
-      {/* Total farmacias */}
-      <p style={{
-        marginTop: '2px',
-        fontSize: hovered ? '30px' : '22px',
-        fontWeight: 800,
-        lineHeight: 1,
-        color: hovered ? '#15803d' : '#475569',
-        transition: 'all 0.22s ease',
-      }}>{total}</p>
+        {/* Total farmacias */}
+        <p style={{
+          marginTop: '2px',
+          fontSize: hovered ? '30px' : '22px',
+          fontWeight: 800,
+          lineHeight: 1,
+          color: hovered ? '#15803d' : '#475569',
+          transition: 'all 0.22s ease',
+        }}>{total}</p>
 
-      {/* Divisor */}
-      <div style={{
-        margin: hovered ? '10px 0' : '7px 0',
-        borderTop: `1px solid ${hovered ? '#86efac' : '#e2e8f0'}`,
-        transition: 'all 0.22s ease',
-      }} />
+        {/* Divisor */}
+        <div style={{
+          margin: hovered ? '10px 0' : '7px 0',
+          borderTop: `1px solid ${hovered ? '#86efac' : '#e2e8f0'}`,
+          transition: 'border-color 0.22s ease, margin 0.22s ease',
+        }} />
 
-      {/* Productos */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: hovered ? '7px' : '5px', transition: 'gap 0.22s ease' }}>
-        {VITEKA_PRODUCTS.map(({ key, label, color: pc, test }) => {
-          const count = provClients.filter(test).length
-          return (
-            <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+        {/* Productos */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: hovered ? '7px' : '5px', transition: 'gap 0.22s ease' }}>
+          {VITEKA_PRODUCTS.map(({ key, label, color: pc, test }) => {
+            const count = provClients.filter(test).length
+            return (
+              <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{
+                    display: 'inline-block',
+                    height: hovered ? '8px' : '6px',
+                    width: hovered ? '8px' : '6px',
+                    borderRadius: '50%',
+                    backgroundColor: pc,
+                    flexShrink: 0,
+                    transition: 'all 0.22s ease',
+                  }} />
+                  <span style={{
+                    fontSize: hovered ? '11px' : '10px',
+                    color: hovered ? '#374151' : '#94a3b8',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.22s ease',
+                  }}>{label}</span>
+                </div>
                 <span style={{
-                  display: 'inline-block',
-                  height: hovered ? '8px' : '6px',
-                  width:  hovered ? '8px' : '6px',
-                  borderRadius: '50%',
-                  backgroundColor: pc,
-                  flexShrink: 0,
+                  fontSize: hovered ? '12px' : '10px',
+                  fontWeight: 700,
+                  fontVariantNumeric: 'tabular-nums',
+                  color: count > 0 ? pc : (hovered ? '#94a3b8' : '#cbd5e1'),
                   transition: 'all 0.22s ease',
-                }} />
-                <span style={{
-                  fontSize: hovered ? '11px' : '10px',
-                  color: hovered ? '#374151' : '#94a3b8',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.22s ease',
-                }}>{label}</span>
+                }}>{count}</span>
               </div>
-              <span style={{
-                fontSize: hovered ? '12px' : '10px',
-                fontWeight: 700,
-                fontVariantNumeric: 'tabular-nums',
-                color: count > 0 ? pc : (hovered ? '#94a3b8' : '#cbd5e1'),
-                transition: 'all 0.22s ease',
-              }}>{count}</span>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
     </div>
   )
@@ -211,18 +217,18 @@ export default function ClientsPage({
         <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
           Farmacias por provincia
         </p>
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', paddingTop: '4px', scrollbarWidth: 'none', alignItems: 'flex-start' }}>
+        {/* overflow-visible para que las cards al hacer scale no se corten */}
+        <div style={{
+          display: 'flex',
+          gap: '8px',
+          overflowX: 'auto',
+          overflowY: 'visible',
+          paddingBottom: '4px',
+          paddingTop: '4px',
+          scrollbarWidth: 'none',
+        }}>
           {PROVINCES_AN.map(prov => (
             <ProvinceCard key={prov} province={prov} clients={clients} />
-          ))}
-        </div>
-        {/* Leyenda */}
-        <div className="mt-3 flex flex-wrap items-center gap-3 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
-          {VITEKA_PRODUCTS.map(({ key, label, color }) => (
-            <span key={key} className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--muted)' }}>
-              <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-              {label}
-            </span>
           ))}
         </div>
       </div>
