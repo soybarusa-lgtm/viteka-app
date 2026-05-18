@@ -20,10 +20,31 @@ function IconGrid()   { return <Icon size={15}><rect x="3" y="3" width="7" heigh
 function IconList()   { return <Icon size={15}><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></Icon> }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Constants
 // ---------------------------------------------------------------------------
 const PROVINCES_AN = ['Almería','Cádiz','Córdoba','Granada','Huelva','Jaén','Málaga','Sevilla']
 
+const VITEKA_ROWS = [
+  { label: 'Nixfarma',           cat: 'erp',         test: p => p?.brand === 'Nixfarma'           && p?.viteka_support === 'SI' },
+  { label: 'Cashlogy',           cat: 'caja_cobro',  test: p => p?.brand === 'Cashlogy'           && p?.viteka_support === 'SI' },
+  { label: 'Hanshow',            cat: 'etiquetas',   test: p => p?.brand === 'Hanshow'            && p?.viteka_support === 'SI' },
+  { label: 'Equipos Viteka',     cat: 'equipos',     test: p => p?.brand === 'Viteka' },
+  { label: 'Básculas Pondus',    cat: 'basculas',    test: p => p?.brand === 'Pondus'             && p?.viteka_support === 'SI' },
+  { label: 'Viteka Pro Gestión', cat: 'consultoria', test: p => p?.brand === 'Viteka Pro Gestión' },
+]
+
+const THIRD_ROWS = [
+  { label: 'ERP (no Nixfarma)',        cat: 'erp',        test: p => p?.brand && p.brand !== 'Nixfarma'  && p.brand !== '' },
+  { label: 'Caja cobro (no Cashlogy)', cat: 'caja_cobro', test: p => p?.brand && p.brand !== 'Cashlogy'  && p.brand !== 'NO' && p.brand !== '' },
+  { label: 'ESL (no Hanshow)',         cat: 'etiquetas',  test: p => p?.brand && p.brand !== 'Hanshow'   && p.brand !== 'NO' && p.brand !== '' },
+  { label: 'Báscula (otro proveedor)', cat: 'basculas',   test: p => p?.brand && p.brand !== 'Pondus'    && p.brand !== 'NO' && p.brand !== '' },
+  { label: 'Consultoría (terceros)',   cat: 'consultoria',test: p => p?.brand && !p.brand.toLowerCase().includes('viteka') && p.brand !== 'NO' && p.brand !== '' },
+  { label: 'Robot dispensador',        cat: 'robot',      test: p => p?.brand && p.brand !== 'NO'        && p.brand !== '' },
+]
+
+// ---------------------------------------------------------------------------
+// Avatar helpers
+// ---------------------------------------------------------------------------
 const AVATAR_COLORS = ['#005643','#0369a1','#7c3aed','#b45309','#0f766e','#be123c','#1d4ed8','#15803d']
 function avatarColor(str = '') {
   let h = 0; for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h)
@@ -34,76 +55,37 @@ function getInitials(name) {
   return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
 }
 
-const VITEKA_PRODUCTS = [
-  { key: 'nixfarma',    label: 'Nixfarma' },
-  { key: 'cashlogy',   label: 'Cashlogy' },
-  { key: 'hanshow',    label: 'Hanshow' },
-  { key: 'equipos',    label: 'Equipos informáticos' },
-  { key: 'basculas',   label: 'Básculas' },
-  { key: 'antihurto',  label: 'Arcos antihurto' },
-  { key: 'consultoria',label: 'Viteka Pro Gestión' },
-  { key: 'otros',      label: 'Otros' },
-]
-const THIRD_PRODUCTS = [
-  { key: 'erp',        label: 'ERP' },
-  { key: 'caja_cobro', label: 'Caja de cobro' },
-  { key: 'etiquetas',  label: 'Etiquetas electrónicas' },
-  { key: 'equipos',    label: 'Equipos informáticos' },
-  { key: 'basculas',   label: 'Básculas' },
-  { key: 'antihurto',  label: 'Arcos antihurto' },
-  { key: 'consultoria',label: 'Consultoría' },
-  { key: 'otros',      label: 'Otros' },
-]
-
 // ---------------------------------------------------------------------------
 // ClientsPage
 // ---------------------------------------------------------------------------
 export default function ClientsPage({
   clients = [],
-  products = [],
   onCreateClient,
   onEditClient,
   onDeleteClient,
   onOpenClient,
-  profile,
 }) {
   const [search,   setSearch]   = useState('')
   const [province, setProvince] = useState('')
   const [view,     setView]     = useState('table')
 
-  const byProvince = useMemo(() => {
-    return PROVINCES_AN.map(p => ({
-      label: p,
-      count: clients.filter(c => c.province === p).length,
+  const byProvince = useMemo(() =>
+    PROVINCES_AN.map(p => ({ label: p, count: clients.filter(c => c.province === p).length }))
+  , [clients])
+
+  const vitekaCounters = useMemo(() =>
+    VITEKA_ROWS.map(({ label, cat, test }) => ({
+      label,
+      count: clients.filter(c => test(c.products?.[cat])).length,
     }))
-  }, [clients])
+  , [clients])
 
-  const vitekaCounters = useMemo(() => {
-    const vProducts = products.filter(p => p.viteka_support === true)
-    return VITEKA_PRODUCTS.map(({ key, label }) => {
-      const catMap = {
-        nixfarma:    p => p.category === 'erp'        && p.brand?.toLowerCase() === 'nixfarma',
-        cashlogy:    p => p.category === 'caja_cobro' && p.brand?.toLowerCase() === 'cashlogy',
-        hanshow:     p => p.category === 'etiquetas'  && p.brand?.toLowerCase() === 'hanshow',
-        equipos:     p => p.category === 'equipos',
-        basculas:    p => p.category === 'basculas',
-        antihurto:   p => p.category === 'antihurto',
-        consultoria: p => p.category === 'consultoria' && p.brand?.toLowerCase().includes('viteka'),
-        otros:       p => p.category === 'otros',
-      }
-      const fn = catMap[key] || (() => false)
-      const clientIds = [...new Set(vProducts.filter(fn).map(p => p.client_id))]
-      return { label, count: clientIds.length }
-    })
-  }, [products])
-
-  const thirdCounters = useMemo(() => {
-    const tProducts = products.filter(p => p.viteka_support === false)
-    return THIRD_PRODUCTS.map(({ key, label }) => {
-      const clientIds = [...new Set(tProducts.filter(p => p.category === key).map(p => p.client_id))]
-      return { label, count: clientIds.length }
-    })
-  }, [products])
+  const thirdCounters = useMemo(() =>
+    THIRD_ROWS.map(({ label, cat, test }) => ({
+      label,
+      count: clients.filter(c => test(c.products?.[cat])).length,
+    }))
+  , [clients])
 
   const filtered = useMemo(() => {
     return clients.filter(c => {
@@ -112,7 +94,7 @@ export default function ClientsPage({
         c.email, c.contact_email, c.phone, c.contact_phone,
         c.city, c.province, c.nif_cif, c.tax_id, c.notes, c.observations,
       ].join(' ').toLowerCase()
-      return (!search || text.includes(search.toLowerCase()))
+      return (!search   || text.includes(search.toLowerCase()))
           && (!province || c.province === province)
     })
   }, [clients, search, province])
@@ -120,7 +102,7 @@ export default function ClientsPage({
   return (
     <div className="space-y-6">
 
-      {/* Header — mismo estilo que Dashboard */}
+      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text)' }}>Farmacias</h1>
@@ -132,18 +114,20 @@ export default function ClientsPage({
         </button>
       </div>
 
-      {/* Por provincia */}
+      {/* Provincias — una sola fila, scroll horizontal en mobile */}
       <section>
         <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
           Farmacias por provincia
         </h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-          {byProvince.map(({ label, count }) => (
-            <div key={label} className="card flex flex-col items-center justify-center gap-1 p-4 text-center">
-              <span className="text-2xl font-bold" style={{ color: 'var(--primary)' }}>{count}</span>
-              <span className="text-[11px] leading-tight" style={{ color: 'var(--muted)' }}>{label}</span>
-            </div>
-          ))}
+        <div className="overflow-x-auto pb-1">
+          <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
+            {byProvince.map(({ label, count }) => (
+              <div key={label} className="card flex min-w-[90px] flex-col items-center justify-center gap-1 p-4 text-center">
+                <span className="text-2xl font-bold" style={{ color: 'var(--primary)' }}>{count}</span>
+                <span className="text-[11px] leading-tight" style={{ color: 'var(--muted)' }}>{label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -187,7 +171,7 @@ export default function ClientsPage({
           <option value="">Todas las provincias</option>
           {PROVINCES_AN.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
-        <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+        <div className="flex overflow-hidden rounded-xl" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
           {[['table', <IconList />,'Lista'],['grid', <IconGrid />,'Tarjetas']].map(([v, icon, lbl]) => (
             <button key={v} type="button" onClick={() => setView(v)}
               className="flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-medium transition"
@@ -199,7 +183,9 @@ export default function ClientsPage({
       </div>
 
       <p className="text-[12px]" style={{ color: 'var(--muted)' }}>
-        {filtered.length === clients.length ? `${clients.length} farmacias` : `${filtered.length} de ${clients.length} farmacias`}
+        {filtered.length === clients.length
+          ? `${clients.length} farmacias`
+          : `${filtered.length} de ${clients.length} farmacias`}
       </p>
 
       {filtered.length === 0
@@ -219,7 +205,7 @@ function ProductBar({ label, count, total, color }) {
   const pct = total > 0 ? Math.round((count / total) * 100) : 0
   const colors = {
     emerald: { bar: 'bg-emerald-500', text: 'text-emerald-600' },
-    amber:   { bar: 'bg-amber-400',   text: 'text-amber-600' },
+    amber:   { bar: 'bg-amber-400',   text: 'text-amber-600'   },
   }
   return (
     <div>
@@ -266,9 +252,7 @@ function TableView({ clients, onOpen, onEdit, onDelete }) {
                 <div className="flex flex-wrap gap-1">
                   {(c.legal_type || []).map(t => (
                     <span key={t} className="rounded-md px-2 py-0.5 text-[11px] font-medium uppercase"
-                      style={{ background: 'var(--badge-blue-bg)', color: 'var(--badge-blue-text)' }}>
-                      {t}
-                    </span>
+                      style={{ background: 'var(--badge-blue-bg)', color: 'var(--badge-blue-text)' }}>{t}</span>
                   ))}
                   {!c.legal_type?.length && <span className="text-[12px]" style={{ color: 'var(--muted)' }}>—</span>}
                 </div>
@@ -301,8 +285,8 @@ function TableView({ clients, onOpen, onEdit, onDelete }) {
               <td>
                 <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                   {onOpen && <ActionBtn onClick={() => onOpen(c.id)} title="Ver detalle" color="green"><IconEye /></ActionBtn>}
-                  <ActionBtn onClick={() => onEdit(c)}      title="Editar"    color="slate"><IconEdit /></ActionBtn>
-                  <ActionBtn onClick={() => onDelete(c.id)} title="Eliminar"  color="red"><IconTrash /></ActionBtn>
+                  <ActionBtn onClick={() => onEdit(c)}      title="Editar"   color="slate"><IconEdit /></ActionBtn>
+                  <ActionBtn onClick={() => onDelete(c.id)} title="Eliminar" color="red"><IconTrash /></ActionBtn>
                 </div>
               </td>
             </tr>
@@ -350,7 +334,8 @@ function GridView({ clients, onOpen, onEdit, onDelete }) {
           </div>
           <div className="mt-4 flex items-center gap-2 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
             {onOpen && (
-              <button type="button" onClick={() => onOpen(c.id)} className="btn-primary flex-1 py-1.5 text-center text-[12px]">Ver detalle</button>
+              <button type="button" onClick={() => onOpen(c.id)}
+                className="btn-primary flex-1 py-1.5 text-center text-[12px]">Ver detalle</button>
             )}
             <ActionBtn onClick={() => onEdit(c)}      title="Editar"   color="slate"><IconEdit /></ActionBtn>
             <ActionBtn onClick={() => onDelete(c.id)} title="Eliminar" color="red"><IconTrash /></ActionBtn>
