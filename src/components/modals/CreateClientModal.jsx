@@ -1,666 +1,489 @@
-import { useState } from 'react'
+import { useState } from 'react';
+import { useSpanishLocations } from '../../hooks/useSpanishLocations';
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-const PROVINCES_AN = ['Almería','Cádiz','Córdoba','Granada','Huelva','Jaén','Málaga','Sevilla']
+const PRODUCT_CATEGORIES = [
+  {
+    label: 'ERP',
+    key: 'erp',
+    options: ['Nixfarma', 'Farmatic', 'Unycop', 'Kroll', 'Farmatools', 'Otros'],
+  },
+  {
+    label: 'Caja de cobro',
+    key: 'caja',
+    options: ['Cashlogy', 'Glory', 'Crane', 'Suzohapp', 'Otros'],
+  },
+  {
+    label: 'Etiquetas electrónicas',
+    key: 'etiquetas',
+    options: ['Hanshow', 'SES-imagotag', 'Pricer', 'Otros'],
+  },
+  {
+    label: 'Báscula',
+    key: 'bascula',
+    options: ['Epelsa', 'Radwag', 'Kern', 'Otros'],
+  },
+  {
+    label: 'Arcos antihurto',
+    key: 'arcos',
+    options: ['Checkpoint', 'Sensormatic', 'Otros'],
+  },
+  {
+    label: 'Consultoría',
+    key: 'consultoria',
+    options: ['Consultoría Viteka', 'Otros'],
+  },
+  {
+    label: 'Equipos informáticos',
+    key: 'equipos',
+    options: ['Ordenadores', 'Periféricos', 'Servidores', 'Otros'],
+  },
+  {
+    label: 'Robot',
+    key: 'robot',
+    options: ['Rowa', 'BD Rowa', 'Apostore', 'Otros'],
+  },
+  {
+    label: 'Cruz',
+    key: 'cruz',
+    options: ['Rótulos LED', 'Cruz luminosa', 'Otros'],
+  },
+  {
+    label: 'Turnos',
+    key: 'turnos',
+    options: ['Sistema de turnos', 'Otros'],
+  },
+  {
+    label: 'SPD',
+    key: 'spd',
+    options: ['Sistema SPD', 'Otros'],
+  },
+  {
+    label: 'Pantallas',
+    key: 'pantallas',
+    options: ['Pantalla mostrador', 'Pantalla escaparate', 'Otros'],
+  },
+  {
+    label: 'Frigorífico',
+    key: 'frigorifico',
+    options: ['Frigorifico farmacia', 'Otros'],
+  },
+];
 
-const ERP_BRANDS = ['Nixfarma','Farmatic','Unycop Next','Farmanager','Unycop Win','vGaleno','Compufarma','Otros']
-const CASH_BRANDS = ['NO','Cashlogy','Cashinfinity','Cashkeeper','CashDro','CashProtect','Otro']
-const CASH_MODELS = {
-  Cashlogy:    ['1000','1500','2023','Maximate','Safe','MaxiSafe','Otro'],
-  Cashinfinity:['CI-5','CI-10X','CI-100X','Otro'],
-  Cashkeeper:  ['Compacto','Modular','Otro'],
-  CashDro:     ['CashDro S','CashDro 4+','CashDro 5','CashDro 7','Otro'],
-  CashProtect: ['400 AS','Pro AS','PJ','POS','1000','Otro'],
-}
-const ESL_BRANDS   = ['NO','Hanshow','Pricer','Expofarm','Farmaconnet','Otro']
-const SCALE_BRANDS = ['NO','Pondus','Keito','Otro']
-const ROBOT_BRANDS = ['NO','BD Rowa','Gollmann','Meditech','Willach','Fablox','Luse','KLS','Tecnyfarma']
-const CONSULT_OPTIONS = ['NO','Viteka Pro Gestión','Avantia Plus Gestión','Otro']
+const STEP_LABELS = ['Datos del titular / empresa', 'Productos instalados'];
 
-const EQUIPO_ITEMS = [
-  'Ordenadores sobremesa','Portátiles','Servidores',
-  'Impresoras tickets','Impresoras etiquetas','Impresoras laser/tinta',
-  'Monitores extra','Terminales TPV','SAI/UPS',
-  'Switch/Router','NAS/Almacenamiento','Otro',
-]
+const emptyProducts = () =>
+  Object.fromEntries(PRODUCT_CATEGORIES.map((c) => [c.key, { active: false, brand: '' }]));
 
-const CURRENT_YEAR = new Date().getFullYear()
-const YEARS = Array.from({ length: 30 }, (_, i) => CURRENT_YEAR - i)
-const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+export default function CreateClientModal({ onClose, onCreate }) {
+  const [step, setStep] = useState(1);
+  const [legalType, setLegalType] = useState('autonomo');
+  const [expanded, setExpanded] = useState({});
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-function Field({ label, required, children }) {
-  return (
+  const { provinces, getTowns } = useSpanishLocations();
+
+  // ── Autónomo ──────────────────────────────────────────────
+  const [autonomo, setAutonomo] = useState({
+    pharmacy_name: '',
+    owner_name: '',
+    nif: '',
+    colegiado: '',
+    soe: '',
+    phone: '',
+    email: '',
+    address: '',
+    province: '',
+    city: '',
+    postal_code: '',
+    schedule: '',
+    guards: '',
+    notes: '',
+  });
+
+  // ── C.B. ──────────────────────────────────────────────────
+  const [cb, setCb] = useState({
+    pharmacy_name: '',
+    razon_social: '',
+    cif: '',
+    phone: '',
+    email: '',
+    address: '',
+    province: '',
+    city: '',
+    postal_code: '',
+    soe: '',
+    schedule: '',
+    guards: '',
+    notes: '',
+    owners: [{ name: '', nif: '', colegiado: '' }],
+  });
+
+  // ── S.L. ──────────────────────────────────────────────────
+  const [sl, setSl] = useState({
+    pharmacy_name: '',
+    razon_social: '',
+    cif: '',
+    phone: '',
+    email: '',
+  });
+
+  const [products, setProducts] = useState(emptyProducts());
+
+  // ── helpers ───────────────────────────────────────────────
+  const townsAuto = getTowns(autonomo.province);
+  const townsCb   = getTowns(cb.province);
+
+  const toggleExpanded = (key) =>
+    setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const addCbOwner = () =>
+    setCb((prev) => ({
+      ...prev,
+      owners: [...prev.owners, { name: '', nif: '', colegiado: '' }],
+    }));
+
+  const updateCbOwner = (i, field, value) =>
+    setCb((prev) => {
+      const owners = prev.owners.map((o, idx) =>
+        idx === i ? { ...o, [field]: value } : o
+      );
+      return { ...prev, owners };
+    });
+
+  const removeCbOwner = (i) =>
+    setCb((prev) => ({
+      ...prev,
+      owners: prev.owners.filter((_, idx) => idx !== i),
+    }));
+
+  const handleSubmit = () => {
+    let payload = { legal_type: legalType, products };
+    if (legalType === 'autonomo') payload = { ...payload, ...autonomo };
+    if (legalType === 'cb')       payload = { ...payload, ...cb };
+    if (legalType === 'sl')       payload = { ...payload, ...sl };
+    onCreate(payload);
+  };
+
+  // ── UI helpers ────────────────────────────────────────────
+  const inputCls =
+    'w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-teal-500';
+  const labelCls = 'block text-xs font-medium text-gray-600 mb-1';
+  const sectionCls = 'space-y-4';
+
+  const Field = ({ label, children }) => (
     <div>
-      <label className="mb-1 block text-[12px] font-medium" style={{ color: 'var(--text-soft)' }}>
-        {label}{required && <span className="ml-0.5 text-red-500">*</span>}
-      </label>
+      <label className={labelCls}>{label}</label>
       {children}
     </div>
-  )
-}
-function Input(p) { return <input className="input w-full" {...p} /> }
-function Sel({ children, ...p }) { return <select className="input w-full" {...p}>{children}</select> }
-function Textarea(p) { return <textarea className="input w-full" rows={3} {...p} /> }
+  );
 
-function SatisfactionField({ value, onChange }) {
-  return (
-    <div>
-      <label className="mb-1 block text-[12px] font-medium" style={{ color: 'var(--text-soft)' }}>Satisfacción con proveedor actual</label>
-      <div className="flex gap-2">
-        {[1,2,3,4,5].map(n => (
-          <button key={n} type="button" onClick={() => onChange(n)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[13px] font-semibold transition"
-            style={value === n ? { background: 'var(--primary)', color: '#fff' } : { background: 'var(--surface-soft)', color: 'var(--text-soft)' }}>{n}</button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function VitekaToggle({ value, notes, onChangeValue, onChangeNotes }) {
-  return (
-    <div className="space-y-2">
-      <label className="mb-1 block text-[12px] font-medium" style={{ color: 'var(--text-soft)' }}>¿Viteka es distribuidor y/o soporte?</label>
-      <div className="flex gap-2">
-        {['SI','NO'].map(opt => (
-          <button key={opt} type="button" onClick={() => onChangeValue(opt)}
-            className="flex-1 rounded-lg py-2 text-[13px] font-medium transition"
-            style={value === opt ? { background: 'var(--primary)', color: '#fff' } : { background: 'var(--surface-soft)', color: 'var(--text-soft)' }}>{opt}</button>
-        ))}
-      </div>
-      {value === 'SI' && <Input placeholder="Notas sobre el contrato/soporte (opcional)" value={notes} onChange={e => onChangeNotes(e.target.value)} />}
-    </div>
-  )
-}
-
-function StepIndicator({ step }) {
-  return (
-    <div className="flex items-center gap-3 mb-6">
-      {[1, 2].map(n => (
-        <div key={n} className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-semibold transition"
-            style={step >= n ? { background: 'var(--primary)', color: '#fff' } : { background: 'var(--surface-soft)', color: 'var(--muted)' }}>{n}</div>
-          <span className="text-[12px]" style={{ color: step >= n ? 'var(--text)' : 'var(--muted)' }}>
-            {n === 1 ? 'Tipo jurídico' : 'Productos'}
-          </span>
-          {n < 2 && <div className="h-px w-8" style={{ background: 'var(--border)' }} />}
-        </div>
+  const ProvinceSelect = ({ value, onChange }) => (
+    <select value={value} onChange={(e) => onChange(e.target.value)} className={inputCls}>
+      <option value="">Selecciona provincia…</option>
+      {provinces.map((p) => (
+        <option key={p.code} value={p.label}>{p.label}</option>
       ))}
-    </div>
-  )
-}
+    </select>
+  );
 
-// ---------------------------------------------------------------------------
-// STEP 1
-// ---------------------------------------------------------------------------
-function Step1({ data, onChange }) {
-  const types = data.legal_type || []
+  const CitySelect = ({ towns, value, onChange }) => (
+    <select value={value} onChange={(e) => onChange(e.target.value)} className={inputCls} disabled={!towns.length}>
+      <option value="">{towns.length ? 'Selecciona población…' : 'Elige provincia primero'}</option>
+      {towns.map((t) => (
+        <option key={t} value={t}>{t}</option>
+      ))}
+    </select>
+  );
 
-  function toggleType(t) {
-    let next
-    if (types.includes(t)) { next = types.filter(x => x !== t) }
-    else if (t === 'autonomo') next = [...types.filter(x => x !== 'cb'), 'autonomo']
-    else if (t === 'cb')      next = [...types.filter(x => x !== 'autonomo'), 'cb']
-    else next = [...types, t]
-    onChange({ ...data, legal_type: next })
-  }
-
-  function set(field, val) { onChange({ ...data, [field]: val }) }
-  function setOwner(i, field, val) {
-    const owners = [...(data.cb_owners || [{ name:'', nif:'', collegiate_number:'' }, { name:'', nif:'', collegiate_number:'' }])]
-    owners[i] = { ...owners[i], [field]: val }
-    onChange({ ...data, cb_owners: owners })
-  }
-  function addOwner() { onChange({ ...data, cb_owners: [...(data.cb_owners||[]), { name:'', nif:'', collegiate_number:'' }] }) }
-  function removeOwner(i) {
-    const owners = [...(data.cb_owners||[])]
-    if (owners.length <= 2) return
-    owners.splice(i, 1)
-    onChange({ ...data, cb_owners: owners })
-  }
-
-  const cbOwners = data.cb_owners || [{ name:'', nif:'', collegiate_number:'' }, { name:'', nif:'', collegiate_number:'' }]
-  const hasAuto = types.includes('autonomo')
-  const hasCB   = types.includes('cb')
-  const hasSL   = types.includes('sl')
-
-  return (
+  // ── STEP 1 ────────────────────────────────────────────────
+  const renderStep1 = () => (
     <div className="space-y-6">
-      {/* Type selector */}
+      {/* Tipo jurídico */}
       <div>
-        <label className="mb-2 block text-[13px] font-semibold" style={{ color: 'var(--text)' }}>Tipo jurídico</label>
-        <p className="mb-3 text-[12px]" style={{ color: 'var(--muted)' }}>Autónomo y C.B. son mutuamente excluyentes. S.L. puede complementar a cualquiera.</p>
-        <div className="flex flex-wrap gap-2">
-          {[['autonomo','Autónomo'],['cb','C.B.'],['sl','S.L.']].map(([val, lbl]) => (
-            <button key={val} type="button" onClick={() => toggleType(val)}
-              className="rounded-xl border px-4 py-2 text-[13px] font-medium transition"
-              style={types.includes(val)
-                ? { background: 'var(--primary)', color: '#fff', borderColor: 'var(--primary)' }
-                : { background: 'var(--surface)', color: 'var(--text-soft)', borderColor: 'var(--border)' }
-              }>{lbl}</button>
+        <p className={labelCls}>Tipo jurídico</p>
+        <div className="flex gap-2">
+          {[['autonomo', 'Autónomo'], ['cb', 'C.B.'], ['sl', 'S.L.']].map(([val, lbl]) => (
+            <button
+              key={val}
+              type="button"
+              onClick={() => setLegalType(val)}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                legalType === val
+                  ? 'bg-teal-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {lbl}
+            </button>
           ))}
         </div>
       </div>
 
-      {/* Autónomo */}
-      {hasAuto && (
-        <fieldset className="rounded-xl p-4 space-y-4" style={{ border: '1px solid var(--border)' }}>
-          <legend className="px-2 text-[12px] font-semibold uppercase tracking-wider" style={{ color: 'var(--primary)' }}>Autónomo</legend>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Nombre del titular" required><Input value={data.pharmacist_owner||''} onChange={e=>set('pharmacist_owner',e.target.value)} /></Field>
-            <Field label="NIF"><Input value={data.nif_cif||''} onChange={e=>set('nif_cif',e.target.value)} /></Field>
-            <Field label="Nº Colegiado"><Input value={data.collegiate_number||''} onChange={e=>set('collegiate_number',e.target.value)} /></Field>
-            <Field label="SOE"><Input value={data.soe_number||''} onChange={e=>set('soe_number',e.target.value)} /></Field>
-            <Field label="Teléfono farmacia"><Input type="tel" value={data.contact_phone||''} onChange={e=>set('contact_phone',e.target.value)} /></Field>
-            <Field label="Email farmacia"><Input type="email" value={data.contact_email||''} onChange={e=>set('contact_email',e.target.value)} /></Field>
-            <Field label="Dirección"><Input value={data.address||''} onChange={e=>set('address',e.target.value)} /></Field>
-            <Field label="Provincia">
-              <Sel value={data.province||''} onChange={e=>set('province',e.target.value)}>
-                <option value="">Seleccionar...</option>
-                {PROVINCES_AN.map(p=><option key={p} value={p}>{p}</option>)}
-              </Sel>
+      {/* Nombre farmacia — siempre visible */}
+      <Field label="Nombre de la farmacia *">
+        <input
+          className={inputCls}
+          value={legalType === 'autonomo' ? autonomo.pharmacy_name : legalType === 'cb' ? cb.pharmacy_name : sl.pharmacy_name}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (legalType === 'autonomo') setAutonomo((p) => ({ ...p, pharmacy_name: v }));
+            else if (legalType === 'cb')  setCb((p) => ({ ...p, pharmacy_name: v }));
+            else                           setSl((p) => ({ ...p, pharmacy_name: v }));
+          }}
+          placeholder="Farmacia Ejemplo"
+        />
+      </Field>
+
+      {/* ── AUTÓNOMO ── */}
+      {legalType === 'autonomo' && (
+        <div className={sectionCls}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Titular *">
+              <input className={inputCls} value={autonomo.owner_name} onChange={(e) => setAutonomo((p) => ({ ...p, owner_name: e.target.value }))} placeholder="Nombre completo" />
             </Field>
-            <Field label="Población"><Input value={data.city||''} onChange={e=>set('city',e.target.value)} /></Field>
-            <Field label="C.P."><Input value={data.postal_code||''} onChange={e=>set('postal_code',e.target.value)} /></Field>
-            <Field label="Horario"><Input value={data.schedule||''} onChange={e=>set('schedule',e.target.value)} /></Field>
-            <Field label="Guardias">
-              <Sel value={data.has_guards?'si':'no'} onChange={e=>set('has_guards',e.target.value==='si')}>
-                <option value="no">NO</option><option value="si">SI</option>
-              </Sel>
+            <Field label="NIF">
+              <input className={inputCls} value={autonomo.nif} onChange={(e) => setAutonomo((p) => ({ ...p, nif: e.target.value }))} placeholder="12345678A" />
+            </Field>
+            <Field label="Nº Colegiado">
+              <input className={inputCls} value={autonomo.colegiado} onChange={(e) => setAutonomo((p) => ({ ...p, colegiado: e.target.value }))} />
+            </Field>
+            <Field label="SOE">
+              <input className={inputCls} value={autonomo.soe} onChange={(e) => setAutonomo((p) => ({ ...p, soe: e.target.value }))} />
+            </Field>
+            <Field label="Teléfono">
+              <input className={inputCls} value={autonomo.phone} onChange={(e) => setAutonomo((p) => ({ ...p, phone: e.target.value }))} />
+            </Field>
+            <Field label="Email">
+              <input className={inputCls} value={autonomo.email} onChange={(e) => setAutonomo((p) => ({ ...p, email: e.target.value }))} type="email" />
             </Field>
           </div>
-          <Field label="Observaciones"><Textarea value={data.observations||''} onChange={e=>set('observations',e.target.value)} /></Field>
-        </fieldset>
+          <Field label="Dirección">
+            <input className={inputCls} value={autonomo.address} onChange={(e) => setAutonomo((p) => ({ ...p, address: e.target.value }))} />
+          </Field>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Field label="Provincia">
+              <ProvinceSelect
+                value={autonomo.province}
+                onChange={(v) => setAutonomo((p) => ({ ...p, province: v, city: '' }))}
+              />
+            </Field>
+            <Field label="Población">
+              <CitySelect
+                towns={townsAuto}
+                value={autonomo.city}
+                onChange={(v) => setAutonomo((p) => ({ ...p, city: v }))}
+              />
+            </Field>
+            <Field label="C.P.">
+              <input className={inputCls} value={autonomo.postal_code} onChange={(e) => setAutonomo((p) => ({ ...p, postal_code: e.target.value }))} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Horario">
+              <input className={inputCls} value={autonomo.schedule} onChange={(e) => setAutonomo((p) => ({ ...p, schedule: e.target.value }))} />
+            </Field>
+            <Field label="Guardias">
+              <input className={inputCls} value={autonomo.guards} onChange={(e) => setAutonomo((p) => ({ ...p, guards: e.target.value }))} />
+            </Field>
+          </div>
+          <Field label="Observaciones">
+            <textarea rows={3} className={inputCls} value={autonomo.notes} onChange={(e) => setAutonomo((p) => ({ ...p, notes: e.target.value }))} />
+          </Field>
+        </div>
       )}
 
-      {/* C.B. */}
-      {hasCB && (
-        <fieldset className="rounded-xl p-4 space-y-4" style={{ border: '1px solid var(--border)' }}>
-          <legend className="px-2 text-[12px] font-semibold uppercase tracking-wider" style={{ color: 'var(--primary)' }}>Comunidad de Bienes</legend>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Razón social" required><Input value={data.name||''} onChange={e=>set('name',e.target.value)} /></Field>
-            <Field label="CIF"><Input value={data.nif_cif||''} onChange={e=>set('nif_cif',e.target.value)} /></Field>
-            <Field label="Teléfono"><Input type="tel" value={data.contact_phone||''} onChange={e=>set('contact_phone',e.target.value)} /></Field>
-            <Field label="Email"><Input type="email" value={data.contact_email||''} onChange={e=>set('contact_email',e.target.value)} /></Field>
-            <Field label="Dirección"><Input value={data.address||''} onChange={e=>set('address',e.target.value)} /></Field>
-            <Field label="Provincia">
-              <Sel value={data.province||''} onChange={e=>set('province',e.target.value)}>
-                <option value="">Seleccionar...</option>
-                {PROVINCES_AN.map(p=><option key={p} value={p}>{p}</option>)}
-              </Sel>
+      {/* ── C.B. ── */}
+      {legalType === 'cb' && (
+        <div className={sectionCls}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Razón social">
+              <input className={inputCls} value={cb.razon_social} onChange={(e) => setCb((p) => ({ ...p, razon_social: e.target.value }))} />
             </Field>
-            <Field label="Población"><Input value={data.city||''} onChange={e=>set('city',e.target.value)} /></Field>
-            <Field label="SOE"><Input value={data.soe_number||''} onChange={e=>set('soe_number',e.target.value)} /></Field>
+            <Field label="CIF">
+              <input className={inputCls} value={cb.cif} onChange={(e) => setCb((p) => ({ ...p, cif: e.target.value }))} />
+            </Field>
+            <Field label="Teléfono">
+              <input className={inputCls} value={cb.phone} onChange={(e) => setCb((p) => ({ ...p, phone: e.target.value }))} />
+            </Field>
+            <Field label="Email">
+              <input className={inputCls} value={cb.email} onChange={(e) => setCb((p) => ({ ...p, email: e.target.value }))} type="email" />
+            </Field>
           </div>
+          <Field label="Dirección">
+            <input className={inputCls} value={cb.address} onChange={(e) => setCb((p) => ({ ...p, address: e.target.value }))} />
+          </Field>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Field label="Provincia">
+              <ProvinceSelect
+                value={cb.province}
+                onChange={(v) => setCb((p) => ({ ...p, province: v, city: '' }))}
+              />
+            </Field>
+            <Field label="Población">
+              <CitySelect
+                towns={townsCb}
+                value={cb.city}
+                onChange={(v) => setCb((p) => ({ ...p, city: v }))}
+              />
+            </Field>
+            <Field label="C.P.">
+              <input className={inputCls} value={cb.postal_code} onChange={(e) => setCb((p) => ({ ...p, postal_code: e.target.value }))} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="SOE">
+              <input className={inputCls} value={cb.soe} onChange={(e) => setCb((p) => ({ ...p, soe: e.target.value }))} />
+            </Field>
+            <Field label="Horario">
+              <input className={inputCls} value={cb.schedule} onChange={(e) => setCb((p) => ({ ...p, schedule: e.target.value }))} />
+            </Field>
+            <Field label="Guardias">
+              <input className={inputCls} value={cb.guards} onChange={(e) => setCb((p) => ({ ...p, guards: e.target.value }))} />
+            </Field>
+          </div>
+          {/* Titulares */}
           <div>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-[12px] font-semibold" style={{ color: 'var(--text)' }}>Titulares (mín. 2)</span>
-              <button type="button" onClick={addOwner} className="text-[12px] font-medium hover:underline" style={{ color: 'var(--primary)' }}>+ Añadir titular</button>
-            </div>
-            <div className="space-y-3">
-              {cbOwners.map((owner, i) => (
-                <div key={i} className="rounded-lg p-3 space-y-2" style={{ background: 'var(--surface-soft)' }}>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[12px] font-medium" style={{ color: 'var(--muted)' }}>Titular {i+1}</span>
-                    {i >= 2 && <button type="button" onClick={() => removeOwner(i)} className="text-[11px]" style={{ color: 'var(--badge-red-text)' }}>Eliminar</button>}
+            <p className="text-xs font-semibold text-gray-700 mb-2">Titulares de la C.B.</p>
+            {cb.owners.map((owner, i) => (
+              <div key={i} className="border border-gray-200 rounded-lg p-3 mb-2">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-gray-500">Titular {i + 1}</span>
+                  {cb.owners.length > 1 && (
+                    <button type="button" onClick={() => removeCbOwner(i)} className="text-red-400 hover:text-red-600 text-xs">Eliminar</button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className={labelCls}>Nombre</label>
+                    <input className={inputCls} value={owner.name} onChange={(e) => updateCbOwner(i, 'name', e.target.value)} />
                   </div>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                    <Field label="Nombre"><Input value={owner.name||''} onChange={e=>setOwner(i,'name',e.target.value)} /></Field>
-                    <Field label="NIF"><Input value={owner.nif||''} onChange={e=>setOwner(i,'nif',e.target.value)} /></Field>
-                    <Field label="Nº Colegiado"><Input value={owner.collegiate_number||''} onChange={e=>setOwner(i,'collegiate_number',e.target.value)} /></Field>
+                  <div>
+                    <label className={labelCls}>NIF</label>
+                    <input className={inputCls} value={owner.nif} onChange={(e) => updateCbOwner(i, 'nif', e.target.value)} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Nº Colegiado</label>
+                    <input className={inputCls} value={owner.colegiado} onChange={(e) => updateCbOwner(i, 'colegiado', e.target.value)} />
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-          <Field label="Observaciones"><Textarea value={data.observations||''} onChange={e=>set('observations',e.target.value)} /></Field>
-        </fieldset>
-      )}
-
-      {/* S.L. */}
-      {hasSL && (
-        <fieldset className="rounded-xl p-4 space-y-4" style={{ border: '1px solid var(--border)' }}>
-          <legend className="px-2 text-[12px] font-semibold uppercase tracking-wider" style={{ color: 'var(--primary)' }}>Sociedad Limitada</legend>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Razón social" required><Input value={data.sl_name||''} onChange={e=>set('sl_name',e.target.value)} /></Field>
-            <Field label="CIF"><Input value={data.sl_cif||''} onChange={e=>set('sl_cif',e.target.value)} /></Field>
-            <Field label="Teléfono S.L."><Input type="tel" value={data.sl_phone||''} onChange={e=>set('sl_phone',e.target.value)} /></Field>
-            <Field label="Email S.L."><Input type="email" value={data.sl_email||''} onChange={e=>set('sl_email',e.target.value)} /></Field>
-          </div>
-        </fieldset>
-      )}
-
-      {/* Nombre farmacia — siempre visible */}
-      <Field label="Nombre de la farmacia" required>
-        <Input value={data.pharmacy_name||''} onChange={e=>set('pharmacy_name',e.target.value)} placeholder="Farmacia San Juan" />
-      </Field>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// STEP 2
-// ---------------------------------------------------------------------------
-function Step2({ products, onChange }) {
-  function set(cat, field, val) { onChange({ ...products, [cat]: { ...(products[cat]||{}), [field]: val } }) }
-  function get(cat, field, def = '') { return products[cat]?.[field] ?? def }
-
-  return (
-    <div className="space-y-6">
-
-      <ProductSection title="ERP">
-        <Field label="Sistema ERP">
-          <Sel value={get('erp','brand')} onChange={e => set('erp','brand',e.target.value)}>
-            <option value="">Seleccionar...</option>
-            {ERP_BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
-          </Sel>
-        </Field>
-        {get('erp','brand') === 'Nixfarma' && (
-          <VitekaToggle value={get('erp','viteka_support')} notes={get('erp','viteka_notes')}
-            onChangeValue={v=>set('erp','viteka_support',v)} onChangeNotes={v=>set('erp','viteka_notes',v)} />
-        )}
-        {get('erp','brand') && get('erp','brand') !== 'Nixfarma' && (
-          <SatisfactionField value={get('erp','satisfaction',null)} onChange={v=>set('erp','satisfaction',v)} />
-        )}
-        {get('erp','brand') === 'Nixfarma' && get('erp','viteka_support') === 'NO' && (
-          <SatisfactionField value={get('erp','satisfaction',null)} onChange={v=>set('erp','satisfaction',v)} />
-        )}
-      </ProductSection>
-
-      <ProductSection title="Caja de cobro">
-        <Field label="Marca">
-          <Sel value={get('caja_cobro','brand')} onChange={e=>{set('caja_cobro','brand',e.target.value);set('caja_cobro','model','')}}>
-            <option value="">Seleccionar...</option>
-            {CASH_BRANDS.map(b=><option key={b} value={b}>{b}</option>)}
-          </Sel>
-        </Field>
-        {get('caja_cobro','brand') && get('caja_cobro','brand') !== 'NO' && (
-          <>
-            {CASH_MODELS[get('caja_cobro','brand')] && (
-              <Field label="Modelo">
-                <Sel value={get('caja_cobro','model')} onChange={e=>set('caja_cobro','model',e.target.value)}>
-                  <option value="">Seleccionar...</option>
-                  {CASH_MODELS[get('caja_cobro','brand')].map(m=><option key={m} value={m}>{m}</option>)}
-                </Sel>
-              </Field>
-            )}
-            <Field label="Año">
-              <Sel value={get('caja_cobro','install_year')} onChange={e=>set('caja_cobro','install_year',e.target.value)}>
-                <option value="">Seleccionar...</option>
-                {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
-              </Sel>
-            </Field>
-            {get('caja_cobro','brand') === 'Cashlogy' && (
-              <VitekaToggle value={get('caja_cobro','viteka_support')} notes={get('caja_cobro','viteka_notes')}
-                onChangeValue={v=>set('caja_cobro','viteka_support',v)} onChangeNotes={v=>set('caja_cobro','viteka_notes',v)} />
-            )}
-            {(get('caja_cobro','brand') !== 'Cashlogy' || get('caja_cobro','viteka_support') === 'NO') && (
-              <SatisfactionField value={get('caja_cobro','satisfaction',null)} onChange={v=>set('caja_cobro','satisfaction',v)} />
-            )}
-          </>
-        )}
-      </ProductSection>
-
-      <ProductSection title="Etiquetas electrónicas">
-        <Field label="Marca">
-          <Sel value={get('etiquetas','brand')} onChange={e=>set('etiquetas','brand',e.target.value)}>
-            <option value="">Seleccionar...</option>
-            {ESL_BRANDS.map(b=><option key={b} value={b}>{b}</option>)}
-          </Sel>
-        </Field>
-        {get('etiquetas','brand') && get('etiquetas','brand') !== 'NO' && (
-          <>
-            <Field label="Año">
-              <Sel value={get('etiquetas','install_year')} onChange={e=>set('etiquetas','install_year',e.target.value)}>
-                <option value="">Seleccionar...</option>
-                {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
-              </Sel>
-            </Field>
-            {['Hanshow','Pricer'].includes(get('etiquetas','brand')) && (
-              <VitekaToggle value={get('etiquetas','viteka_support')} notes={get('etiquetas','viteka_notes')}
-                onChangeValue={v=>set('etiquetas','viteka_support',v)} onChangeNotes={v=>set('etiquetas','viteka_notes',v)} />
-            )}
-            {(!['Hanshow','Pricer'].includes(get('etiquetas','brand')) || get('etiquetas','viteka_support') === 'NO') && (
-              <SatisfactionField value={get('etiquetas','satisfaction',null)} onChange={v=>set('etiquetas','satisfaction',v)} />
-            )}
-          </>
-        )}
-      </ProductSection>
-
-      <ProductSection title="Báscula">
-        <Field label="Marca">
-          <Sel value={get('basculas','brand')} onChange={e=>set('basculas','brand',e.target.value)}>
-            <option value="">Seleccionar...</option>
-            {SCALE_BRANDS.map(b=><option key={b} value={b}>{b}</option>)}
-          </Sel>
-        </Field>
-        {get('basculas','brand') && get('basculas','brand') !== 'NO' && (
-          <>
-            <Field label="Año">
-              <Sel value={get('basculas','install_year')} onChange={e=>set('basculas','install_year',e.target.value)}>
-                <option value="">Seleccionar...</option>
-                {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
-              </Sel>
-            </Field>
-            {get('basculas','brand') === 'Pondus' && (
-              <VitekaToggle value={get('basculas','viteka_support')} notes={get('basculas','viteka_notes')}
-                onChangeValue={v=>set('basculas','viteka_support',v)} onChangeNotes={v=>set('basculas','viteka_notes',v)} />
-            )}
-          </>
-        )}
-      </ProductSection>
-
-      <ProductSection title="Arcos antihurto">
-        <Field label="Marca">
-          <Sel value={get('antihurto','brand')} onChange={e=>set('antihurto','brand',e.target.value)}>
-            <option value="">Seleccionar...</option>
-            {['Checkpoint','Otro'].map(b=><option key={b} value={b}>{b}</option>)}
-          </Sel>
-        </Field>
-        {get('antihurto','brand') && (
-          <Field label="Año">
-            <Sel value={get('antihurto','install_year')} onChange={e=>set('antihurto','install_year',e.target.value)}>
-              <option value="">Seleccionar...</option>
-              {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
-            </Sel>
-          </Field>
-        )}
-      </ProductSection>
-
-      <ProductSection title="Consultoría">
-        <Field label="Servicio">
-          <Sel value={get('consultoria','brand')} onChange={e=>set('consultoria','brand',e.target.value)}>
-            <option value="">Seleccionar...</option>
-            {CONSULT_OPTIONS.map(b=><option key={b} value={b}>{b}</option>)}
-          </Sel>
-        </Field>
-        {get('consultoria','brand') && get('consultoria','brand') !== 'NO' && (
-          <>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Mes">
-                <Sel value={get('consultoria','install_month')} onChange={e=>set('consultoria','install_month',e.target.value)}>
-                  <option value="">Mes...</option>
-                  {MONTHS.map((m,i)=><option key={i} value={i+1}>{m}</option>)}
-                </Sel>
-              </Field>
-              <Field label="Año">
-                <Sel value={get('consultoria','install_year')} onChange={e=>set('consultoria','install_year',e.target.value)}>
-                  <option value="">Año...</option>
-                  {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
-                </Sel>
-              </Field>
-            </div>
-            {!get('consultoria','brand').toLowerCase().includes('viteka') && (
-              <SatisfactionField value={get('consultoria','satisfaction',null)} onChange={v=>set('consultoria','satisfaction',v)} />
-            )}
-          </>
-        )}
-      </ProductSection>
-
-      <ProductSection title="Equipos informáticos">
-        <Field label="Proveedor">
-          <Sel value={get('equipos','brand')} onChange={e=>set('equipos','brand',e.target.value)}>
-            <option value="">Seleccionar...</option>
-            {['Viteka','Otros'].map(b=><option key={b} value={b}>{b}</option>)}
-          </Sel>
-        </Field>
-        {get('equipos','brand') && (
-          <>
-            <p className="text-[12px] rounded-lg px-3 py-2" style={{ background: 'var(--surface-soft)', color: 'var(--text-soft)' }}>
-              {get('equipos','brand') === 'Viteka'
-                ? 'Se podrán gestionar garantías y seguimiento desde la página de la farmacia.'
-                : 'Se registrará la infraestructura existente para planificación de sustitución.'}
-            </p>
-            <Field label="Equipamiento instalado">
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-3 mt-1">
-                {EQUIPO_ITEMS.map(item => {
-                  const selected = (get('equipos','items')||[]).includes(item)
-                  return (
-                    <label key={item}
-                      className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition select-none"
-                      style={selected ? { background: 'var(--primary-soft, rgba(0,86,67,0.08))', color: 'var(--primary)' } : { color: 'var(--text-soft)' }}>
-                      <input type="checkbox"
-                        className="h-3.5 w-3.5 accent-[var(--primary)] shrink-0"
-                        checked={selected}
-                        onChange={() => {
-                          const prev = get('equipos','items') || []
-                          set('equipos','items', selected ? prev.filter(i=>i!==item) : [...prev,item])
-                        }} />
-                      <span className="text-[12px] leading-tight">{item}</span>
-                    </label>
-                  )
-                })}
               </div>
-            </Field>
-            <Field label="Notas equipos">
-              <Input placeholder="Nº unidades, marcas específicas..." value={get('equipos','notes')} onChange={e=>set('equipos','notes',e.target.value)} />
-            </Field>
-          </>
-        )}
-      </ProductSection>
-
-      <ProductSection title="Robot dispensador">
-        <Field label="Marca">
-          <Sel value={get('robot','brand')} onChange={e=>set('robot','brand',e.target.value)}>
-            <option value="">Seleccionar...</option>
-            {ROBOT_BRANDS.map(b=><option key={b} value={b}>{b}</option>)}
-          </Sel>
-        </Field>
-        {get('robot','brand') && get('robot','brand') !== 'NO' && (
-          <Field label="Año">
-            <Sel value={get('robot','install_year')} onChange={e=>set('robot','install_year',e.target.value)}>
-              <option value="">Seleccionar...</option>
-              {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
-            </Sel>
-          </Field>
-        )}
-      </ProductSection>
-
-      <ProductSection title="Cruz">
-        <Field label="Estado">
-          <Sel value={get('cruz','brand')} onChange={e=>set('cruz','brand',e.target.value)}>
-            <option value="">Seleccionar...</option>
-            {['SI','NO','Puede ampliar'].map(b=><option key={b} value={b}>{b}</option>)}
-          </Sel>
-        </Field>
-      </ProductSection>
-
-      <ProductSection title="Gestor de turnos">
-        <Field label="¿Tiene gestor?">
-          <Sel value={get('turnos','has')} onChange={e=>set('turnos','has',e.target.value)}>
-            <option value="">Seleccionar...</option>
-            <option value="SI">SI</option><option value="NO">NO</option>
-          </Sel>
-        </Field>
-        {get('turnos','has') === 'SI' && (
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Marca"><Input value={get('turnos','brand')} onChange={e=>set('turnos','brand',e.target.value)} /></Field>
-            <Field label="Año">
-              <Sel value={get('turnos','install_year')} onChange={e=>set('turnos','install_year',e.target.value)}>
-                <option value="">Seleccionar...</option>
-                {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
-              </Sel>
-            </Field>
+            ))}
+            <button type="button" onClick={addCbOwner} className="text-teal-600 hover:text-teal-800 text-sm font-medium">+ Añadir titular</button>
           </div>
-        )}
-      </ProductSection>
-
-      <ProductSection title="SPD">
-        <Field label="¿Tiene SPD?">
-          <Sel value={get('spd','has')} onChange={e=>set('spd','has',e.target.value)}>
-            <option value="">Seleccionar...</option>
-            <option value="SI">SI</option><option value="NO">NO</option>
-          </Sel>
-        </Field>
-        {get('spd','has') === 'SI' && (
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Marca"><Input value={get('spd','brand')} onChange={e=>set('spd','brand',e.target.value)} /></Field>
-            <Field label="Año">
-              <Sel value={get('spd','install_year')} onChange={e=>set('spd','install_year',e.target.value)}>
-                <option value="">Seleccionar...</option>
-                {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
-              </Sel>
-            </Field>
-          </div>
-        )}
-      </ProductSection>
-
-      <ProductSection title="Pantallas">
-        <Field label="¿Tiene pantallas?">
-          <Sel value={get('pantallas','has')} onChange={e=>set('pantallas','has',e.target.value)}>
-            <option value="">Seleccionar...</option>
-            <option value="SI">SI</option><option value="NO">NO</option>
-          </Sel>
-        </Field>
-        {get('pantallas','has') === 'SI' && (
-          <>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Marca"><Input value={get('pantallas','brand')} onChange={e=>set('pantallas','brand',e.target.value)} /></Field>
-              <Field label="Año">
-                <Sel value={get('pantallas','install_year')} onChange={e=>set('pantallas','install_year',e.target.value)}>
-                  <option value="">Seleccionar...</option>
-                  {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
-                </Sel>
-              </Field>
-            </div>
-            <Field label="Ubicación">
-              <div className="flex flex-wrap gap-2">
-                {['Interior','Escaparate','Exterior'].map(loc => {
-                  const locs = get('pantallas','locations') || []
-                  const active = locs.includes(loc)
-                  return (
-                    <button key={loc} type="button"
-                      onClick={() => set('pantallas','locations', active ? locs.filter(l=>l!==loc) : [...locs,loc])}
-                      className="rounded-lg px-3 py-1.5 text-[12px] font-medium transition"
-                      style={active ? { background: 'var(--primary)', color: '#fff' } : { background: 'var(--surface-soft)', color: 'var(--text-soft)' }}>{loc}</button>
-                  )
-                })}
-              </div>
-            </Field>
-          </>
-        )}
-      </ProductSection>
-
-      <ProductSection title="Frigorífico">
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Marca"><Input value={get('frigorifico','brand')} onChange={e=>set('frigorifico','brand',e.target.value)} /></Field>
-          <Field label="Año">
-            <Sel value={get('frigorifico','install_year')} onChange={e=>set('frigorifico','install_year',e.target.value)}>
-              <option value="">Seleccionar...</option>
-              {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
-            </Sel>
+          <Field label="Observaciones">
+            <textarea rows={3} className={inputCls} value={cb.notes} onChange={(e) => setCb((p) => ({ ...p, notes: e.target.value }))} />
           </Field>
         </div>
-      </ProductSection>
+      )}
 
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// ProductSection
-// ---------------------------------------------------------------------------
-function ProductSection({ title, children }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className="rounded-xl" style={{ border: '1px solid var(--border)' }}>
-      <button type="button" onClick={() => setOpen(o => !o)}
-        className="flex w-full items-center justify-between px-4 py-3 text-left">
-        <span className="text-[13px] font-semibold" style={{ color: 'var(--text)' }}>{title}</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-          strokeLinecap="round" strokeLinejoin="round" className="transition-transform"
-          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', color: 'var(--muted)' }}>
-          <polyline points="6 9 12 15 18 9"/>
-        </svg>
-      </button>
-      {open && (
-        <div className="space-y-4 border-t px-4 pb-4 pt-4" style={{ borderColor: 'var(--border)' }}>
-          {children}
+      {/* ── S.L. ── */}
+      {legalType === 'sl' && (
+        <div className={sectionCls}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Razón social">
+              <input className={inputCls} value={sl.razon_social} onChange={(e) => setSl((p) => ({ ...p, razon_social: e.target.value }))} />
+            </Field>
+            <Field label="CIF">
+              <input className={inputCls} value={sl.cif} onChange={(e) => setSl((p) => ({ ...p, cif: e.target.value }))} />
+            </Field>
+            <Field label="Teléfono">
+              <input className={inputCls} value={sl.phone} onChange={(e) => setSl((p) => ({ ...p, phone: e.target.value }))} />
+            </Field>
+            <Field label="Email">
+              <input className={inputCls} value={sl.email} onChange={(e) => setSl((p) => ({ ...p, email: e.target.value }))} type="email" />
+            </Field>
+          </div>
         </div>
       )}
     </div>
-  )
-}
+  );
 
-// ---------------------------------------------------------------------------
-// CreateClientModal
-// ---------------------------------------------------------------------------
-export default function CreateClientModal({ isOpen, onClose, onCreate }) {
-  const [step, setStep] = useState(1)
-  const [clientData, setClientData] = useState({
-    legal_type: [],
-    cb_owners: [{ name:'', nif:'', collegiate_number:'' }, { name:'', nif:'', collegiate_number:'' }],
-  })
-  const [products, setProducts] = useState({})
-  const [saving, setSaving] = useState(false)
-
-  if (!isOpen) return null
-
-  function validateStep1() {
-    if (!clientData.legal_type?.length) return 'Selecciona al menos un tipo jurídico.'
-    if (!clientData.pharmacy_name?.trim()) return 'El nombre de la farmacia es obligatorio.'
-    return null
-  }
-
-  async function handleSave() {
-    setSaving(true)
-    try {
-      // Enviamos el payload plano: campos del cliente + products como clave separada
-      await onCreate({ ...clientData, products })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-[300] flex items-start justify-center overflow-y-auto p-4 pt-8"
-      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
-      <div className="relative w-full max-w-2xl rounded-2xl shadow-2xl"
-        style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-
-        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: 'var(--border)' }}>
-          <h2 className="text-[16px] font-semibold" style={{ color: 'var(--text)' }}>Nueva farmacia</h2>
-          <button type="button" onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:opacity-70"
-            style={{ background: 'var(--surface-soft)', color: 'var(--muted)' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
+  // ── STEP 2 ────────────────────────────────────────────────
+  const renderStep2 = () => (
+    <div className="space-y-3">
+      {PRODUCT_CATEGORIES.map(({ label, key, options }) => (
+        <div key={key} className="border border-gray-200 rounded-lg overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleExpanded(key)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={products[key].active}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  setProducts((prev) => ({ ...prev, [key]: { ...prev[key], active: e.target.checked } }));
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-4 h-4 accent-teal-600"
+              />
+              <span className="text-sm font-medium text-gray-700">{label}</span>
+            </div>
+            <svg className={`w-4 h-4 text-gray-400 transition-transform ${expanded[key] ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
           </button>
-        </div>
-
-        <div className="max-h-[70vh] overflow-y-auto px-6 py-5">
-          <StepIndicator step={step} />
-          {step === 1
-            ? <Step1 data={clientData} onChange={setClientData} />
-            : <Step2 products={products} onChange={setProducts} />
-          }
-        </div>
-
-        <div className="flex items-center justify-between border-t px-6 py-4" style={{ borderColor: 'var(--border)' }}>
-          <button type="button"
-            onClick={step === 1 ? onClose : () => setStep(1)}
-            className="rounded-xl px-4 py-2 text-[13px] font-medium transition hover:opacity-80"
-            style={{ background: 'var(--surface-soft)', color: 'var(--text-soft)' }}>
-            {step === 1 ? 'Cancelar' : '← Anterior'}
-          </button>
-          {step === 1 ? (
-            <button type="button"
-              onClick={() => { const e = validateStep1(); if (e) { alert(e); return } setStep(2) }}
-              className="btn-primary px-5 py-2 text-[13px]">Siguiente →</button>
-          ) : (
-            <button type="button" onClick={handleSave} disabled={saving}
-              className="btn-primary px-5 py-2 text-[13px] disabled:opacity-60">
-              {saving ? 'Guardando...' : 'Guardar farmacia'}
-            </button>
+          {expanded[key] && (
+            <div className="px-4 py-3 bg-white">
+              <label className={labelCls}>Marca / Modelo</label>
+              <select
+                className={inputCls}
+                value={products[key].brand}
+                onChange={(e) => setProducts((prev) => ({ ...prev, [key]: { ...prev[key], brand: e.target.value } }))}
+              >
+                <option value="">Seleccionar…</option>
+                {options.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
           )}
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Nueva Farmacia</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{STEP_LABELS[step - 1]}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        {/* Step indicators */}
+        <div className="flex items-center px-6 py-3 gap-2">
+          {[1, 2].map((s) => (
+            <div key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${s <= step ? 'bg-teal-500' : 'bg-gray-200'}`} />
+          ))}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {step === 1 ? renderStep1() : renderStep2()}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
+          <button
+            type="button"
+            onClick={step === 1 ? onClose : () => setStep(1)}
+            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+          >
+            {step === 1 ? 'Cancelar' : 'Atrás'}
+          </button>
+          <button
+            type="button"
+            onClick={step === 1 ? () => setStep(2) : handleSubmit}
+            className="px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            {step === 1 ? 'Siguiente' : 'Guardar farmacia'}
+          </button>
         </div>
       </div>
     </div>
-  )
+  );
 }
