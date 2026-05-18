@@ -2,25 +2,65 @@ import { useState, useEffect } from 'react';
 import { useSpanishLocations } from '../../hooks/useSpanishLocations';
 
 const PRODUCT_CATEGORIES = [
-  { label: 'ERP',                  key: 'erp',          options: ['Nixfarma', 'Farmatic', 'Unycop', 'Kroll', 'Farmatools', 'Otros'] },
-  { label: 'Caja de cobro',        key: 'caja',         options: ['Cashlogy', 'Glory', 'Crane', 'Suzohapp', 'Otros'] },
-  { label: 'Etiquetas electrónicas', key: 'etiquetas',  options: ['Hanshow', 'SES-imagotag', 'Pricer', 'Otros'] },
-  { label: 'Báscula',              key: 'bascula',      options: ['Epelsa', 'Radwag', 'Kern', 'Otros'] },
-  { label: 'Arcos antihurto',      key: 'arcos',        options: ['Checkpoint', 'Sensormatic', 'Otros'] },
-  { label: 'Consultoría',          key: 'consultoria',  options: ['Consultoría Viteka', 'Otros'] },
-  { label: 'Equipos informáticos', key: 'equipos',      options: ['Ordenadores', 'Periféricos', 'Servidores', 'Otros'] },
-  { label: 'Robot',                key: 'robot',        options: ['Rowa', 'BD Rowa', 'Apostore', 'Otros'] },
-  { label: 'Cruz',                 key: 'cruz',         options: ['Rótulos LED', 'Cruz luminosa', 'Otros'] },
-  { label: 'Turnos',               key: 'turnos',       options: ['Sistema de turnos', 'Otros'] },
-  { label: 'SPD',                  key: 'spd',          options: ['Sistema SPD', 'Otros'] },
-  { label: 'Pantallas',            key: 'pantallas',    options: ['Pantalla mostrador', 'Pantalla escaparate', 'Otros'] },
-  { label: 'Frigorífico',          key: 'frigorifico',  options: ['Frigorifico farmacia', 'Otros'] },
+  { label: 'ERP',                   key: 'erp',          options: ['Nixfarma', 'Farmatic', 'Unycop', 'Kroll', 'Farmatools', 'Otros'] },
+  { label: 'Caja de cobro',         key: 'caja',         options: ['Cashlogy', 'Glory', 'Crane', 'Suzohapp', 'Otros'] },
+  { label: 'Etiquetas electrónicas',key: 'etiquetas',    options: ['Hanshow', 'SES-imagotag', 'Pricer', 'Otros'] },
+  { label: 'Báscula',               key: 'bascula',      options: ['Epelsa', 'Radwag', 'Kern', 'Otros'] },
+  { label: 'Arcos antihurto',       key: 'arcos',        options: ['Checkpoint', 'Sensormatic', 'Otros'] },
+  { label: 'Consultoría',           key: 'consultoria',  options: ['Consultoría Viteka', 'Otros'] },
+  { label: 'Equipos informáticos',  key: 'equipos',      options: ['Ordenadores', 'Periféricos', 'Servidores', 'Otros'] },
+  { label: 'Robot',                 key: 'robot',        options: ['Rowa', 'BD Rowa', 'Apostore', 'Otros'] },
+  { label: 'Cruz',                  key: 'cruz',         options: ['Rótulos LED', 'Cruz luminosa', 'Otros'] },
+  { label: 'Turnos',                key: 'turnos',       options: ['Sistema de turnos', 'Otros'] },
+  { label: 'SPD',                   key: 'spd',          options: ['Sistema SPD', 'Otros'] },
+  { label: 'Pantallas',             key: 'pantallas',    options: ['Pantalla mostrador', 'Pantalla escaparate', 'Otros'] },
+  { label: 'Frigorífico',           key: 'frigorifico',  options: ['Frigorifico farmacia', 'Otros'] },
 ];
 
 const emptyProducts = () =>
   Object.fromEntries(PRODUCT_CATEGORIES.map((c) => [c.key, { active: false, brand: '' }]));
 
-export default function EditClientModal({ client, onClose, onSave }) {
+// ─────────────────────────────────────────────────────────────────────────────
+// Subcomponentes FUERA del componente padre
+// ─────────────────────────────────────────────────────────────────────────────
+const inputCls = 'w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-teal-500';
+const labelCls = 'block text-xs font-medium text-gray-600 mb-1';
+
+function Field({ label, children }) {
+  return (
+    <div>
+      <label className={labelCls}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function ProvinceSelect({ provinces, value, onChange }) {
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} className={inputCls}>
+      <option value="">Selecciona provincia…</option>
+      {provinces.map((p) => (
+        <option key={p.code + p.label} value={p.label}>{p.label}</option>
+      ))}
+    </select>
+  );
+}
+
+function CitySelect({ towns, value, onChange }) {
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} className={inputCls} disabled={!towns.length}>
+      <option value="">{towns.length ? 'Selecciona población…' : 'Elige provincia primero'}</option>
+      {towns.map((t) => (
+        <option key={t} value={t}>{t}</option>
+      ))}
+    </select>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Componente principal
+// ─────────────────────────────────────────────────────────────────────────────
+export default function EditClientModal({ isOpen, client, onClose, onSave }) {
   const [step, setStep] = useState(1);
   const [legalType, setLegalType] = useState('autonomo');
   const [expanded, setExpanded] = useState({});
@@ -28,14 +68,12 @@ export default function EditClientModal({ client, onClose, onSave }) {
 
   const { provinces, getTowns } = useSpanishLocations();
 
-  // ── Autónomo ──
   const [autonomo, setAutonomo] = useState({
     pharmacy_name: '', owner_name: '', nif: '', colegiado: '', soe: '',
     phone: '', email: '', address: '', province: '', city: '',
     postal_code: '', schedule: '', guards: '', notes: '',
   });
 
-  // ── C.B. ──
   const [cb, setCb] = useState({
     pharmacy_name: '', razon_social: '', cif: '', phone: '', email: '',
     address: '', province: '', city: '', postal_code: '', soe: '',
@@ -43,49 +81,47 @@ export default function EditClientModal({ client, onClose, onSave }) {
     owners: [{ name: '', nif: '', colegiado: '' }],
   });
 
-  // ── S.L. ──
   const [sl, setSl] = useState({
     pharmacy_name: '', razon_social: '', cif: '', phone: '', email: '',
   });
 
-  // ── Precarga datos del cliente ──
   useEffect(() => {
     if (!client) return;
     const lt = client.legal_type || 'autonomo';
     setLegalType(lt);
-
+    setStep(1);
     if (lt === 'autonomo') {
       setAutonomo({
         pharmacy_name: client.pharmacy_name || '',
-        owner_name:    client.owner_name    || '',
-        nif:           client.nif           || '',
-        colegiado:     client.colegiado     || '',
-        soe:           client.soe           || '',
-        phone:         client.phone         || '',
-        email:         client.email         || '',
+        owner_name:    client.owner_name    || client.pharmacist_owner || '',
+        nif:           client.nif           || client.nif_cif || '',
+        colegiado:     client.colegiado     || client.collegiate_number || '',
+        soe:           client.soe           || client.soe_number || '',
+        phone:         client.phone         || client.contact_phone || '',
+        email:         client.email         || client.contact_email || '',
         address:       client.address       || '',
         province:      client.province      || '',
         city:          client.city          || '',
         postal_code:   client.postal_code   || '',
         schedule:      client.schedule      || '',
         guards:        client.guards        || '',
-        notes:         client.notes         || '',
+        notes:         client.notes         || client.observations || '',
       });
     } else if (lt === 'cb') {
       setCb({
         pharmacy_name: client.pharmacy_name || '',
         razon_social:  client.razon_social  || '',
-        cif:           client.cif           || '',
-        phone:         client.phone         || '',
-        email:         client.email         || '',
+        cif:           client.cif           || client.nif_cif || '',
+        phone:         client.phone         || client.contact_phone || '',
+        email:         client.email         || client.contact_email || '',
         address:       client.address       || '',
         province:      client.province      || '',
         city:          client.city          || '',
         postal_code:   client.postal_code   || '',
-        soe:           client.soe           || '',
+        soe:           client.soe           || client.soe_number || '',
         schedule:      client.schedule      || '',
         guards:        client.guards        || '',
-        notes:         client.notes         || '',
+        notes:         client.notes         || client.observations || '',
         owners: client.cb_owners?.length
           ? client.cb_owners
           : [{ name: '', nif: '', colegiado: '' }],
@@ -94,16 +130,16 @@ export default function EditClientModal({ client, onClose, onSave }) {
       setSl({
         pharmacy_name: client.pharmacy_name || '',
         razon_social:  client.razon_social  || '',
-        cif:           client.cif           || '',
-        phone:         client.phone         || '',
-        email:         client.email         || '',
+        cif:           client.cif           || client.nif_cif || '',
+        phone:         client.phone         || client.contact_phone || '',
+        email:         client.email         || client.contact_email || '',
       });
     }
-
-    if (client.products) {
-      setProducts({ ...emptyProducts(), ...client.products });
-    }
+    if (client.products) setProducts({ ...emptyProducts(), ...client.products });
   }, [client]);
+
+  // ── Bug 1 fix: si no está abierto, no renderizar nada ──
+  if (!isOpen) return null;
 
   const townsAuto = getTowns(autonomo.province);
   const townsCb   = getTowns(cb.province);
@@ -131,29 +167,6 @@ export default function EditClientModal({ client, onClose, onSave }) {
     onSave(client.id, payload);
   };
 
-  // ── UI helpers ──
-  const inputCls = 'w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-teal-500';
-  const labelCls = 'block text-xs font-medium text-gray-600 mb-1';
-
-  const Field = ({ label, children }) => (
-    <div><label className={labelCls}>{label}</label>{children}</div>
-  );
-
-  const ProvinceSelect = ({ value, onChange }) => (
-    <select value={value} onChange={(e) => onChange(e.target.value)} className={inputCls}>
-      <option value="">Selecciona provincia…</option>
-      {provinces.map((p) => <option key={p.code} value={p.label}>{p.label}</option>)}
-    </select>
-  );
-
-  const CitySelect = ({ towns, value, onChange }) => (
-    <select value={value} onChange={(e) => onChange(e.target.value)} className={inputCls} disabled={!towns.length}>
-      <option value="">{towns.length ? 'Selecciona población…' : 'Elige provincia primero'}</option>
-      {towns.map((t) => <option key={t} value={t}>{t}</option>)}
-    </select>
-  );
-
-  // ── STEP 1 ──
   const renderStep1 = () => (
     <div className="space-y-6">
       <div>
@@ -193,7 +206,7 @@ export default function EditClientModal({ client, onClose, onSave }) {
           <Field label="Dirección"><input className={inputCls} value={autonomo.address} onChange={(e) => setAutonomo((p) => ({ ...p, address: e.target.value }))} /></Field>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Field label="Provincia">
-              <ProvinceSelect value={autonomo.province} onChange={(v) => setAutonomo((p) => ({ ...p, province: v, city: '' }))} />
+              <ProvinceSelect provinces={provinces} value={autonomo.province} onChange={(v) => setAutonomo((p) => ({ ...p, province: v, city: '' }))} />
             </Field>
             <Field label="Población">
               <CitySelect towns={townsAuto} value={autonomo.city} onChange={(v) => setAutonomo((p) => ({ ...p, city: v }))} />
@@ -219,7 +232,7 @@ export default function EditClientModal({ client, onClose, onSave }) {
           <Field label="Dirección"><input className={inputCls} value={cb.address} onChange={(e) => setCb((p) => ({ ...p, address: e.target.value }))} /></Field>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Field label="Provincia">
-              <ProvinceSelect value={cb.province} onChange={(v) => setCb((p) => ({ ...p, province: v, city: '' }))} />
+              <ProvinceSelect provinces={provinces} value={cb.province} onChange={(v) => setCb((p) => ({ ...p, province: v, city: '' }))} />
             </Field>
             <Field label="Población">
               <CitySelect towns={townsCb} value={cb.city} onChange={(v) => setCb((p) => ({ ...p, city: v }))} />
@@ -267,7 +280,6 @@ export default function EditClientModal({ client, onClose, onSave }) {
     </div>
   );
 
-  // ── STEP 2 ──
   const renderStep2 = () => (
     <div className="space-y-3">
       {PRODUCT_CATEGORIES.map(({ label, key, options }) => (
