@@ -35,6 +35,7 @@ import UsersPage from './pages/UsersPage'
 export default function App() {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
+  const [authLoading, setAuthLoading] = useState(true)
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -65,11 +66,24 @@ export default function App() {
   const { theme, userTheme, toggleTheme } = useThemeMode({ incidents, tasks })
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error || !data.session) {
+        // Token inválido → limpiar y dejar pantalla de login
+        Object.keys(localStorage).forEach(k => { if (k.startsWith('sb-')) localStorage.removeItem(k) })
+        setSession(null)
+      } else {
+        setSession(data.session)
+      }
+      setAuthLoading(false)
     })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
-      setSession(currentSession)
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        setSession(null)
+        setProfile(null)
+      } else if (currentSession) {
+        setSession(currentSession)
+      }
     })
     return () => { subscription.unsubscribe() }
   }, [])
@@ -86,14 +100,19 @@ export default function App() {
       loadTemplates(),
       loadExecutedChecklists(loadedProfile),
       loadIncidents(loadedProfile),
-      loadTasks(loadedProfile),
+      loadTaskStats(loadedProfile),
     ])
   }
 
   async function loadProfile() {
     const userId = session?.user?.id
     if (!userId) return null
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
+    // select solo columnas que existen — sin full_name que causaba 400
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle()
     if (error) { console.error('loadProfile error:', error.message); return null }
     if (!data) return null
     setProfile(data)
@@ -113,6 +132,7 @@ export default function App() {
 
   async function logout() {
     await supabase.auth.signOut()
+    Object.keys(localStorage).forEach(k => { if (k.startsWith('sb-')) localStorage.removeItem(k) })
     setProfile(null)
     setClients([])
     setProjects([])
@@ -127,22 +147,31 @@ export default function App() {
   }
 
   async function loadClients() {
-    const { data, error } = await supabase.from('clients').select('*').order('created_at', { ascending: false })
-    if (error) { setErrorMsg(error.message); return }
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (error) { console.error('loadClients:', error.message); return }
     setClients(data || [])
   }
 
   async function loadProjects(userProfile = profile) {
-    let query = supabase.from('projects').select('*, clients(id,name,pharmacy_name)').order('created_at', { ascending: false })
+    let query = supabase
+      .from('projects')
+      .select('*, clients(id,name,pharmacy_name)')
+      .order('created_at', { ascending: false })
     if (isTechnician(userProfile)) query = query.eq('assigned_technician_id', session.user.id)
     const { data, error } = await query
-    if (error) { setErrorMsg(error.message); return }
+    if (error) { console.error('loadProjects:', error.message); return }
     setProjects(data || [])
   }
 
   async function loadTemplates() {
-    const { data, error } = await supabase.from('checklist_templates').select('*').order('created_at', { ascending: false })
-    if (error) { setErrorMsg(error.message); return }
+    const { data, error } = await supabase
+      .from('checklist_templates')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (error) { console.error('loadTemplates:', error.message); return }
     setTemplates(data || [])
   }
 
@@ -151,7 +180,7 @@ export default function App() {
       .from('checklists')
       .select(`*, projects(id,name,assigned_technician_id,clients(id,name,pharmacy_name)),checklist_sections(id,checklist_tasks(id,status))`)
       .order('created_at', { ascending: false })
-    if (error) { setErrorMsg(error.message); return }
+    if (error) { console.error('loadExecutedChecklists:', error.message); return }
     const visibleData = isTechnician(userProfile)
       ? (data || []).filter(c => c.projects?.assigned_technician_id === session.user.id)
       : data || []
@@ -169,99 +198,93 @@ export default function App() {
 
   async function loadIncidents(userProfile = profile) {
     if (!userProfile?.company_id) return
-    const { data } = await supabase.from('incidents').select('id,priority,status').eq('company_id', userProfile.company_id)
+    const { data } = await supabase
+      .from('incidents')
+      .select('id,priority,status')
+      .eq('company_id', userProfile.company_id)
     setIncidents(data || [])
   }
 
-  async function loadTasks(userProfile = profile) {
+  // CORREGIDO: la tabla real es checklist_tasks, NO tasks
+  async function loadTaskStats(userProfile = profile) {
     if (!userProfile?.company_id) return
-    const { data } = await supabase.from('tasks').select('id,status,due_date').eq('company_id', userProfile.company_id)
+    const { data, error } = await supabase
+      .from('checklist_tasks')
+      .select('id,status')
+    if (error) { console.error('loadTaskStats:', error.message); return }
     setTasks(data || [])
   }
 
   // ---------------------------------------------------------------------------
-  // createClient — usa TODAS las columnas reales de la tabla clients
+  // createClient — todas las columnas reales confirmadas
   // ---------------------------------------------------------------------------
   async function createClient(payload) {
-    // ── 1. Verificar profile ──────────────────────────────────────────────
-    console.group('[createClient] inicio')
-    console.log('profile:', profile)
-    console.log('payload recibido:', payload)
-
-    // Refrescar profile si es null (race condition al montar)
     let activeProfile = profile
+
+    // Refrescar profile si company_id es null (race condition)
     if (!activeProfile?.company_id) {
-      console.warn('profile.company_id nulo, refrescando...')
-      const { data: freshProfile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', (await supabase.auth.getUser()).data.user?.id)
-        .maybeSingle()
-      activeProfile = freshProfile
-      if (freshProfile) setProfile(freshProfile)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user?.id) {
+        const { data: freshProfile } = await supabase
+          .from('profiles').select('*').eq('id', user.id).maybeSingle()
+        activeProfile = freshProfile
+        if (freshProfile) setProfile(freshProfile)
+      }
     }
 
     if (!activeProfile?.company_id) {
-      console.error('company_id sigue siendo null tras refresco')
-      console.groupEnd()
-      alert('Error: no se pudo obtener el company_id del perfil.\nRecarga la página y vuelve a intentarlo.')
+      alert('Error: no se pudo obtener el company_id.\nRecarga la página e intenta de nuevo.')
       return
     }
 
-    // ── 2. Preparar datos ────────────────────────────────────────────────
     const cd = payload.clientData ?? payload
     const pharmacyName = (cd.pharmacy_name || cd.name || '').trim()
 
     if (!pharmacyName) {
       alert('El nombre de la farmacia es obligatorio.')
-      console.groupEnd()
       return
     }
 
     const insertData = {
-      company_id:        activeProfile.company_id,
-      // Columnas confirmadas por ClientDetailPage.jsx
-      name:              pharmacyName,
-      pharmacy_name:     pharmacyName,
-      pharmacist_owner:  cd.pharmacist_owner  || null,
-      province:          cd.province          || null,
-      city:              cd.city              || null,
-      address:           cd.address           || null,
-      contact_phone:     cd.contact_phone     || null,
-      contact_email:     cd.contact_email     || null,
-      phone:             cd.phone             || cd.contact_phone  || null,
-      email:             cd.email             || cd.contact_email  || null,
-      nif_cif:           cd.nif_cif           || null,
-      soe_number:        cd.soe_number        || null,
-      cip:               cd.cip               || null,
-      business_email:    cd.business_email    || null,
-      business_phone:    cd.business_phone    || null,
-      collegiate_data:   cd.collegiate_data   || null,
-      company_data:      cd.company_data      || null,
-      operators:         cd.operators         || null,
-      observations:      cd.observations      || cd.notes || null,
-      notes:             cd.notes             || cd.observations   || null,
+      company_id:       activeProfile.company_id,
+      name:             pharmacyName,
+      pharmacy_name:    pharmacyName,
+      pharmacist_owner: cd.pharmacist_owner  || null,
+      province:         cd.province          || null,
+      city:             cd.city              || null,
+      address:          cd.address           || null,
+      contact_phone:    cd.contact_phone     || null,
+      contact_email:    cd.contact_email     || null,
+      phone:            cd.phone             || cd.contact_phone  || null,
+      email:            cd.email             || cd.contact_email  || null,
+      nif_cif:          cd.nif_cif           || null,
+      soe_number:       cd.soe_number        || null,
+      cip:              cd.cip               || null,
+      business_email:   cd.business_email    || null,
+      business_phone:   cd.business_phone    || null,
+      collegiate_data:  cd.collegiate_data   || null,
+      company_data:     cd.company_data      || null,
+      operators:        cd.operators         || null,
+      observations:     cd.observations      || cd.notes || null,
+      notes:            cd.notes             || cd.observations   || null,
     }
 
     console.log('[createClient] insertData:', insertData)
 
-    // ── 3. Insert ────────────────────────────────────────────────────────
     const { data, error } = await supabase
       .from('clients')
       .insert(insertData)
       .select()
       .single()
 
-    console.log('[createClient] resultado:', { data, error })
-    console.groupEnd()
-
     if (error) {
-      alert(`❌ Error al crear farmacia:\n\nCódigo: ${error.code}\nMensaje: ${error.message}\nDetalles: ${error.details || '-'}\nHint: ${error.hint || '-'}`)
+      console.error('[createClient] error:', error)
+      alert(`❌ Error al crear farmacia:\n\nCódigo: ${error.code}\nMensaje: ${error.message}\nHint: ${error.hint || '-'}`)
       return
     }
 
     await createActivityLog({ userId: session.user.id, entityType: 'client', entityId: data.id, action: 'create', newValue: data })
-    await createNotification({ userId: session.user.id, title: 'Farmacia creada', message: `Se creó la farmacia "${data.pharmacy_name || data.name}".`, type: 'success', entityType: 'client', entityId: data.id })
+    await createNotification({ userId: session.user.id, title: 'Farmacia creada', message: `Se creó "${data.pharmacy_name || data.name}".`, type: 'success', entityType: 'client', entityId: data.id })
 
     setIsCreateClientOpen(false)
     await loadClients()
@@ -292,7 +315,7 @@ export default function App() {
       .eq('id', clientId)
       .select()
       .single()
-    if (error) { alert(`Error al actualizar:\n${error.message}`); return }
+    if (error) { alert(`Error: ${error.message}`); return }
     await createActivityLog({ userId: session.user.id, entityType: 'client', entityId: clientId, action: 'update', oldValue: previous, newValue: data })
     setEditingClient(null)
     await loadClients()
@@ -312,11 +335,10 @@ export default function App() {
     const { data, error } = await supabase
       .from('projects')
       .insert({ company_id: profile.company_id, client_id: projectData.client_id, assigned_technician_id: session.user.id, name: projectData.name, status: 'active', notes: projectData.notes || '', visible_to_client: projectData.visible_to_client || false })
-      .select()
-      .single()
+      .select().single()
     if (error) { alert(error.message); return }
     await createActivityLog({ userId: session.user.id, entityType: 'project', entityId: data.id, action: 'create', newValue: data })
-    await createNotification({ userId: session.user.id, title: 'Proyecto creado', message: `Se creó el proyecto "${projectData.name}".`, type: 'success', entityType: 'project', entityId: data.id })
+    await createNotification({ userId: session.user.id, title: 'Proyecto creado', message: `Se creó "${projectData.name}".`, type: 'success', entityType: 'project', entityId: data.id })
     setIsCreateProjectOpen(false)
     await loadProjects()
     setCurrentPage('projects')
@@ -327,9 +349,7 @@ export default function App() {
     const { data, error } = await supabase
       .from('projects')
       .update({ name: projectData.name, client_id: projectData.client_id, status: projectData.status || 'active', notes: projectData.notes || '', visible_to_client: projectData.visible_to_client || false })
-      .eq('id', projectId)
-      .select()
-      .single()
+      .eq('id', projectId).select().single()
     if (error) { alert(error.message); return }
     await createActivityLog({ userId: session.user.id, entityType: 'project', entityId: projectId, action: 'update', oldValue: previous, newValue: data })
     setEditingProject(null)
@@ -350,8 +370,7 @@ export default function App() {
     const { data, error } = await supabase
       .from('checklist_templates')
       .insert({ company_id: profile.company_id, name: templateData.name, description: templateData.description || '', is_active: true })
-      .select()
-      .single()
+      .select().single()
     if (error) { alert(error.message); return }
     await createActivityLog({ userId: session.user.id, entityType: 'template', entityId: data.id, action: 'create', newValue: data })
     setIsCreateTemplateOpen(false)
@@ -364,24 +383,20 @@ export default function App() {
     if (!profile?.company_id) return
     const original = templates.find(t => t.id === templateId)
     if (!original) { alert('No se encontró la plantilla.'); return }
-    const { data: newTemplate, error: templateError } = await supabase
+    const { data: newTemplate, error: tErr } = await supabase
       .from('checklist_templates')
       .insert({ company_id: profile.company_id, name: `${original.name} - copia`, description: original.description || '', is_active: true })
-      .select()
-      .single()
-    if (templateError) { alert(templateError.message); return }
-    const { data: sections, error: sectionsError } = await supabase.from('checklist_template_sections').select('*').eq('template_id', templateId).order('position', { ascending: true })
-    if (sectionsError) { alert(sectionsError.message); return }
+      .select().single()
+    if (tErr) { alert(tErr.message); return }
+    const { data: sections, error: sErr } = await supabase.from('checklist_template_sections').select('*').eq('template_id', templateId).order('position', { ascending: true })
+    if (sErr) { alert(sErr.message); return }
     for (const section of sections || []) {
-      const { data: newSection, error: newSectionError } = await supabase.from('checklist_template_sections').insert({ template_id: newTemplate.id, title: section.title, position: section.position }).select().single()
-      if (newSectionError) { alert(newSectionError.message); return }
-      const { data: tasks, error: tasksError } = await supabase.from('checklist_template_tasks').select('*').eq('section_id', section.id).order('position', { ascending: true })
-      if (tasksError) { alert(tasksError.message); return }
-      const newTasks = (tasks || []).map(task => ({ section_id: newSection.id, title: task.title, description: task.description || '', required: task.required, position: task.position }))
-      if (newTasks.length > 0) {
-        const { error: insertTasksError } = await supabase.from('checklist_template_tasks').insert(newTasks)
-        if (insertTasksError) { alert(insertTasksError.message); return }
-      }
+      const { data: newSection, error: nsErr } = await supabase.from('checklist_template_sections').insert({ template_id: newTemplate.id, title: section.title, position: section.position }).select().single()
+      if (nsErr) { alert(nsErr.message); return }
+      const { data: tasks2, error: tskErr } = await supabase.from('checklist_template_tasks').select('*').eq('section_id', section.id).order('position', { ascending: true })
+      if (tskErr) { alert(tskErr.message); return }
+      const newTasks = (tasks2 || []).map(t => ({ section_id: newSection.id, title: t.title, description: t.description || '', required: t.required, position: t.position }))
+      if (newTasks.length > 0) { const { error: itErr } = await supabase.from('checklist_template_tasks').insert(newTasks); if (itErr) { alert(itErr.message); return } }
     }
     await createActivityLog({ userId: session.user.id, entityType: 'template', entityId: newTemplate.id, action: 'duplicate', oldValue: original, newValue: newTemplate })
     await loadTemplates()
@@ -392,42 +407,34 @@ export default function App() {
   async function deleteTemplate(templateId) {
     if (!window.confirm('¿Eliminar esta plantilla y todas sus secciones/tareas?')) return
     const previous = templates.find(t => t.id === templateId)
-    const { data: sections, error: sectionsError } = await supabase.from('checklist_template_sections').select('id').eq('template_id', templateId)
-    if (sectionsError) { alert(sectionsError.message); return }
+    const { data: sections } = await supabase.from('checklist_template_sections').select('id').eq('template_id', templateId)
     const sectionIds = (sections || []).map(s => s.id)
-    if (sectionIds.length > 0) {
-      const { error: tasksError } = await supabase.from('checklist_template_tasks').delete().in('section_id', sectionIds)
-      if (tasksError) { alert(tasksError.message); return }
-    }
+    if (sectionIds.length > 0) await supabase.from('checklist_template_tasks').delete().in('section_id', sectionIds)
     await supabase.from('checklist_template_sections').delete().eq('template_id', templateId)
-    const { error: deleteTemplateError } = await supabase.from('checklist_templates').delete().eq('id', templateId)
-    if (deleteTemplateError) { alert(deleteTemplateError.message); return }
+    const { error } = await supabase.from('checklist_templates').delete().eq('id', templateId)
+    if (error) { alert(error.message); return }
     await createActivityLog({ userId: session.user.id, entityType: 'template', entityId: templateId, action: 'delete', oldValue: previous })
     await loadTemplates()
   }
 
   async function createChecklist(checklistData) {
-    const { data: checklist, error: checklistError } = await supabase
+    const { data: checklist, error: cErr } = await supabase
       .from('checklists')
       .insert({ project_id: checklistData.project_id, template_id: checklistData.template_id, title: checklistData.title, status: 'in_progress', visible_to_client: checklistData.visible_to_client || false })
-      .select()
-      .single()
-    if (checklistError) { alert(checklistError.message); return }
-    const { data: sections, error: sectionsError } = await supabase.from('checklist_template_sections').select('*').eq('template_id', checklistData.template_id).order('position', { ascending: true })
-    if (sectionsError) { alert(sectionsError.message); return }
+      .select().single()
+    if (cErr) { alert(cErr.message); return }
+    const { data: sections, error: sErr } = await supabase.from('checklist_template_sections').select('*').eq('template_id', checklistData.template_id).order('position', { ascending: true })
+    if (sErr) { alert(sErr.message); return }
     for (const section of sections || []) {
-      const { data: newSection, error: newSectionError } = await supabase.from('checklist_sections').insert({ checklist_id: checklist.id, title: section.title, position: section.position }).select().single()
-      if (newSectionError) { alert(newSectionError.message); return }
-      const { data: tasks, error: tasksError } = await supabase.from('checklist_template_tasks').select('*').eq('section_id', section.id).order('position', { ascending: true })
-      if (tasksError) { alert(tasksError.message); return }
-      const tasksToInsert = (tasks || []).map(task => ({ section_id: newSection.id, title: task.title, description: task.description || '', position: task.position, required: task.required, status: 'pending' }))
-      if (tasksToInsert.length > 0) {
-        const { error: insertTasksError } = await supabase.from('checklist_tasks').insert(tasksToInsert)
-        if (insertTasksError) { alert(insertTasksError.message); return }
-      }
+      const { data: newSection, error: nsErr } = await supabase.from('checklist_sections').insert({ checklist_id: checklist.id, title: section.title, position: section.position }).select().single()
+      if (nsErr) { alert(nsErr.message); return }
+      const { data: tasks2, error: tErr } = await supabase.from('checklist_template_tasks').select('*').eq('section_id', section.id).order('position', { ascending: true })
+      if (tErr) { alert(tErr.message); return }
+      const toInsert = (tasks2 || []).map(t => ({ section_id: newSection.id, title: t.title, description: t.description || '', position: t.position, required: t.required, status: 'pending' }))
+      if (toInsert.length > 0) { const { error: itErr } = await supabase.from('checklist_tasks').insert(toInsert); if (itErr) { alert(itErr.message); return } }
     }
     await createActivityLog({ userId: session.user.id, entityType: 'checklist', entityId: checklist.id, action: 'create', newValue: checklist })
-    await createNotification({ userId: session.user.id, title: 'Checklist creado', message: `Se creó el checklist "${checklistData.title}".`, type: 'success', entityType: 'checklist', entityId: checklist.id })
+    await createNotification({ userId: session.user.id, title: 'Checklist creado', message: `Se creó "${checklistData.title}".`, type: 'success', entityType: 'checklist', entityId: checklist.id })
     setIsCreateChecklistOpen(false)
     await loadExecutedChecklists()
     setSelectedChecklistId(checklist.id)
@@ -437,21 +444,19 @@ export default function App() {
   async function deleteChecklist(checklistId) {
     if (!window.confirm('¿Eliminar esta ejecución de checklist?')) return
     const previous = executedChecklists.find(c => c.id === checklistId)
-    const { data: sections, error: sectionsError } = await supabase.from('checklist_sections').select('id').eq('checklist_id', checklistId)
-    if (sectionsError) { alert(sectionsError.message); return }
+    const { data: sections } = await supabase.from('checklist_sections').select('id').eq('checklist_id', checklistId)
     const sectionIds = (sections || []).map(s => s.id)
     if (sectionIds.length > 0) {
-      const { data: tasks, error: tasksError } = await supabase.from('checklist_tasks').select('id').in('section_id', sectionIds)
-      if (tasksError) { alert(tasksError.message); return }
-      const taskIds = (tasks || []).map(t => t.id)
+      const { data: taskRows } = await supabase.from('checklist_tasks').select('id').in('section_id', sectionIds)
+      const taskIds = (taskRows || []).map(t => t.id)
       if (taskIds.length > 0) {
         await supabase.from('task_evidence').delete().in('task_id', taskIds)
         await supabase.from('checklist_tasks').delete().in('id', taskIds)
       }
       await supabase.from('checklist_sections').delete().in('id', sectionIds)
     }
-    const { error: deleteChecklistError } = await supabase.from('checklists').delete().eq('id', checklistId)
-    if (deleteChecklistError) { alert(deleteChecklistError.message); return }
+    const { error } = await supabase.from('checklists').delete().eq('id', checklistId)
+    if (error) { alert(error.message); return }
     await createActivityLog({ userId: session.user.id, entityType: 'checklist', entityId: checklistId, action: 'delete', oldValue: previous })
     await loadExecutedChecklists()
   }
@@ -470,6 +475,15 @@ export default function App() {
     }
     setSelectedClientId(null)
     setCurrentPage(page)
+  }
+
+  // Pantalla de carga inicial mientras se verifica sesión
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#005643] border-t-transparent" />
+      </div>
+    )
   }
 
   if (!session) {
