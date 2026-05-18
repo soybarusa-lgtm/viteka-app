@@ -56,13 +56,23 @@ function getInitials(name) {
 }
 
 // ---------------------------------------------------------------------------
-// StatCard
+// ProductBar  — barra compacta (label + número + barra)
 // ---------------------------------------------------------------------------
-function StatCard({ label, count, accentColor = 'var(--primary)' }) {
+function ProductBar({ label, count, total, color }) {
+  const pct = total > 0 ? Math.round((count / total) * 100) : 0
+  const colors = {
+    emerald: { bar: 'bg-emerald-500', text: 'text-emerald-600' },
+    amber:   { bar: 'bg-amber-400',   text: 'text-amber-600'   },
+  }
   return (
-    <div className="card flex min-w-[90px] flex-col items-center justify-center gap-1 p-4 text-center">
-      <span className="text-2xl font-bold" style={{ color: accentColor }}>{count}</span>
-      <span className="text-[11px] leading-tight" style={{ color: 'var(--muted)' }}>{label}</span>
+    <div>
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-[12px]" style={{ color: 'var(--text-soft)' }}>{label}</span>
+        <span className={`text-[12px] font-semibold ${colors[color].text}`}>{count}</span>
+      </div>
+      <div className="h-1.5 w-full rounded-full" style={{ background: 'var(--surface-soft)' }}>
+        <div className={`h-1.5 rounded-full transition-all ${colors[color].bar}`} style={{ width: `${pct}%` }} />
+      </div>
     </div>
   )
 }
@@ -112,7 +122,7 @@ export default function ClientsPage({
   }, [clients, search, province])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
 
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -126,51 +136,52 @@ export default function ClientsPage({
         </button>
       </div>
 
-      {/* Provincias */}
-      <section>
-        <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
-          Farmacias por provincia
-        </h2>
-        <div className="overflow-x-auto pb-1">
-          <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
+      {/* Stats — 3 secciones en una card compacta */}
+      <div className="card p-4 space-y-4">
+
+        {/* Provincias — una línea de chips muy compactos */}
+        <div>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>Por provincia</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
             {byProvince.map(({ label, count }) => (
-              <StatCard key={label} label={label} count={count} />
+              <span key={label} className="flex items-center gap-1 text-[12px]">
+                <span className="font-semibold" style={{ color: 'var(--primary)' }}>{count}</span>
+                <span style={{ color: 'var(--muted)' }}>{label}</span>
+              </span>
             ))}
           </div>
         </div>
-      </section>
 
-      {/* Productos Viteka */}
-      <section>
-        <div className="mb-3 flex items-center gap-2">
-          <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-          <h2 className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>Productos Viteka</h2>
-          <span className="text-[11px]" style={{ color: 'var(--muted)' }}>— distribuidor y/o soporte</span>
-        </div>
-        <div className="overflow-x-auto pb-1">
-          <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
-            {vitekaCounters.map(({ label, count }) => (
-              <StatCard key={label} label={label} count={count} accentColor="#10b981" />
-            ))}
-          </div>
-        </div>
-      </section>
+        {/* Divider */}
+        <div style={{ borderTop: '1px solid var(--border)' }} />
 
-      {/* Productos Terceros */}
-      <section>
-        <div className="mb-3 flex items-center gap-2">
-          <span className="inline-flex h-2 w-2 rounded-full bg-amber-500" />
-          <h2 className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>Productos de terceros</h2>
-          <span className="text-[11px]" style={{ color: 'var(--muted)' }}>— sin distribución Viteka</span>
-        </div>
-        <div className="overflow-x-auto pb-1">
-          <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
-            {thirdCounters.map(({ label, count }) => (
-              <StatCard key={label} label={label} count={count} accentColor="#f59e0b" />
-            ))}
+        {/* Productos en dos columnas */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div>
+            <div className="mb-2 flex items-center gap-1.5">
+              <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>Productos Viteka</p>
+            </div>
+            <div className="space-y-2">
+              {vitekaCounters.map(({ label, count }) => (
+                <ProductBar key={label} label={label} count={count} total={clients.length} color="emerald" />
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="mb-2 flex items-center gap-1.5">
+              <span className="inline-flex h-1.5 w-1.5 rounded-full bg-amber-500" />
+              <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>Productos terceros</p>
+            </div>
+            <div className="space-y-2">
+              {thirdCounters.map(({ label, count }) => (
+                <ProductBar key={label} label={label} count={count} total={clients.length} color="amber" />
+              ))}
+            </div>
           </div>
         </div>
-      </section>
+
+      </div>
 
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
