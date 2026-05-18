@@ -72,21 +72,21 @@ function getInitials(name) {
 }
 
 // ---------------------------------------------------------------------------
-// SegmentedBar genérica: [{label, count, color}]
+// MiniBar — barra segmentada genérica con tooltip
 // ---------------------------------------------------------------------------
-function SegmentedBar({ segments, total, height = 'h-2' }) {
+function MiniBar({ segments, total, height = 'h-1.5' }) {
   const [tooltip, setTooltip] = useState(null)
-  const barRef = useRef(null)
+  const ref = useRef(null)
   const nonZero = segments.filter(s => s.count > 0)
 
-  if (total === 0) {
+  if (total === 0 || nonZero.length === 0) {
     return <div className={`${height} w-full rounded-full`} style={{ background: 'var(--surface-soft)' }} />
   }
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <div
-        ref={barRef}
+        ref={ref}
         className={`flex ${height} w-full overflow-hidden rounded-full`}
         style={{ background: 'var(--surface-soft)' }}
         onMouseLeave={() => setTooltip(null)}
@@ -96,7 +96,7 @@ function SegmentedBar({ segments, total, height = 'h-2' }) {
             key={label}
             style={{ width: `${(count / total) * 100}%`, backgroundColor: color, minWidth: '2px' }}
             onMouseEnter={e => {
-              const rect = barRef.current?.getBoundingClientRect()
+              const rect = ref.current?.getBoundingClientRect()
               setTooltip({ label, count, color, x: e.clientX - (rect?.left ?? 0) })
             }}
           />
@@ -104,13 +104,8 @@ function SegmentedBar({ segments, total, height = 'h-2' }) {
       </div>
       {tooltip && (
         <div
-          className="pointer-events-none absolute bottom-full mb-1.5 z-50 rounded-lg px-2 py-1 text-[11px] font-medium text-white shadow-lg"
-          style={{
-            left: `${tooltip.x}px`,
-            transform: 'translateX(-50%)',
-            background: tooltip.color,
-            whiteSpace: 'nowrap',
-          }}
+          className="pointer-events-none absolute bottom-full mb-1 z-50 rounded-md px-2 py-0.5 text-[10px] font-medium text-white shadow"
+          style={{ left: tooltip.x, transform: 'translateX(-50%)', background: tooltip.color, whiteSpace: 'nowrap' }}
         >
           {tooltip.label}: {tooltip.count}
         </div>
@@ -120,40 +115,69 @@ function SegmentedBar({ segments, total, height = 'h-2' }) {
 }
 
 // ---------------------------------------------------------------------------
-// ProductBarViteka — barra única por provincia
+// ProductBarViteka — barra única segmentada por provincia
 // ---------------------------------------------------------------------------
 function ProductBarViteka({ label, provinceSegments, total }) {
   const count = provinceSegments.reduce((a, s) => a + s.count, 0)
-  const segments = provinceSegments.map(s => ({ label: s.province, count: s.count, color: PROVINCE_COLORS[s.province] }))
+  const segments = provinceSegments.map(s => ({
+    label: s.province, count: s.count, color: PROVINCE_COLORS[s.province],
+  }))
   return (
     <div>
       <div className="mb-1 flex items-center justify-between">
         <span className="text-[12px]" style={{ color: 'var(--text-soft)' }}>{label}</span>
         <span className="text-[12px] font-semibold" style={{ color: count > 0 ? 'var(--primary)' : 'var(--muted)' }}>{count}</span>
       </div>
-      <SegmentedBar segments={segments} total={total} height="h-2" />
+      <MiniBar segments={segments} total={total} height="h-2" />
     </div>
   )
 }
 
 // ---------------------------------------------------------------------------
-// ProductBarThird — doble barra: marcas (arriba) + provincias (abajo)
+// ProductBarThird — una fila por provincia, mini-barra de marcas en cada una
 // ---------------------------------------------------------------------------
-function ProductBarThird({ label, brandSegments, provinceSegments, total }) {
-  const count = brandSegments.reduce((a, s) => a + s.count, 0)
-  const provSegs = provinceSegments.map(s => ({ label: s.province, count: s.count, color: PROVINCE_COLORS[s.province] }))
+function ProductBarThird({ label, byProvince, total, brandColorMap }) {
+  const count = byProvince.reduce((a, p) => a + p.total, 0)
+  // Solo provincias con datos
+  const active = byProvince.filter(p => p.total > 0)
+
   return (
     <div>
-      <div className="mb-1 flex items-center justify-between">
+      {/* Cabecera del producto */}
+      <div className="mb-1.5 flex items-center justify-between">
         <span className="text-[12px]" style={{ color: 'var(--text-soft)' }}>{label}</span>
         <span className="text-[12px] font-semibold" style={{ color: count > 0 ? '#f59e0b' : 'var(--muted)' }}>{count}</span>
       </div>
-      {/* Barra superior: marcas */}
-      <SegmentedBar segments={brandSegments} total={total} height="h-1.5" />
-      {/* Barra inferior: provincias */}
-      <div className="mt-0.5">
-        <SegmentedBar segments={provSegs} total={total} height="h-1" />
-      </div>
+
+      {active.length === 0 ? (
+        <div className="h-1.5 w-full rounded-full" style={{ background: 'var(--surface-soft)' }} />
+      ) : (
+        <div className="space-y-[3px]">
+          {active.map(({ province, total: provTotal, brands }) => {
+            const segments = brands.map(({ brand, count: bc }) => ({
+              label: `${province} — ${brand}`,
+              count: bc,
+              color: brandColorMap[brand] ?? '#94a3b8',
+            }))
+            return (
+              <div key={province} className="flex items-center gap-1.5">
+                {/* Punto de color de provincia */}
+                <span
+                  className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: PROVINCE_COLORS[province] }}
+                  title={province}
+                />
+                {/* Mini-barra de marcas */}
+                <div className="flex-1">
+                  <MiniBar segments={segments} total={provTotal} height="h-1.5" />
+                </div>
+                {/* Número total de esa provincia */}
+                <span className="w-4 text-right text-[10px] font-medium" style={{ color: 'var(--muted)' }}>{provTotal}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -176,6 +200,7 @@ export default function ClientsPage({
     PROVINCES_AN.map(p => ({ label: p, count: clients.filter(c => c.province === p).length }))
   , [clients])
 
+  // Viteka: barra única por provincia
   const vitekaRows = useMemo(() =>
     VITEKA_ROWS.map(({ label, cat, test }) => {
       const matched = clients.filter(c => test(c.products?.[cat]))
@@ -187,30 +212,35 @@ export default function ClientsPage({
     })
   , [clients])
 
+  // Terceros: por provincia → desglose de marcas
   const thirdRows = useMemo(() =>
     THIRD_ROWS.map(({ label, cat, test }) => {
       const matched = clients.filter(c => test(c.products?.[cat]))
 
-      // Marcas únicas ordenadas por volumen
-      const brandMap = {}
-      matched.forEach(c => {
-        const brand = c.products?.[cat]?.brand || 'Sin marca'
-        brandMap[brand] = (brandMap[brand] || 0) + 1
+      // Mapa global de marcas → color (consistente entre provincias)
+      const allBrands = [...new Set(matched.map(c => c.products?.[cat]?.brand || 'Sin marca'))]
+      const brandColorMap = Object.fromEntries(
+        allBrands.map((b, i) => [b, BRAND_PALETTE[i % BRAND_PALETTE.length]])
+      )
+
+      // Por provincia: total + desglose de marcas
+      const byProv = PROVINCES_AN.map(prov => {
+        const provClients = matched.filter(c => c.province === prov)
+        const brandMap = {}
+        provClients.forEach(c => {
+          const b = c.products?.[cat]?.brand || 'Sin marca'
+          brandMap[b] = (brandMap[b] || 0) + 1
+        })
+        return {
+          province: prov,
+          total: provClients.length,
+          brands: Object.entries(brandMap)
+            .sort((a, b) => b[1] - a[1])
+            .map(([brand, count]) => ({ brand, count })),
+        }
       })
-      const brandSegments = Object.entries(brandMap)
-        .sort((a, b) => b[1] - a[1])
-        .map(([brand, count], i) => ({
-          label: brand,
-          count,
-          color: BRAND_PALETTE[i % BRAND_PALETTE.length],
-        }))
 
-      const provinceSegments = PROVINCES_AN.map(prov => ({
-        province: prov,
-        count: matched.filter(c => c.province === prov).length,
-      }))
-
-      return { label, total: matched.length, brandSegments, provinceSegments }
+      return { label, total: matched.length, byProvince: byProv, brandColorMap }
     })
   , [clients])
 
@@ -263,7 +293,7 @@ export default function ClientsPage({
         {/* Productos en dos columnas */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 
-          {/* Viteka — barra única por provincia */}
+          {/* Viteka */}
           <div>
             <div className="mb-2 flex items-center gap-1.5">
               <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -276,20 +306,20 @@ export default function ClientsPage({
             </div>
           </div>
 
-          {/* Terceros — doble barra */}
+          {/* Terceros — provincia → marcas */}
           <div>
             <div className="mb-2 flex items-center gap-1.5">
               <span className="inline-flex h-1.5 w-1.5 rounded-full bg-amber-500" />
               <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>Productos terceros</p>
             </div>
-            <div className="space-y-3">
-              {thirdRows.map(({ label, brandSegments, provinceSegments, total }) => (
+            <div className="space-y-4">
+              {thirdRows.map(({ label, byProvince: byProv, total, brandColorMap }) => (
                 <ProductBarThird
                   key={label}
                   label={label}
-                  brandSegments={brandSegments}
-                  provinceSegments={provinceSegments}
+                  byProvince={byProv}
                   total={total}
+                  brandColorMap={brandColorMap}
                 />
               ))}
             </div>
