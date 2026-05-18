@@ -32,6 +32,60 @@ import CreateChecklistModal from './components/modals/CreateChecklistModal'
 import CreateTemplateModal from './components/modals/CreateTemplateModal'
 import UsersPage from './pages/UsersPage'
 
+// ─── Helper: convierte el payload del modal a columnas de Supabase ───────────
+// El modal usa nombres «humanos» (owner_name, phone, nif…).
+// La tabla clients usa nombres heredados (pharmacist_owner, contact_phone, nif_cif…).
+// Este adaptador centraliza la traducción para crear Y editar.
+function modalPayloadToDbRow(payload) {
+  const p = payload ?? {}
+  const row = {}
+
+  // Nombre farmacia
+  const pharmacyName = (p.pharmacy_name || p.name || '').trim()
+  if (pharmacyName) {
+    row.name          = pharmacyName
+    row.pharmacy_name = pharmacyName
+  }
+
+  // Tipo jurídico
+  if (p.legal_type)  row.legal_type        = p.legal_type
+
+  // Autónomo
+  if (p.owner_name)  row.pharmacist_owner  = p.owner_name
+  if (p.nif)         row.nif_cif           = p.nif
+  if (p.colegiado)   row.collegiate_number = p.colegiado
+  if (p.soe)         row.soe_number        = p.soe
+
+  // CB
+  if (p.razon_social) row.razon_social     = p.razon_social
+  if (p.cif)          row.nif_cif          = p.cif       // CB usa CIF
+  if (p.cb_owners)    row.cb_owners        = p.cb_owners
+
+  // SL
+  if (p.razon_social) row.razon_social     = p.razon_social
+  // cif ya mapeado arriba
+
+  // Contacto
+  if (p.phone)        row.contact_phone    = p.phone
+  if (p.email)        row.contact_email    = p.email
+
+  // Ubicación
+  if (p.address)      row.address          = p.address
+  if (p.province)     row.province         = p.province
+  if (p.city)         row.city             = p.city
+  if (p.postal_code)  row.postal_code      = p.postal_code
+
+  // Operativa
+  if (p.schedule)     row.schedule         = p.schedule
+  if (p.guards != null && p.guards !== '') row.has_guards = p.guards
+  if (p.notes)        row.observations     = p.notes
+
+  // Productos Viteka
+  if (p.products && Object.keys(p.products).length) row.products = p.products
+
+  return row
+}
+
 export default function App() {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -54,9 +108,11 @@ export default function App() {
   const [selectedTemplateId, setSelectedTemplateId] = useState(null)
   const [selectedClientId, setSelectedClientId] = useState(null)
 
+  // Modal crear farmacia
   const [isCreateClientOpen, setIsCreateClientOpen] = useState(false)
-  // Contador incremental: cada apertura tiene un key único → React re-monta el modal → estado limpio
   const [createClientKey, setCreateClientKey] = useState(0)
+
+  // Modal editar farmacia
   const [editingClient, setEditingClient] = useState(null)
 
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false)
@@ -67,6 +123,7 @@ export default function App() {
 
   const { theme, userTheme, toggleTheme } = useThemeMode({ incidents, tasks })
 
+  // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     supabase.auth.getSession().then(({ data, error }) => {
       if (error || !data.session) {
@@ -93,6 +150,7 @@ export default function App() {
     if (session) loadInitialData()
   }, [session])
 
+  // ── Data loaders ──────────────────────────────────────────────────────────
   async function loadInitialData() {
     const loadedProfile = await loadProfile()
     await Promise.all([
@@ -214,11 +272,17 @@ export default function App() {
     setTasks(data || [])
   }
 
+  // ── Abrir modal crear farmacia ────────────────────────────────────────────
   function openCreateClientModal() {
-    setCreateClientKey(k => k + 1) // nuevo key → re-mount → estado limpio
+    setCreateClientKey(k => k + 1) // re-mount → estado del modal limpio
     setIsCreateClientOpen(true)
   }
 
+  function closeCreateClientModal() {
+    setIsCreateClientOpen(false)
+  }
+
+  // ── CRUD clientes ─────────────────────────────────────────────────────────
   async function createClient(payload) {
     let activeProfile = profile
 
@@ -237,41 +301,15 @@ export default function App() {
       return
     }
 
-    const cd = payload.clientData ?? payload
-    const products = payload.products ?? {}
+    // Adaptar nombres del modal a columnas de Supabase
+    const row = modalPayloadToDbRow(payload)
 
-    const pharmacyName = (cd.pharmacy_name || cd.name || '').trim()
-    if (!pharmacyName) {
+    if (!row.pharmacy_name) {
       alert('El nombre de la farmacia es obligatorio.')
       return
     }
 
-    const insertData = {
-      company_id:    activeProfile.company_id,
-      name:          pharmacyName,
-      pharmacy_name: pharmacyName,
-    }
-
-    if (cd.pharmacist_owner)    insertData.pharmacist_owner    = cd.pharmacist_owner
-    if (cd.province)            insertData.province            = cd.province
-    if (cd.city)                insertData.city                = cd.city
-    if (cd.address)             insertData.address             = cd.address
-    if (cd.postal_code)         insertData.postal_code         = cd.postal_code
-    if (cd.contact_phone)       insertData.contact_phone       = cd.contact_phone
-    if (cd.contact_email)       insertData.contact_email       = cd.contact_email
-    if (cd.nif_cif)             insertData.nif_cif             = cd.nif_cif
-    if (cd.soe_number)          insertData.soe_number          = cd.soe_number
-    if (cd.observations)        insertData.observations        = cd.observations
-    if (cd.schedule)            insertData.schedule            = cd.schedule
-    if (cd.collegiate_number)   insertData.collegiate_number   = cd.collegiate_number
-    if (cd.has_guards != null)  insertData.has_guards          = cd.has_guards
-    if (cd.sl_name)             insertData.sl_name             = cd.sl_name
-    if (cd.sl_cif)              insertData.sl_cif              = cd.sl_cif
-    if (cd.sl_phone)            insertData.sl_phone            = cd.sl_phone
-    if (cd.sl_email)            insertData.sl_email            = cd.sl_email
-    if (cd.legal_type?.length)  insertData.legal_type          = cd.legal_type
-    if (cd.cb_owners?.length)   insertData.cb_owners           = cd.cb_owners
-    if (Object.keys(products).length) insertData.products      = products
+    const insertData = { company_id: activeProfile.company_id, ...row }
 
     console.log('[createClient] insertData:', insertData)
 
@@ -303,35 +341,40 @@ export default function App() {
       entityId: data.id,
     })
 
-    setIsCreateClientOpen(false)
+    closeCreateClientModal()
     await loadClients()
     setCurrentPage('clients')
   }
 
-  async function updateClient(clientId, clientData) {
+  async function updateClient(clientId, payload) {
     const previous = clients.find(c => c.id === clientId)
-    const pharmacyName = (clientData.pharmacy_name || clientData.name || '').trim()
+
+    // Adaptar nombres del modal a columnas de Supabase
+    const row = modalPayloadToDbRow(payload)
+
+    if (!row.pharmacy_name) {
+      alert('El nombre de la farmacia es obligatorio.')
+      return
+    }
+
     const { data, error } = await supabase
       .from('clients')
-      .update({
-        name:             pharmacyName,
-        pharmacy_name:    pharmacyName,
-        pharmacist_owner: clientData.pharmacist_owner || null,
-        province:         clientData.province         || null,
-        city:             clientData.city             || null,
-        address:          clientData.address          || null,
-        postal_code:      clientData.postal_code      || null,
-        contact_phone:    clientData.contact_phone    || null,
-        contact_email:    clientData.contact_email    || null,
-        nif_cif:          clientData.nif_cif          || null,
-        soe_number:       clientData.soe_number       || null,
-        observations:     clientData.observations     || null,
-      })
+      .update(row)
       .eq('id', clientId)
       .select()
       .single()
-    if (error) { alert(`Error: ${error.message}`); return }
-    await createActivityLog({ userId: session.user.id, entityType: 'client', entityId: clientId, action: 'update', oldValue: previous, newValue: data })
+
+    if (error) { alert(`Error al guardar cambios: ${error.message}`); return }
+
+    await createActivityLog({
+      userId: session.user.id,
+      entityType: 'client',
+      entityId: clientId,
+      action: 'update',
+      oldValue: previous,
+      newValue: data,
+    })
+
     setEditingClient(null)
     await loadClients()
   }
@@ -345,6 +388,7 @@ export default function App() {
     await loadClients()
   }
 
+  // ── CRUD proyectos ────────────────────────────────────────────────────────
   async function createProject(projectData) {
     if (!profile?.company_id) return
     const { data, error } = await supabase
@@ -380,6 +424,7 @@ export default function App() {
     await loadProjects()
   }
 
+  // ── CRUD plantillas ───────────────────────────────────────────────────────
   async function createTemplate(templateData) {
     if (!profile?.company_id) return
     const { data, error } = await supabase
@@ -432,6 +477,7 @@ export default function App() {
     await loadTemplates()
   }
 
+  // ── CRUD checklists ───────────────────────────────────────────────────────
   async function createChecklist(checklistData) {
     const { data: checklist, error: cErr } = await supabase
       .from('checklists')
@@ -476,6 +522,7 @@ export default function App() {
     await loadExecutedChecklists()
   }
 
+  // ── Navegación ────────────────────────────────────────────────────────────
   function openClientDetail(clientId) { setSelectedClientId(clientId); setCurrentPage('client-detail') }
   function backToClients() { setSelectedClientId(null); setCurrentPage('clients') }
   function openChecklist(checklistId) { setSelectedChecklistId(checklistId); setCurrentPage('checklist-execution') }
@@ -492,6 +539,7 @@ export default function App() {
     setCurrentPage(page)
   }
 
+  // ── Renders de pantalla ───────────────────────────────────────────────────
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
@@ -585,18 +633,44 @@ export default function App() {
         {currentPage === 'settings' && (profile?.role === 'owner' || profile?.role === 'admin') && (<SettingsPage />)}
       </>
 
-      {/* key incremental → React re-monta el modal en cada apertura → estado siempre limpio */}
+      {/* Modales — fuera del flujo de contenido principal */}
       <CreateClientModal
         key={createClientKey}
         isOpen={isCreateClientOpen}
-        onClose={() => setIsCreateClientOpen(false)}
+        onClose={closeCreateClientModal}
         onCreate={createClient}
       />
-      <EditClientModal isOpen={Boolean(editingClient)} client={editingClient} onClose={() => setEditingClient(null)} onSave={updateClient} />
-      <CreateProjectModal isOpen={isCreateProjectOpen} onClose={() => setIsCreateProjectOpen(false)} onCreate={createProject} clients={clients} />
-      <EditProjectModal isOpen={Boolean(editingProject)} project={editingProject} clients={clients} onClose={() => setEditingProject(null)} onSave={updateProject} />
-      <CreateChecklistModal isOpen={isCreateChecklistOpen} onClose={() => setIsCreateChecklistOpen(false)} onCreate={createChecklist} projects={projects} templates={templates} />
-      <CreateTemplateModal isOpen={isCreateTemplateOpen} onClose={() => setIsCreateTemplateOpen(false)} onCreate={createTemplate} />
+      <EditClientModal
+        isOpen={Boolean(editingClient)}
+        client={editingClient}
+        onClose={() => setEditingClient(null)}
+        onSave={updateClient}
+      />
+      <CreateProjectModal
+        isOpen={isCreateProjectOpen}
+        onClose={() => setIsCreateProjectOpen(false)}
+        onCreate={createProject}
+        clients={clients}
+      />
+      <EditProjectModal
+        isOpen={Boolean(editingProject)}
+        project={editingProject}
+        clients={clients}
+        onClose={() => setEditingProject(null)}
+        onSave={updateProject}
+      />
+      <CreateChecklistModal
+        isOpen={isCreateChecklistOpen}
+        onClose={() => setIsCreateChecklistOpen(false)}
+        onCreate={createChecklist}
+        projects={projects}
+        templates={templates}
+      />
+      <CreateTemplateModal
+        isOpen={isCreateTemplateOpen}
+        onClose={() => setIsCreateTemplateOpen(false)}
+        onCreate={createTemplate}
+      />
     </AppLayout>
   )
 }
