@@ -25,15 +25,20 @@ function IconList()   { return <Icon size={15}><line x1="8" y1="6" x2="21" y2="6
 const PROVINCES_AN = ['Almería','Cádiz','Córdoba','Granada','Huelva','Jaén','Málaga','Sevilla']
 
 const PROVINCE_COLORS = {
-  'Almería':  '#6366f1',
-  'Cádiz':    '#0ea5e9',
-  'Córdoba':  '#f59e0b',
-  'Granada':  '#10b981',
-  'Huelva':   '#f43f5e',
-  'Jaén':     '#8b5cf6',
-  'Málaga':   '#14b8a6',
-  'Sevilla':  '#fb923c',
+  'Almería': '#6366f1',
+  'Cádiz':   '#0ea5e9',
+  'Córdoba': '#f59e0b',
+  'Granada': '#10b981',
+  'Huelva':  '#f43f5e',
+  'Jaén':    '#8b5cf6',
+  'Málaga':  '#14b8a6',
+  'Sevilla': '#fb923c',
 }
+
+const BRAND_PALETTE = [
+  '#64748b','#6366f1','#ec4899','#f97316','#84cc16',
+  '#06b6d4','#a855f7','#ef4444','#0d9488','#d97706',
+]
 
 const VITEKA_ROWS = [
   { label: 'Nixfarma',     cat: 'erp',         test: p => p?.brand === 'Nixfarma'           && p?.viteka_support === 'SI' },
@@ -45,12 +50,12 @@ const VITEKA_ROWS = [
 ]
 
 const THIRD_ROWS = [
-  { label: 'ERP',          cat: 'erp',         test: p => p?.brand && p.brand !== 'Nixfarma'  && p.brand !== '' },
-  { label: 'Caja cobro',   cat: 'caja_cobro',  test: p => p?.brand && p.brand !== 'Cashlogy'  && p.brand !== 'NO' && p.brand !== '' },
-  { label: 'ESL',          cat: 'etiquetas',   test: p => p?.brand && p.brand !== 'Hanshow'   && p.brand !== 'NO' && p.brand !== '' },
-  { label: 'Báscula',      cat: 'basculas',    test: p => p?.brand && p.brand !== 'Pondus'    && p.brand !== 'NO' && p.brand !== '' },
-  { label: 'Consultoría',  cat: 'consultoria', test: p => p?.brand && !p.brand.toLowerCase().includes('viteka') && p.brand !== 'NO' && p.brand !== '' },
-  { label: 'Robot',        cat: 'robot',       test: p => p?.brand && p.brand !== 'NO'        && p.brand !== '' },
+  { label: 'ERP',         cat: 'erp',         test: p => p?.brand && p.brand !== 'Nixfarma'  && p.brand !== '' },
+  { label: 'Caja cobro',  cat: 'caja_cobro',  test: p => p?.brand && p.brand !== 'Cashlogy'  && p.brand !== 'NO' && p.brand !== '' },
+  { label: 'ESL',         cat: 'etiquetas',   test: p => p?.brand && p.brand !== 'Hanshow'   && p.brand !== 'NO' && p.brand !== '' },
+  { label: 'Báscula',     cat: 'basculas',    test: p => p?.brand && p.brand !== 'Pondus'    && p.brand !== 'NO' && p.brand !== '' },
+  { label: 'Consultoría', cat: 'consultoria', test: p => p?.brand && !p.brand.toLowerCase().includes('viteka') && p.brand !== 'NO' && p.brand !== '' },
+  { label: 'Robot',       cat: 'robot',       test: p => p?.brand && p.brand !== 'NO'        && p.brand !== '' },
 ]
 
 // ---------------------------------------------------------------------------
@@ -67,32 +72,32 @@ function getInitials(name) {
 }
 
 // ---------------------------------------------------------------------------
-// SegmentedBar
+// SegmentedBar genérica: [{label, count, color}]
 // ---------------------------------------------------------------------------
-function SegmentedBar({ segments, total }) {
+function SegmentedBar({ segments, total, height = 'h-2' }) {
   const [tooltip, setTooltip] = useState(null)
   const barRef = useRef(null)
   const nonZero = segments.filter(s => s.count > 0)
 
   if (total === 0) {
-    return <div className="h-2 w-full rounded-full" style={{ background: 'var(--surface-soft)' }} />
+    return <div className={`${height} w-full rounded-full`} style={{ background: 'var(--surface-soft)' }} />
   }
 
   return (
     <div className="relative">
       <div
         ref={barRef}
-        className="flex h-2 w-full overflow-hidden rounded-full"
+        className={`flex ${height} w-full overflow-hidden rounded-full`}
         style={{ background: 'var(--surface-soft)' }}
         onMouseLeave={() => setTooltip(null)}
       >
-        {nonZero.map(({ province, count }) => (
+        {nonZero.map(({ label, count, color }) => (
           <div
-            key={province}
-            style={{ width: `${(count / total) * 100}%`, backgroundColor: PROVINCE_COLORS[province], minWidth: '2px' }}
+            key={label}
+            style={{ width: `${(count / total) * 100}%`, backgroundColor: color, minWidth: '2px' }}
             onMouseEnter={e => {
               const rect = barRef.current?.getBoundingClientRect()
-              setTooltip({ province, count, x: e.clientX - (rect?.left ?? 0) })
+              setTooltip({ label, count, color, x: e.clientX - (rect?.left ?? 0) })
             }}
           />
         ))}
@@ -103,11 +108,11 @@ function SegmentedBar({ segments, total }) {
           style={{
             left: `${tooltip.x}px`,
             transform: 'translateX(-50%)',
-            background: PROVINCE_COLORS[tooltip.province] ?? '#334155',
+            background: tooltip.color,
             whiteSpace: 'nowrap',
           }}
         >
-          {tooltip.province}: {tooltip.count}
+          {tooltip.label}: {tooltip.count}
         </div>
       )}
     </div>
@@ -115,17 +120,40 @@ function SegmentedBar({ segments, total }) {
 }
 
 // ---------------------------------------------------------------------------
-// ProductBarSegmented
+// ProductBarViteka — barra única por provincia
 // ---------------------------------------------------------------------------
-function ProductBarSegmented({ label, segments, total }) {
-  const count = segments.reduce((acc, s) => acc + s.count, 0)
+function ProductBarViteka({ label, provinceSegments, total }) {
+  const count = provinceSegments.reduce((a, s) => a + s.count, 0)
+  const segments = provinceSegments.map(s => ({ label: s.province, count: s.count, color: PROVINCE_COLORS[s.province] }))
   return (
     <div>
       <div className="mb-1 flex items-center justify-between">
         <span className="text-[12px]" style={{ color: 'var(--text-soft)' }}>{label}</span>
         <span className="text-[12px] font-semibold" style={{ color: count > 0 ? 'var(--primary)' : 'var(--muted)' }}>{count}</span>
       </div>
-      <SegmentedBar segments={segments} total={total} />
+      <SegmentedBar segments={segments} total={total} height="h-2" />
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// ProductBarThird — doble barra: marcas (arriba) + provincias (abajo)
+// ---------------------------------------------------------------------------
+function ProductBarThird({ label, brandSegments, provinceSegments, total }) {
+  const count = brandSegments.reduce((a, s) => a + s.count, 0)
+  const provSegs = provinceSegments.map(s => ({ label: s.province, count: s.count, color: PROVINCE_COLORS[s.province] }))
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-[12px]" style={{ color: 'var(--text-soft)' }}>{label}</span>
+        <span className="text-[12px] font-semibold" style={{ color: count > 0 ? '#f59e0b' : 'var(--muted)' }}>{count}</span>
+      </div>
+      {/* Barra superior: marcas */}
+      <SegmentedBar segments={brandSegments} total={total} height="h-1.5" />
+      {/* Barra inferior: provincias */}
+      <div className="mt-0.5">
+        <SegmentedBar segments={provSegs} total={total} height="h-1" />
+      </div>
     </div>
   )
 }
@@ -151,22 +179,38 @@ export default function ClientsPage({
   const vitekaRows = useMemo(() =>
     VITEKA_ROWS.map(({ label, cat, test }) => {
       const matched = clients.filter(c => test(c.products?.[cat]))
-      const segments = PROVINCES_AN.map(prov => ({
+      const provinceSegments = PROVINCES_AN.map(prov => ({
         province: prov,
         count: matched.filter(c => c.province === prov).length,
       }))
-      return { label, total: matched.length, segments }
+      return { label, total: matched.length, provinceSegments }
     })
   , [clients])
 
   const thirdRows = useMemo(() =>
     THIRD_ROWS.map(({ label, cat, test }) => {
       const matched = clients.filter(c => test(c.products?.[cat]))
-      const segments = PROVINCES_AN.map(prov => ({
+
+      // Marcas únicas ordenadas por volumen
+      const brandMap = {}
+      matched.forEach(c => {
+        const brand = c.products?.[cat]?.brand || 'Sin marca'
+        brandMap[brand] = (brandMap[brand] || 0) + 1
+      })
+      const brandSegments = Object.entries(brandMap)
+        .sort((a, b) => b[1] - a[1])
+        .map(([brand, count], i) => ({
+          label: brand,
+          count,
+          color: BRAND_PALETTE[i % BRAND_PALETTE.length],
+        }))
+
+      const provinceSegments = PROVINCES_AN.map(prov => ({
         province: prov,
         count: matched.filter(c => c.province === prov).length,
       }))
-      return { label, total: matched.length, segments }
+
+      return { label, total: matched.length, brandSegments, provinceSegments }
     })
   , [clients])
 
@@ -200,7 +244,7 @@ export default function ClientsPage({
       {/* Stats card */}
       <div className="card p-4 space-y-4">
 
-        {/* Provincias — chips con color */}
+        {/* Provincias — chips compactos */}
         <div>
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>Por provincia</p>
           <div className="flex flex-wrap gap-x-4 gap-y-1">
@@ -216,32 +260,42 @@ export default function ClientsPage({
 
         <div style={{ borderTop: '1px solid var(--border)' }} />
 
-        {/* Productos en dos columnas con barras segmentadas */}
+        {/* Productos en dos columnas */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+
+          {/* Viteka — barra única por provincia */}
           <div>
             <div className="mb-2 flex items-center gap-1.5">
               <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
               <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>Productos Viteka</p>
             </div>
             <div className="space-y-2.5">
-              {vitekaRows.map(({ label, segments, total }) => (
-                <ProductBarSegmented key={label} label={label} segments={segments} total={total} />
+              {vitekaRows.map(({ label, provinceSegments, total }) => (
+                <ProductBarViteka key={label} label={label} provinceSegments={provinceSegments} total={total} />
               ))}
             </div>
           </div>
+
+          {/* Terceros — doble barra */}
           <div>
             <div className="mb-2 flex items-center gap-1.5">
               <span className="inline-flex h-1.5 w-1.5 rounded-full bg-amber-500" />
               <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>Productos terceros</p>
             </div>
-            <div className="space-y-2.5">
-              {thirdRows.map(({ label, segments, total }) => (
-                <ProductBarSegmented key={label} label={label} segments={segments} total={total} />
+            <div className="space-y-3">
+              {thirdRows.map(({ label, brandSegments, provinceSegments, total }) => (
+                <ProductBarThird
+                  key={label}
+                  label={label}
+                  brandSegments={brandSegments}
+                  provinceSegments={provinceSegments}
+                  total={total}
+                />
               ))}
             </div>
           </div>
-        </div>
 
+        </div>
       </div>
 
       {/* Toolbar */}
