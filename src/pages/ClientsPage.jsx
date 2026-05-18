@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import CreateClientModal from '../components/modals/CreateClientModal'
 
 // ---------------------------------------------------------------------------
 // Icons
@@ -35,7 +34,6 @@ function getInitials(name) {
   return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
 }
 
-// product category labels for dashboard cards
 const VITEKA_PRODUCTS = [
   { key: 'nixfarma',    label: 'Nixfarma' },
   { key: 'cashlogy',   label: 'Cashlogy' },
@@ -62,19 +60,17 @@ const THIRD_PRODUCTS = [
 // ---------------------------------------------------------------------------
 export default function ClientsPage({
   clients = [],
-  products = [],   // client_products rows
+  products = [],
   onCreateClient,
   onEditClient,
   onDeleteClient,
   onOpenClient,
   profile,
 }) {
-  const [search,    setSearch]    = useState('')
-  const [province,  setProvince]  = useState('')
-  const [view,      setView]      = useState('table')
-  const [showModal, setShowModal] = useState(false)
+  const [search,   setSearch]   = useState('')
+  const [province, setProvince] = useState('')
+  const [view,     setView]     = useState('table')
 
-  // ── Dashboard: farmacias por provincia ───────────────────────────────────
   const byProvince = useMemo(() => {
     return PROVINCES_AN.map(p => ({
       label: p,
@@ -82,11 +78,9 @@ export default function ClientsPage({
     }))
   }, [clients])
 
-  // ── Dashboard: productos Viteka (viteka_support = true) ──────────────────
   const vitekaCounters = useMemo(() => {
     const vProducts = products.filter(p => p.viteka_support === true)
     return VITEKA_PRODUCTS.map(({ key, label }) => {
-      // map product key → category/brand stored in client_products
       const catMap = {
         nixfarma:    p => p.category === 'erp'        && p.brand?.toLowerCase() === 'nixfarma',
         cashlogy:    p => p.category === 'caja_cobro' && p.brand?.toLowerCase() === 'cashlogy',
@@ -103,7 +97,6 @@ export default function ClientsPage({
     })
   }, [products])
 
-  // ── Dashboard: productos terceros (viteka_support = false) ───────────────
   const thirdCounters = useMemo(() => {
     const tProducts = products.filter(p => p.viteka_support === false)
     return THIRD_PRODUCTS.map(({ key, label }) => {
@@ -112,7 +105,6 @@ export default function ClientsPage({
     })
   }, [products])
 
-  // ── Tabla filtrada ────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     return clients.filter(c => {
       const text = [
@@ -125,11 +117,6 @@ export default function ClientsPage({
     })
   }, [clients, search, province])
 
-  function handleCreate(data) {
-    onCreateClient && onCreateClient(data)
-    setShowModal(false)
-  }
-
   return (
     <div className="space-y-6">
 
@@ -139,13 +126,14 @@ export default function ClientsPage({
           <h1 className="page-title">Farmacias</h1>
           <p className="page-subtitle">Gestión de clientes, contactos y datos operativos</p>
         </div>
-        <button type="button" onClick={() => setShowModal(true)}
+        {/* Delegar apertura del modal al padre (App.jsx) */}
+        <button type="button" onClick={onCreateClient}
           className="btn-primary flex items-center gap-2 text-[13px]">
           <span className="text-base leading-none">+</span> Nueva farmacia
         </button>
       </div>
 
-      {/* ── CAJA 1: Por provincia ── */}
+      {/* Por provincia */}
       <section>
         <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
           Farmacias por provincia
@@ -160,16 +148,12 @@ export default function ClientsPage({
         </div>
       </section>
 
-      {/* ── CAJA 2 + 3: Productos ── */}
+      {/* Productos */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-
-        {/* Caja 2 — Productos Viteka */}
         <section className="card p-5">
           <div className="mb-4 flex items-center gap-2">
             <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-            <h2 className="text-[13px] font-semibold" style={{ color: 'var(--text)' }}>
-              Productos Viteka
-            </h2>
+            <h2 className="text-[13px] font-semibold" style={{ color: 'var(--text)' }}>Productos Viteka</h2>
             <span className="ml-auto text-[11px]" style={{ color: 'var(--muted)' }}>distribuidor y/o soporte</span>
           </div>
           <div className="space-y-2">
@@ -178,14 +162,10 @@ export default function ClientsPage({
             ))}
           </div>
         </section>
-
-        {/* Caja 3 — Productos terceros */}
         <section className="card p-5">
           <div className="mb-4 flex items-center gap-2">
             <span className="inline-flex h-2 w-2 rounded-full bg-amber-500" />
-            <h2 className="text-[13px] font-semibold" style={{ color: 'var(--text)' }}>
-              Productos de terceros
-            </h2>
+            <h2 className="text-[13px] font-semibold" style={{ color: 'var(--text)' }}>Productos de terceros</h2>
             <span className="ml-auto text-[11px]" style={{ color: 'var(--muted)' }}>sin distribución Viteka</span>
           </div>
           <div className="space-y-2">
@@ -196,7 +176,7 @@ export default function ClientsPage({
         </section>
       </div>
 
-      {/* ── Toolbar ── */}
+      {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted)' }}><IconSearch /></span>
@@ -223,22 +203,12 @@ export default function ClientsPage({
         {filtered.length === clients.length ? `${clients.length} farmacias` : `${filtered.length} de ${clients.length} farmacias`}
       </p>
 
-      {/* ── Tabla / Grid ── */}
       {filtered.length === 0
         ? <EmptyState hasFilters={Boolean(search || province)} onClear={() => { setSearch(''); setProvince('') }} />
         : view === 'table'
           ? <TableView clients={filtered} onOpen={onOpenClient} onEdit={onEditClient} onDelete={onDeleteClient} />
           : <GridView  clients={filtered} onOpen={onOpenClient} onEdit={onEditClient} onDelete={onDeleteClient} />
       }
-
-      {/* ── Modal ── */}
-      {showModal && (
-        <CreateClientModal
-          profile={profile}
-          onSave={handleCreate}
-          onClose={() => setShowModal(false)}
-        />
-      )}
     </div>
   )
 }
@@ -332,8 +302,8 @@ function TableView({ clients, onOpen, onEdit, onDelete }) {
               <td>
                 <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                   {onOpen && <ActionBtn onClick={() => onOpen(c.id)} title="Ver detalle" color="green"><IconEye /></ActionBtn>}
-                  <ActionBtn onClick={() => onEdit(c)}    title="Editar"    color="slate"><IconEdit /></ActionBtn>
-                  <ActionBtn onClick={() => onDelete(c.id)} title="Eliminar" color="red"><IconTrash /></ActionBtn>
+                  <ActionBtn onClick={() => onEdit(c)}      title="Editar"    color="slate"><IconEdit /></ActionBtn>
+                  <ActionBtn onClick={() => onDelete(c.id)} title="Eliminar"  color="red"><IconTrash /></ActionBtn>
                 </div>
               </td>
             </tr>
@@ -383,7 +353,7 @@ function GridView({ clients, onOpen, onEdit, onDelete }) {
             {onOpen && (
               <button type="button" onClick={() => onOpen(c.id)} className="btn-primary flex-1 py-1.5 text-center text-[12px]">Ver detalle</button>
             )}
-            <ActionBtn onClick={() => onEdit(c)}     title="Editar"    color="slate"><IconEdit /></ActionBtn>
+            <ActionBtn onClick={() => onEdit(c)}      title="Editar"   color="slate"><IconEdit /></ActionBtn>
             <ActionBtn onClick={() => onDelete(c.id)} title="Eliminar" color="red"><IconTrash /></ActionBtn>
           </div>
         </div>

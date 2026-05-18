@@ -213,14 +213,18 @@ export default function App() {
   }
 
   // ---------------------------------------------------------------------------
-  // createClient — solo columnas reales de la tabla clients
-  // El modal envía un payload plano con campos del formulario (legal_type,
-  // cb_owners, products, has_guards, etc.) que NO existen en la BD.
-  // Aquí extraemos ÚNICAMENTE las columnas conocidas.
+  // createClient
+  // El modal envía: { ...clientData (campos Step1), products (obj Step2) }
+  // Columnas escalares → columnas reales de la tabla.
+  // legal_type, cb_owners, products, has_guards, schedule,
+  // collegiate_number, sl_* → guardados en columnas JSONB/text de la BD.
+  // Si Supabase devuelve error de columna inexistente lo veremos en consola
+  // y actuamos, pero el insert ya no explota silenciosamente.
   // ---------------------------------------------------------------------------
   async function createClient(payload) {
     let activeProfile = profile
 
+    // Reobtener perfil si no tiene company_id (sesión recién restaurada)
     if (!activeProfile?.company_id) {
       const { data: { user } } = await supabase.auth.getUser()
       if (user?.id) {
@@ -236,8 +240,9 @@ export default function App() {
       return
     }
 
-    // El modal siempre envía el payload plano (no anidado en clientData)
+    // El modal envía el payload plano (clientData + products mezclados)
     const cd = payload.clientData ?? payload
+    const products = payload.products ?? {}
 
     const pharmacyName = (cd.pharmacy_name || cd.name || '').trim()
     if (!pharmacyName) {
@@ -245,27 +250,42 @@ export default function App() {
       return
     }
 
-    // ---- Solo columnas que existen en la tabla clients ----
+    // Construir el objeto de insert con todas las columnas conocidas.
+    // Las columnas JSONB (legal_type, cb_owners, products) se envían tal cual.
+    // Las columnas de texto/boolean opcionales se incluyen solo si tienen valor.
     const insertData = {
-      company_id:       activeProfile.company_id,
-      name:             pharmacyName,
-      pharmacy_name:    pharmacyName,
-      pharmacist_owner: cd.pharmacist_owner  || null,
-      province:         cd.province          || null,
-      city:             cd.city              || null,
-      address:          cd.address           || null,
-      postal_code:      cd.postal_code       || null,
-      contact_phone:    cd.contact_phone     || null,
-      contact_email:    cd.contact_email     || null,
-      nif_cif:          cd.nif_cif           || null,
-      soe_number:       cd.soe_number        || null,
-      observations:     cd.observations      || null,
+      company_id:          activeProfile.company_id,
+      name:                pharmacyName,
+      pharmacy_name:       pharmacyName,
     }
 
-    // Eliminar claves con valor null para no enviar columnas opcionales vacías
-    Object.keys(insertData).forEach(k => { if (insertData[k] === null) delete insertData[k] })
+    // Escalares simples
+    if (cd.pharmacist_owner)    insertData.pharmacist_owner    = cd.pharmacist_owner
+    if (cd.province)            insertData.province            = cd.province
+    if (cd.city)                insertData.city                = cd.city
+    if (cd.address)             insertData.address             = cd.address
+    if (cd.postal_code)         insertData.postal_code         = cd.postal_code
+    if (cd.contact_phone)       insertData.contact_phone       = cd.contact_phone
+    if (cd.contact_email)       insertData.contact_email       = cd.contact_email
+    if (cd.nif_cif)             insertData.nif_cif             = cd.nif_cif
+    if (cd.soe_number)          insertData.soe_number          = cd.soe_number
+    if (cd.observations)        insertData.observations        = cd.observations
+    if (cd.schedule)            insertData.schedule            = cd.schedule
+    if (cd.collegiate_number)   insertData.collegiate_number   = cd.collegiate_number
+    if (cd.has_guards != null)  insertData.has_guards          = cd.has_guards
 
-    console.log('[createClient] insertData final:', insertData)
+    // S.L.
+    if (cd.sl_name)  insertData.sl_name  = cd.sl_name
+    if (cd.sl_cif)   insertData.sl_cif   = cd.sl_cif
+    if (cd.sl_phone) insertData.sl_phone = cd.sl_phone
+    if (cd.sl_email) insertData.sl_email = cd.sl_email
+
+    // JSONB
+    if (cd.legal_type?.length)  insertData.legal_type  = cd.legal_type
+    if (cd.cb_owners?.length)   insertData.cb_owners   = cd.cb_owners
+    if (Object.keys(products).length) insertData.products = products
+
+    console.log('[createClient] insertData:', insertData)
 
     const { data, error } = await supabase
       .from('clients')
@@ -274,13 +294,26 @@ export default function App() {
       .single()
 
     if (error) {
-      console.error('[createClient] error:', error)
-      alert(`❌ Error al crear farmacia:\n\nCódigo: ${error.code}\nMensaje: ${error.message}\nHint: ${error.hint || '-'}`)
+      console.error('[createClient] Supabase error:', error)
+      alert(`❌ Error al crear farmacia:\n\nCódigo: ${error.code}\nMensaje: ${error.message}${error.hint ? '\nHint: ' + error.hint : ''}`)
       return
     }
 
-    await createActivityLog({ userId: session.user.id, entityType: 'client', entityId: data.id, action: 'create', newValue: data })
-    await createNotification({ userId: session.user.id, title: 'Farmacia creada', message: `Se creó "${data.pharmacy_name || data.name}".`, type: 'success', entityType: 'client', entityId: data.id })
+    await createActivityLog({
+      userId: session.user.id,
+      entityType: 'client',
+      entityId: data.id,
+      action: 'create',
+      newValue: data,
+    })
+    await createNotification({
+      userId: session.user.id,
+      title: 'Farmacia creada',
+      message: `Se creó "${data.pharmacy_name || data.name}".`,
+      type: 'success',
+      entityType: 'client',
+      entityId: data.id,
+    })
 
     setIsCreateClientOpen(false)
     await loadClients()
@@ -522,7 +555,13 @@ export default function App() {
           <Dashboard clients={clients} projects={projects} templates={templates} checklists={executedChecklists} onNavigate={changePage} onCreateClient={() => setIsCreateClientOpen(true)} />
         )}
         {currentPage === 'clients' && (
-          <ClientsPage clients={clients} onCreateClient={() => setIsCreateClientOpen(true)} onEditClient={setEditingClient} onDeleteClient={deleteClient} onOpenClient={openClientDetail} />
+          <ClientsPage
+            clients={clients}
+            onCreateClient={() => setIsCreateClientOpen(true)}
+            onEditClient={setEditingClient}
+            onDeleteClient={deleteClient}
+            onOpenClient={openClientDetail}
+          />
         )}
         {currentPage === 'client-detail' && selectedClientId && (
           <ClientDetailPage clientId={selectedClientId} onBack={backToClients} />
@@ -558,7 +597,12 @@ export default function App() {
         {currentPage === 'settings' && (profile?.role === 'owner' || profile?.role === 'admin') && (<SettingsPage />)}
       </>
 
-      <CreateClientModal isOpen={isCreateClientOpen} onClose={() => setIsCreateClientOpen(false)} onCreate={createClient} />
+      {/* Modal único de creación — controlado desde App.jsx */}
+      <CreateClientModal
+        isOpen={isCreateClientOpen}
+        onClose={() => setIsCreateClientOpen(false)}
+        onCreate={createClient}
+      />
       <EditClientModal isOpen={Boolean(editingClient)} client={editingClient} onClose={() => setEditingClient(null)} onSave={updateClient} />
       <CreateProjectModal isOpen={isCreateProjectOpen} onClose={() => setIsCreateProjectOpen(false)} onCreate={createProject} clients={clients} />
       <EditProjectModal isOpen={Boolean(editingProject)} project={editingProject} clients={clients} onClose={() => setEditingProject(null)} onSave={updateProject} />
