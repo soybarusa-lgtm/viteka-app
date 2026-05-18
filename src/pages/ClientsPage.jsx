@@ -120,11 +120,11 @@ export default function ClientsPage({
   return (
     <div className="space-y-6">
 
-      {/* Header — mismo patrón visual que Dashboard */}
+      {/* Header — mismo estilo que Dashboard */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text)' }}>Farmacias</h1>
-          <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>Gestión de clientes, contactos y datos operativos</p>
+          <p className="mt-1 text-[14px]" style={{ color: 'var(--muted)' }}>Gestión de clientes, contactos y datos operativos</p>
         </div>
         <button type="button" onClick={onCreateClient}
           className="btn-primary flex items-center gap-2 text-[13px]">

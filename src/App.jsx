@@ -55,6 +55,8 @@ export default function App() {
   const [selectedClientId, setSelectedClientId] = useState(null)
 
   const [isCreateClientOpen, setIsCreateClientOpen] = useState(false)
+  // Contador incremental: cada apertura tiene un key único → React re-monta el modal → estado limpio
+  const [createClientKey, setCreateClientKey] = useState(0)
   const [editingClient, setEditingClient] = useState(null)
 
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false)
@@ -210,6 +212,11 @@ export default function App() {
       .select('id,status')
     if (error) { console.error('loadTaskStats:', error.message); return }
     setTasks(data || [])
+  }
+
+  function openCreateClientModal() {
+    setCreateClientKey(k => k + 1) // nuevo key → re-mount → estado limpio
+    setIsCreateClientOpen(true)
   }
 
   async function createClient(payload) {
@@ -533,12 +540,12 @@ export default function App() {
     <AppLayout onLogout={logout} currentPage={currentPage} setCurrentPage={changePage} profile={profile} theme={theme} userTheme={userTheme} onToggleTheme={toggleTheme}>
       <>
         {currentPage === 'dashboard' && (
-          <Dashboard clients={clients} projects={projects} templates={templates} checklists={executedChecklists} onNavigate={changePage} onCreateClient={() => setIsCreateClientOpen(true)} />
+          <Dashboard clients={clients} projects={projects} templates={templates} checklists={executedChecklists} onNavigate={changePage} onCreateClient={openCreateClientModal} />
         )}
         {currentPage === 'clients' && (
           <ClientsPage
             clients={clients}
-            onCreateClient={() => setIsCreateClientOpen(true)}
+            onCreateClient={openCreateClientModal}
             onEditClient={setEditingClient}
             onDeleteClient={deleteClient}
             onOpenClient={openClientDetail}
@@ -578,9 +585,9 @@ export default function App() {
         {currentPage === 'settings' && (profile?.role === 'owner' || profile?.role === 'admin') && (<SettingsPage />)}
       </>
 
-      {/* key={isCreateClientOpen} fuerza re-mount al abrir → resetea todos los useState del modal */}
+      {/* key incremental → React re-monta el modal en cada apertura → estado siempre limpio */}
       <CreateClientModal
-        key={String(isCreateClientOpen)}
+        key={createClientKey}
         isOpen={isCreateClientOpen}
         onClose={() => setIsCreateClientOpen(false)}
         onCreate={createClient}
