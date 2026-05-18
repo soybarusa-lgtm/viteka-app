@@ -35,11 +35,26 @@ const PROVINCE_COLORS = {
   'Sevilla': '#fb923c',
 }
 
-// Productos Viteka destacados en la card
+// Nixfarma = rojo, Cashlogy = amarillo, Hanshow = azul
 const VITEKA_PRODUCTS = [
-  { key: 'nix',  label: 'Nix',  color: '#10b981', test: (c) => c.products?.erp?.brand === 'Nixfarma' && c.products?.erp?.viteka_support === 'SI' },
-  { key: 'cash', label: 'Cash', color: '#0ea5e9', test: (c) => c.products?.caja_cobro?.brand === 'Cashlogy' && c.products?.caja_cobro?.viteka_support === 'SI' },
-  { key: 'han',  label: 'Han',  color: '#f59e0b', test: (c) => c.products?.etiquetas?.brand === 'Hanshow' && c.products?.etiquetas?.viteka_support === 'SI' },
+  {
+    key: 'nix',
+    label: 'Nixfarma',
+    color: '#ef4444',
+    test: c => c.products?.erp?.brand === 'Nixfarma' && c.products?.erp?.viteka_support === 'SI',
+  },
+  {
+    key: 'cash',
+    label: 'Cashlogy',
+    color: '#eab308',
+    test: c => c.products?.caja_cobro?.brand === 'Cashlogy' && c.products?.caja_cobro?.viteka_support === 'SI',
+  },
+  {
+    key: 'han',
+    label: 'Hanshow',
+    color: '#3b82f6',
+    test: c => c.products?.etiquetas?.brand === 'Hanshow' && c.products?.etiquetas?.viteka_support === 'SI',
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -69,7 +84,7 @@ function ProvinceCard({ province, clients }) {
       style={{
         border: `1px solid ${color}30`,
         background: `${color}08`,
-        minWidth: '90px',
+        minWidth: '108px',
       }}
     >
       {/* Provincia + total */}
@@ -80,17 +95,17 @@ function ProvinceCard({ province, clients }) {
       <div className="my-2" style={{ borderTop: `1px solid ${color}25` }} />
 
       {/* Productos Viteka */}
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         {VITEKA_PRODUCTS.map(({ key, label, color: pc, test }) => {
           const count = provClients.filter(test).length
           return (
-            <div key={key} className="flex items-center justify-between gap-1">
-              <div className="flex items-center gap-1">
-                <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: pc }} />
+            <div key={key} className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: pc }} />
                 <span className="text-[10px]" style={{ color: 'var(--muted)' }}>{label}</span>
               </div>
               <span
-                className="text-[10px] font-semibold"
+                className="text-[10px] font-bold tabular-nums"
                 style={{ color: count > 0 ? pc : 'var(--muted)' }}
               >{count}</span>
             </div>
@@ -152,12 +167,12 @@ export default function ClientsPage({
             <ProvinceCard key={prov} province={prov} clients={clients} />
           ))}
         </div>
-        {/* Leyenda productos */}
-        <div className="mt-3 flex items-center gap-3 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
+        {/* Leyenda */}
+        <div className="mt-3 flex flex-wrap items-center gap-3 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
           {VITEKA_PRODUCTS.map(({ key, label, color }) => (
-            <span key={key} className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--muted)' }}>
-              <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
-              {label === 'Nix' ? 'Nixfarma' : label === 'Cash' ? 'Cashlogy' : 'Hanshow'}
+            <span key={key} className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--muted)' }}>
+              <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+              {label}
             </span>
           ))}
         </div>
@@ -371,10 +386,3 @@ function ActionBtn({ onClick, title, color = 'slate', children }) {
       style={styles[color]}>{children}</button>
   )
 }
-
-// ---------------------------------------------------------------------------
-// Icon sub-components used in TableView
-// ---------------------------------------------------------------------------
-function IconPin2() { return <Icon size={13}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></Icon> }
-function IconPhone2() { return <Icon size={13}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.35 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></Icon> }
-function IconMail2() { return <Icon size={13}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></Icon> }
