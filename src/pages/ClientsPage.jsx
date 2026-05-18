@@ -25,21 +25,21 @@ function IconList()   { return <Icon size={15}><line x1="8" y1="6" x2="21" y2="6
 const PROVINCES_AN = ['Almería','Cádiz','Córdoba','Granada','Huelva','Jaén','Málaga','Sevilla']
 
 const VITEKA_ROWS = [
-  { label: 'Nixfarma',           cat: 'erp',         test: p => p?.brand === 'Nixfarma'           && p?.viteka_support === 'SI' },
-  { label: 'Cashlogy',           cat: 'caja_cobro',  test: p => p?.brand === 'Cashlogy'           && p?.viteka_support === 'SI' },
-  { label: 'Hanshow',            cat: 'etiquetas',   test: p => p?.brand === 'Hanshow'            && p?.viteka_support === 'SI' },
-  { label: 'Equipos',            cat: 'equipos',     test: p => p?.brand === 'Viteka' },
-  { label: 'Básculas',           cat: 'basculas',    test: p => p?.brand === 'Pondus'             && p?.viteka_support === 'SI' },
-  { label: 'Pro Gestión',        cat: 'consultoria', test: p => p?.brand === 'Viteka Pro Gestión' },
+  { label: 'Nixfarma',    cat: 'erp',         test: p => p?.brand === 'Nixfarma'           && p?.viteka_support === 'SI' },
+  { label: 'Cashlogy',   cat: 'caja_cobro',  test: p => p?.brand === 'Cashlogy'           && p?.viteka_support === 'SI' },
+  { label: 'Hanshow',    cat: 'etiquetas',   test: p => p?.brand === 'Hanshow'            && p?.viteka_support === 'SI' },
+  { label: 'Equipos',    cat: 'equipos',     test: p => p?.brand === 'Viteka' },
+  { label: 'Básculas',   cat: 'basculas',    test: p => p?.brand === 'Pondus'             && p?.viteka_support === 'SI' },
+  { label: 'Pro Gestión',cat: 'consultoria', test: p => p?.brand === 'Viteka Pro Gestión' },
 ]
 
 const THIRD_ROWS = [
-  { label: 'ERP',          cat: 'erp',        test: p => p?.brand && p.brand !== 'Nixfarma'  && p.brand !== '' },
-  { label: 'Caja cobro',   cat: 'caja_cobro', test: p => p?.brand && p.brand !== 'Cashlogy'  && p.brand !== 'NO' && p.brand !== '' },
-  { label: 'ESL',          cat: 'etiquetas',  test: p => p?.brand && p.brand !== 'Hanshow'   && p.brand !== 'NO' && p.brand !== '' },
-  { label: 'Báscula',      cat: 'basculas',   test: p => p?.brand && p.brand !== 'Pondus'    && p.brand !== 'NO' && p.brand !== '' },
-  { label: 'Consultoría',  cat: 'consultoria',test: p => p?.brand && !p.brand.toLowerCase().includes('viteka') && p.brand !== 'NO' && p.brand !== '' },
-  { label: 'Robot',        cat: 'robot',      test: p => p?.brand && p.brand !== 'NO'        && p.brand !== '' },
+  { label: 'ERP',         cat: 'erp',         test: p => p?.brand && p.brand !== 'Nixfarma'  && p.brand !== '' },
+  { label: 'Caja cobro',  cat: 'caja_cobro',  test: p => p?.brand && p.brand !== 'Cashlogy'  && p.brand !== 'NO' && p.brand !== '' },
+  { label: 'ESL',         cat: 'etiquetas',   test: p => p?.brand && p.brand !== 'Hanshow'   && p.brand !== 'NO' && p.brand !== '' },
+  { label: 'Báscula',     cat: 'basculas',    test: p => p?.brand && p.brand !== 'Pondus'    && p.brand !== 'NO' && p.brand !== '' },
+  { label: 'Consultoría', cat: 'consultoria', test: p => p?.brand && !p.brand.toLowerCase().includes('viteka') && p.brand !== 'NO' && p.brand !== '' },
+  { label: 'Robot',       cat: 'robot',       test: p => p?.brand && p.brand !== 'NO'        && p.brand !== '' },
 ]
 
 // ---------------------------------------------------------------------------
@@ -56,7 +56,7 @@ function getInitials(name) {
 }
 
 // ---------------------------------------------------------------------------
-// StatCard — caja tipo provincia: número grande + label
+// StatCard
 // ---------------------------------------------------------------------------
 function StatCard({ label, count, accentColor = 'var(--primary)' }) {
   return (
@@ -380,8 +380,3 @@ function ActionBtn({ onClick, title, color = 'slate', children }) {
       style={styles[color]}>{children}</button>
   )
 }
-
-// ---------------------------------------------------------------------------
-// Unused — kept for reference
-// ---------------------------------------------------------------------------
-function IconPin() { return <Icon size={13}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></Icon> }
