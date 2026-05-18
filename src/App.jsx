@@ -180,56 +180,83 @@ export default function App() {
   }
 
   // ---------------------------------------------------------------------------
-  // createClient
-  // El modal envía: { pharmacy_name, pharmacist_owner, legal_type, products, ... }
-  // La columna NOT NULL en Supabase es "name" → la igualamos siempre a pharmacy_name
+  // createClient — usa TODAS las columnas reales de la tabla clients
   // ---------------------------------------------------------------------------
   async function createClient(payload) {
-    if (!profile?.company_id) {
-      alert('No se encontró el perfil de empresa. Recarga la página.')
+    // ── 1. Verificar profile ──────────────────────────────────────────────
+    console.group('[createClient] inicio')
+    console.log('profile:', profile)
+    console.log('payload recibido:', payload)
+
+    // Refrescar profile si es null (race condition al montar)
+    let activeProfile = profile
+    if (!activeProfile?.company_id) {
+      console.warn('profile.company_id nulo, refrescando...')
+      const { data: freshProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .maybeSingle()
+      activeProfile = freshProfile
+      if (freshProfile) setProfile(freshProfile)
+    }
+
+    if (!activeProfile?.company_id) {
+      console.error('company_id sigue siendo null tras refresco')
+      console.groupEnd()
+      alert('Error: no se pudo obtener el company_id del perfil.\nRecarga la página y vuelve a intentarlo.')
       return
     }
 
-    // El modal puede enviar el payload directamente (campos planos + products)
-    // o con el wrapper { clientData, products } (compatibilidad futura)
+    // ── 2. Preparar datos ────────────────────────────────────────────────
     const cd = payload.clientData ?? payload
     const pharmacyName = (cd.pharmacy_name || cd.name || '').trim()
 
     if (!pharmacyName) {
       alert('El nombre de la farmacia es obligatorio.')
+      console.groupEnd()
       return
     }
 
-    // Solo mapeamos columnas que existen en la tabla `clients`
     const insertData = {
-      company_id:       profile.company_id,
-      name:             pharmacyName,          // NOT NULL
-      pharmacy_name:    pharmacyName,
-      pharmacist_owner: cd.pharmacist_owner  || '',
-      province:         cd.province         || '',
-      city:             cd.city             || '',
-      contact_phone:    cd.contact_phone    || cd.phone  || '',
-      contact_email:    cd.contact_email    || cd.email  || '',
-      email:            cd.email            || cd.contact_email || '',
-      phone:            cd.phone            || cd.contact_phone || '',
-      nif_cif:          cd.nif_cif          || '',
-      soe_number:       cd.soe_number       || '',
-      address:          cd.address          || '',
-      observations:     cd.observations     || cd.notes || '',
-      notes:            cd.notes            || cd.observations || '',
+      company_id:        activeProfile.company_id,
+      // Columnas confirmadas por ClientDetailPage.jsx
+      name:              pharmacyName,
+      pharmacy_name:     pharmacyName,
+      pharmacist_owner:  cd.pharmacist_owner  || null,
+      province:          cd.province          || null,
+      city:              cd.city              || null,
+      address:           cd.address           || null,
+      contact_phone:     cd.contact_phone     || null,
+      contact_email:     cd.contact_email     || null,
+      phone:             cd.phone             || cd.contact_phone  || null,
+      email:             cd.email             || cd.contact_email  || null,
+      nif_cif:           cd.nif_cif           || null,
+      soe_number:        cd.soe_number        || null,
+      cip:               cd.cip               || null,
+      business_email:    cd.business_email    || null,
+      business_phone:    cd.business_phone    || null,
+      collegiate_data:   cd.collegiate_data   || null,
+      company_data:      cd.company_data      || null,
+      operators:         cd.operators         || null,
+      observations:      cd.observations      || cd.notes || null,
+      notes:             cd.notes             || cd.observations   || null,
     }
 
     console.log('[createClient] insertData:', insertData)
 
+    // ── 3. Insert ────────────────────────────────────────────────────────
     const { data, error } = await supabase
       .from('clients')
       .insert(insertData)
       .select()
       .single()
 
+    console.log('[createClient] resultado:', { data, error })
+    console.groupEnd()
+
     if (error) {
-      console.error('[createClient] Supabase error:', error)
-      alert(`Error al crear farmacia:\n${error.message}`)
+      alert(`❌ Error al crear farmacia:\n\nCódigo: ${error.code}\nMensaje: ${error.message}\nDetalles: ${error.details || '-'}\nHint: ${error.hint || '-'}`)
       return
     }
 
@@ -249,23 +276,23 @@ export default function App() {
       .update({
         name:             pharmacyName,
         pharmacy_name:    pharmacyName,
-        pharmacist_owner: clientData.pharmacist_owner || '',
-        province:         clientData.province         || '',
-        city:             clientData.city             || '',
-        contact_phone:    clientData.contact_phone    || clientData.phone || '',
-        contact_email:    clientData.contact_email    || clientData.email || '',
-        email:            clientData.email            || clientData.contact_email || '',
-        phone:            clientData.phone            || clientData.contact_phone || '',
-        nif_cif:          clientData.nif_cif          || '',
-        soe_number:       clientData.soe_number       || '',
-        address:          clientData.address          || '',
-        observations:     clientData.observations     || clientData.notes || '',
-        notes:            clientData.notes            || clientData.observations || '',
+        pharmacist_owner: clientData.pharmacist_owner || null,
+        province:         clientData.province         || null,
+        city:             clientData.city             || null,
+        address:          clientData.address          || null,
+        contact_phone:    clientData.contact_phone    || null,
+        contact_email:    clientData.contact_email    || null,
+        phone:            clientData.phone            || clientData.contact_phone || null,
+        email:            clientData.email            || clientData.contact_email || null,
+        nif_cif:          clientData.nif_cif          || null,
+        soe_number:       clientData.soe_number       || null,
+        observations:     clientData.observations     || clientData.notes || null,
+        notes:            clientData.notes            || clientData.observations  || null,
       })
       .eq('id', clientId)
       .select()
       .single()
-    if (error) { alert(error.message); return }
+    if (error) { alert(`Error al actualizar:\n${error.message}`); return }
     await createActivityLog({ userId: session.user.id, entityType: 'client', entityId: clientId, action: 'update', oldValue: previous, newValue: data })
     setEditingClient(null)
     await loadClients()
