@@ -78,24 +78,26 @@ function CreateClientForm({ onClose, onCreate }) {
     onCreate(payload);
   };
 
+  const panelStyle = {
+    width: '100%',
+    maxWidth: '42rem',
+    backgroundColor: '#fff',
+    borderRadius: '1rem 1rem 0 0',
+    display: 'flex',
+    flexDirection: 'column',
+    /* Ocupa el 88% de la pantalla en móvil, con techo en desktop */
+    height: '88vh',
+    maxHeight: '88vh',
+    overflow: 'hidden',
+  };
+
   return (
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
       onClick={onClose}
     >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '42rem',
-          backgroundColor: '#fff',
-          borderRadius: '1rem 1rem 0 0',
-          display: 'flex',
-          flexDirection: 'column',
-          maxHeight: '90vh',
-          overflow: 'hidden',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
+
         {/* CABECERA */}
         <div style={{ flexShrink: 0, borderBottom: '1px solid #f1f5f9', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
@@ -122,7 +124,6 @@ function CreateClientForm({ onClose, onCreate }) {
         <div style={{ flex: '1 1 0', overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '0.5rem 1.25rem' }}>
           {step === 1 ? (
             <div className="space-y-5 pb-4">
-              {/* Tipo jurídico */}
               <div>
                 <p className={labelCls}>Tipo jurídico</p>
                 <div className="flex gap-2">

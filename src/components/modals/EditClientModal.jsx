@@ -109,24 +109,25 @@ function EditClientForm({ client, onClose, onSave }) {
     onSave(client.id, payload);
   };
 
+  const panelStyle = {
+    width: '100%',
+    maxWidth: '42rem',
+    backgroundColor: '#fff',
+    borderRadius: '1rem 1rem 0 0',
+    display: 'flex',
+    flexDirection: 'column',
+    height: '88vh',
+    maxHeight: '88vh',
+    overflow: 'hidden',
+  };
+
   return (
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
       onClick={onClose}
     >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '42rem',
-          backgroundColor: '#fff',
-          borderRadius: '1rem 1rem 0 0',
-          display: 'flex',
-          flexDirection: 'column',
-          maxHeight: '90vh',
-          overflow: 'hidden',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
+
         {/* CABECERA */}
         <div style={{ flexShrink: 0, borderBottom: '1px solid #f1f5f9', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
