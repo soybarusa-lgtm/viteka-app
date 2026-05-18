@@ -1,15 +1,4 @@
-/** @type {import('tailwindcss').Config} */
-export default {
-  content: [
-    './index.html',
-    './src/**/*.{js,jsx,ts,tsx}',
-  ],
-  theme: {
-    extend: {
-      fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-      },
-    },
-  },
-  plugins: [],
-}
+// Este archivo se mantiene vacío intencionalmente.
+// Tailwind v4 con @tailwindcss/vite NO requiere tailwind.config.js.
+// La configuración de tema se hace en CSS usando @theme en src/index.css
+export default {};
