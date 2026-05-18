@@ -212,19 +212,9 @@ export default function App() {
     setTasks(data || [])
   }
 
-  // ---------------------------------------------------------------------------
-  // createClient
-  // El modal envía: { ...clientData (campos Step1), products (obj Step2) }
-  // Columnas escalares → columnas reales de la tabla.
-  // legal_type, cb_owners, products, has_guards, schedule,
-  // collegiate_number, sl_* → guardados en columnas JSONB/text de la BD.
-  // Si Supabase devuelve error de columna inexistente lo veremos en consola
-  // y actuamos, pero el insert ya no explota silenciosamente.
-  // ---------------------------------------------------------------------------
   async function createClient(payload) {
     let activeProfile = profile
 
-    // Reobtener perfil si no tiene company_id (sesión recién restaurada)
     if (!activeProfile?.company_id) {
       const { data: { user } } = await supabase.auth.getUser()
       if (user?.id) {
@@ -240,7 +230,6 @@ export default function App() {
       return
     }
 
-    // El modal envía el payload plano (clientData + products mezclados)
     const cd = payload.clientData ?? payload
     const products = payload.products ?? {}
 
@@ -250,16 +239,12 @@ export default function App() {
       return
     }
 
-    // Construir el objeto de insert con todas las columnas conocidas.
-    // Las columnas JSONB (legal_type, cb_owners, products) se envían tal cual.
-    // Las columnas de texto/boolean opcionales se incluyen solo si tienen valor.
     const insertData = {
-      company_id:          activeProfile.company_id,
-      name:                pharmacyName,
-      pharmacy_name:       pharmacyName,
+      company_id:    activeProfile.company_id,
+      name:          pharmacyName,
+      pharmacy_name: pharmacyName,
     }
 
-    // Escalares simples
     if (cd.pharmacist_owner)    insertData.pharmacist_owner    = cd.pharmacist_owner
     if (cd.province)            insertData.province            = cd.province
     if (cd.city)                insertData.city                = cd.city
@@ -273,17 +258,13 @@ export default function App() {
     if (cd.schedule)            insertData.schedule            = cd.schedule
     if (cd.collegiate_number)   insertData.collegiate_number   = cd.collegiate_number
     if (cd.has_guards != null)  insertData.has_guards          = cd.has_guards
-
-    // S.L.
-    if (cd.sl_name)  insertData.sl_name  = cd.sl_name
-    if (cd.sl_cif)   insertData.sl_cif   = cd.sl_cif
-    if (cd.sl_phone) insertData.sl_phone = cd.sl_phone
-    if (cd.sl_email) insertData.sl_email = cd.sl_email
-
-    // JSONB
-    if (cd.legal_type?.length)  insertData.legal_type  = cd.legal_type
-    if (cd.cb_owners?.length)   insertData.cb_owners   = cd.cb_owners
-    if (Object.keys(products).length) insertData.products = products
+    if (cd.sl_name)             insertData.sl_name             = cd.sl_name
+    if (cd.sl_cif)              insertData.sl_cif              = cd.sl_cif
+    if (cd.sl_phone)            insertData.sl_phone            = cd.sl_phone
+    if (cd.sl_email)            insertData.sl_email            = cd.sl_email
+    if (cd.legal_type?.length)  insertData.legal_type          = cd.legal_type
+    if (cd.cb_owners?.length)   insertData.cb_owners           = cd.cb_owners
+    if (Object.keys(products).length) insertData.products      = products
 
     console.log('[createClient] insertData:', insertData)
 
@@ -597,8 +578,9 @@ export default function App() {
         {currentPage === 'settings' && (profile?.role === 'owner' || profile?.role === 'admin') && (<SettingsPage />)}
       </>
 
-      {/* Modal único de creación — controlado desde App.jsx */}
+      {/* key={isCreateClientOpen} fuerza re-mount al abrir → resetea todos los useState del modal */}
       <CreateClientModal
+        key={String(isCreateClientOpen)}
         isOpen={isCreateClientOpen}
         onClose={() => setIsCreateClientOpen(false)}
         onCreate={createClient}

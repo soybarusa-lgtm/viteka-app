@@ -120,13 +120,12 @@ export default function ClientsPage({
   return (
     <div className="space-y-6">
 
-      {/* Header */}
+      {/* Header — mismo patrón visual que Dashboard */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="page-title">Farmacias</h1>
-          <p className="page-subtitle">Gestión de clientes, contactos y datos operativos</p>
+          <h1 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text)' }}>Farmacias</h1>
+          <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>Gestión de clientes, contactos y datos operativos</p>
         </div>
-        {/* Delegar apertura del modal al padre (App.jsx) */}
         <button type="button" onClick={onCreateClient}
           className="btn-primary flex items-center gap-2 text-[13px]">
           <span className="text-base leading-none">+</span> Nueva farmacia
