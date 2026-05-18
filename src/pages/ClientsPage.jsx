@@ -35,27 +35,11 @@ const PROVINCE_COLORS = {
   'Sevilla': '#fb923c',
 }
 
-const BRAND_PALETTE = [
-  '#64748b','#6366f1','#ec4899','#f97316','#84cc16',
-  '#06b6d4','#a855f7','#ef4444','#0d9488','#d97706',
-]
-
-const VITEKA_ROWS = [
-  { label: 'Nixfarma',     cat: 'erp',         test: p => p?.brand === 'Nixfarma'           && p?.viteka_support === 'SI' },
-  { label: 'Cashlogy',    cat: 'caja_cobro',  test: p => p?.brand === 'Cashlogy'           && p?.viteka_support === 'SI' },
-  { label: 'Hanshow',     cat: 'etiquetas',   test: p => p?.brand === 'Hanshow'            && p?.viteka_support === 'SI' },
-  { label: 'Equipos',     cat: 'equipos',     test: p => p?.brand === 'Viteka' },
-  { label: 'Básculas',    cat: 'basculas',    test: p => p?.brand === 'Pondus'             && p?.viteka_support === 'SI' },
-  { label: 'Pro Gestión', cat: 'consultoria', test: p => p?.brand === 'Viteka Pro Gestión' },
-]
-
-const THIRD_ROWS = [
-  { label: 'ERP',         cat: 'erp',         test: p => p?.brand && p.brand !== 'Nixfarma'  && p.brand !== '' },
-  { label: 'Caja cobro',  cat: 'caja_cobro',  test: p => p?.brand && p.brand !== 'Cashlogy'  && p.brand !== 'NO' && p.brand !== '' },
-  { label: 'ESL',         cat: 'etiquetas',   test: p => p?.brand && p.brand !== 'Hanshow'   && p.brand !== 'NO' && p.brand !== '' },
-  { label: 'Báscula',     cat: 'basculas',    test: p => p?.brand && p.brand !== 'Pondus'    && p.brand !== 'NO' && p.brand !== '' },
-  { label: 'Consultoría', cat: 'consultoria', test: p => p?.brand && !p.brand.toLowerCase().includes('viteka') && p.brand !== 'NO' && p.brand !== '' },
-  { label: 'Robot',       cat: 'robot',       test: p => p?.brand && p.brand !== 'NO'        && p.brand !== '' },
+// Productos Viteka destacados en la card
+const VITEKA_PRODUCTS = [
+  { key: 'nix',  label: 'Nix',  color: '#10b981', test: (c) => c.products?.erp?.brand === 'Nixfarma' && c.products?.erp?.viteka_support === 'SI' },
+  { key: 'cash', label: 'Cash', color: '#0ea5e9', test: (c) => c.products?.caja_cobro?.brand === 'Cashlogy' && c.products?.caja_cobro?.viteka_support === 'SI' },
+  { key: 'han',  label: 'Han',  color: '#f59e0b', test: (c) => c.products?.etiquetas?.brand === 'Hanshow' && c.products?.etiquetas?.viteka_support === 'SI' },
 ]
 
 // ---------------------------------------------------------------------------
@@ -72,112 +56,47 @@ function getInitials(name) {
 }
 
 // ---------------------------------------------------------------------------
-// MiniBar — barra segmentada genérica con tooltip
+// ProvinceCard
 // ---------------------------------------------------------------------------
-function MiniBar({ segments, total, height = 'h-1.5' }) {
-  const [tooltip, setTooltip] = useState(null)
-  const ref = useRef(null)
-  const nonZero = segments.filter(s => s.count > 0)
-
-  if (total === 0 || nonZero.length === 0) {
-    return <div className={`${height} w-full rounded-full`} style={{ background: 'var(--surface-soft)' }} />
-  }
+function ProvinceCard({ province, clients }) {
+  const provClients = clients.filter(c => c.province === province)
+  const total = provClients.length
+  const color = PROVINCE_COLORS[province]
 
   return (
-    <div className="relative w-full">
-      <div
-        ref={ref}
-        className={`flex ${height} w-full overflow-hidden rounded-full`}
-        style={{ background: 'var(--surface-soft)' }}
-        onMouseLeave={() => setTooltip(null)}
-      >
-        {nonZero.map(({ label, count, color }) => (
-          <div
-            key={label}
-            style={{ width: `${(count / total) * 100}%`, backgroundColor: color, minWidth: '2px' }}
-            onMouseEnter={e => {
-              const rect = ref.current?.getBoundingClientRect()
-              setTooltip({ label, count, color, x: e.clientX - (rect?.left ?? 0) })
-            }}
-          />
-        ))}
-      </div>
-      {tooltip && (
-        <div
-          className="pointer-events-none absolute bottom-full mb-1 z-50 rounded-md px-2 py-0.5 text-[10px] font-medium text-white shadow"
-          style={{ left: tooltip.x, transform: 'translateX(-50%)', background: tooltip.color, whiteSpace: 'nowrap' }}
-        >
-          {tooltip.label}: {tooltip.count}
-        </div>
-      )}
-    </div>
-  )
-}
+    <div
+      className="flex shrink-0 flex-col rounded-xl p-3"
+      style={{
+        border: `1px solid ${color}30`,
+        background: `${color}08`,
+        minWidth: '90px',
+      }}
+    >
+      {/* Provincia + total */}
+      <p className="truncate text-[11px] font-semibold" style={{ color }}>{province}</p>
+      <p className="mt-0.5 text-[22px] font-bold leading-none" style={{ color: 'var(--text)' }}>{total}</p>
 
-// ---------------------------------------------------------------------------
-// ProductBarViteka — barra única segmentada por provincia
-// ---------------------------------------------------------------------------
-function ProductBarViteka({ label, provinceSegments, total }) {
-  const count = provinceSegments.reduce((a, s) => a + s.count, 0)
-  const segments = provinceSegments.map(s => ({
-    label: s.province, count: s.count, color: PROVINCE_COLORS[s.province],
-  }))
-  return (
-    <div>
-      <div className="mb-1 flex items-center justify-between">
-        <span className="text-[12px]" style={{ color: 'var(--text-soft)' }}>{label}</span>
-        <span className="text-[12px] font-semibold" style={{ color: count > 0 ? 'var(--primary)' : 'var(--muted)' }}>{count}</span>
-      </div>
-      <MiniBar segments={segments} total={total} height="h-2" />
-    </div>
-  )
-}
+      {/* Divisor */}
+      <div className="my-2" style={{ borderTop: `1px solid ${color}25` }} />
 
-// ---------------------------------------------------------------------------
-// ProductBarThird — una fila por provincia, mini-barra de marcas en cada una
-// ---------------------------------------------------------------------------
-function ProductBarThird({ label, byProvince, total, brandColorMap }) {
-  const count = byProvince.reduce((a, p) => a + p.total, 0)
-  // Solo provincias con datos
-  const active = byProvince.filter(p => p.total > 0)
-
-  return (
-    <div>
-      {/* Cabecera del producto */}
-      <div className="mb-1.5 flex items-center justify-between">
-        <span className="text-[12px]" style={{ color: 'var(--text-soft)' }}>{label}</span>
-        <span className="text-[12px] font-semibold" style={{ color: count > 0 ? '#f59e0b' : 'var(--muted)' }}>{count}</span>
-      </div>
-
-      {active.length === 0 ? (
-        <div className="h-1.5 w-full rounded-full" style={{ background: 'var(--surface-soft)' }} />
-      ) : (
-        <div className="space-y-[3px]">
-          {active.map(({ province, total: provTotal, brands }) => {
-            const segments = brands.map(({ brand, count: bc }) => ({
-              label: `${province} — ${brand}`,
-              count: bc,
-              color: brandColorMap[brand] ?? '#94a3b8',
-            }))
-            return (
-              <div key={province} className="flex items-center gap-1.5">
-                {/* Punto de color de provincia */}
-                <span
-                  className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: PROVINCE_COLORS[province] }}
-                  title={province}
-                />
-                {/* Mini-barra de marcas */}
-                <div className="flex-1">
-                  <MiniBar segments={segments} total={provTotal} height="h-1.5" />
-                </div>
-                {/* Número total de esa provincia */}
-                <span className="w-4 text-right text-[10px] font-medium" style={{ color: 'var(--muted)' }}>{provTotal}</span>
+      {/* Productos Viteka */}
+      <div className="space-y-1">
+        {VITEKA_PRODUCTS.map(({ key, label, color: pc, test }) => {
+          const count = provClients.filter(test).length
+          return (
+            <div key={key} className="flex items-center justify-between gap-1">
+              <div className="flex items-center gap-1">
+                <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: pc }} />
+                <span className="text-[10px]" style={{ color: 'var(--muted)' }}>{label}</span>
               </div>
-            )
-          })}
-        </div>
-      )}
+              <span
+                className="text-[10px] font-semibold"
+                style={{ color: count > 0 ? pc : 'var(--muted)' }}
+              >{count}</span>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -195,54 +114,6 @@ export default function ClientsPage({
   const [search,   setSearch]   = useState('')
   const [province, setProvince] = useState('')
   const [view,     setView]     = useState('table')
-
-  const byProvince = useMemo(() =>
-    PROVINCES_AN.map(p => ({ label: p, count: clients.filter(c => c.province === p).length }))
-  , [clients])
-
-  // Viteka: barra única por provincia
-  const vitekaRows = useMemo(() =>
-    VITEKA_ROWS.map(({ label, cat, test }) => {
-      const matched = clients.filter(c => test(c.products?.[cat]))
-      const provinceSegments = PROVINCES_AN.map(prov => ({
-        province: prov,
-        count: matched.filter(c => c.province === prov).length,
-      }))
-      return { label, total: matched.length, provinceSegments }
-    })
-  , [clients])
-
-  // Terceros: por provincia → desglose de marcas
-  const thirdRows = useMemo(() =>
-    THIRD_ROWS.map(({ label, cat, test }) => {
-      const matched = clients.filter(c => test(c.products?.[cat]))
-
-      // Mapa global de marcas → color (consistente entre provincias)
-      const allBrands = [...new Set(matched.map(c => c.products?.[cat]?.brand || 'Sin marca'))]
-      const brandColorMap = Object.fromEntries(
-        allBrands.map((b, i) => [b, BRAND_PALETTE[i % BRAND_PALETTE.length]])
-      )
-
-      // Por provincia: total + desglose de marcas
-      const byProv = PROVINCES_AN.map(prov => {
-        const provClients = matched.filter(c => c.province === prov)
-        const brandMap = {}
-        provClients.forEach(c => {
-          const b = c.products?.[cat]?.brand || 'Sin marca'
-          brandMap[b] = (brandMap[b] || 0) + 1
-        })
-        return {
-          province: prov,
-          total: provClients.length,
-          brands: Object.entries(brandMap)
-            .sort((a, b) => b[1] - a[1])
-            .map(([brand, count]) => ({ brand, count })),
-        }
-      })
-
-      return { label, total: matched.length, byProvince: byProv, brandColorMap }
-    })
-  , [clients])
 
   const filtered = useMemo(() => {
     return clients.filter(c => {
@@ -271,60 +142,24 @@ export default function ClientsPage({
         </button>
       </div>
 
-      {/* Stats card */}
-      <div className="card p-4 space-y-4">
-
-        {/* Provincias — chips compactos */}
-        <div>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>Por provincia</p>
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {byProvince.map(({ label, count }) => (
-              <span key={label} className="flex items-center gap-1.5 text-[12px]">
-                <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: PROVINCE_COLORS[label] }} />
-                <span className="font-semibold" style={{ color: 'var(--text)' }}>{count}</span>
-                <span style={{ color: 'var(--muted)' }}>{label}</span>
-              </span>
-            ))}
-          </div>
+      {/* Province cards — scroll horizontal */}
+      <div className="card p-4">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
+          Farmacias por provincia
+        </p>
+        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+          {PROVINCES_AN.map(prov => (
+            <ProvinceCard key={prov} province={prov} clients={clients} />
+          ))}
         </div>
-
-        <div style={{ borderTop: '1px solid var(--border)' }} />
-
-        {/* Productos en dos columnas */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-
-          {/* Viteka */}
-          <div>
-            <div className="mb-2 flex items-center gap-1.5">
-              <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>Productos Viteka</p>
-            </div>
-            <div className="space-y-2.5">
-              {vitekaRows.map(({ label, provinceSegments, total }) => (
-                <ProductBarViteka key={label} label={label} provinceSegments={provinceSegments} total={total} />
-              ))}
-            </div>
-          </div>
-
-          {/* Terceros — provincia → marcas */}
-          <div>
-            <div className="mb-2 flex items-center gap-1.5">
-              <span className="inline-flex h-1.5 w-1.5 rounded-full bg-amber-500" />
-              <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>Productos terceros</p>
-            </div>
-            <div className="space-y-4">
-              {thirdRows.map(({ label, byProvince: byProv, total, brandColorMap }) => (
-                <ProductBarThird
-                  key={label}
-                  label={label}
-                  byProvince={byProv}
-                  total={total}
-                  brandColorMap={brandColorMap}
-                />
-              ))}
-            </div>
-          </div>
-
+        {/* Leyenda productos */}
+        <div className="mt-3 flex items-center gap-3 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
+          {VITEKA_PRODUCTS.map(({ key, label, color }) => (
+            <span key={key} className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--muted)' }}>
+              <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
+              {label === 'Nix' ? 'Nixfarma' : label === 'Cash' ? 'Cashlogy' : 'Hanshow'}
+            </span>
+          ))}
         </div>
       </div>
 
@@ -341,7 +176,7 @@ export default function ClientsPage({
           {PROVINCES_AN.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
         <div className="flex overflow-hidden rounded-xl" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
-          {[['table', <IconList />,'Lista'],['grid', <IconGrid />,'Tarjetas']].map(([v, icon, lbl]) => (
+          {[['table', <IconList />, 'Lista'], ['grid', <IconGrid />, 'Tarjetas']].map(([v, icon, lbl]) => (
             <button key={v} type="button" onClick={() => setView(v)}
               className="flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-medium transition"
               style={view === v ? { background: 'var(--primary)', color: '#fff' } : { color: 'var(--muted)' }}>
@@ -536,3 +371,10 @@ function ActionBtn({ onClick, title, color = 'slate', children }) {
       style={styles[color]}>{children}</button>
   )
 }
+
+// ---------------------------------------------------------------------------
+// Icon sub-components used in TableView
+// ---------------------------------------------------------------------------
+function IconPin2() { return <Icon size={13}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></Icon> }
+function IconPhone2() { return <Icon size={13}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.35 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></Icon> }
+function IconMail2() { return <Icon size={13}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></Icon> }
