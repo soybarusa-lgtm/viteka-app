@@ -76,6 +76,7 @@ export default function App() {
     window.scrollTo(0, 0)
   }
 
+  // Loading
   if (loadingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -84,12 +85,32 @@ export default function App() {
     )
   }
 
+  // No autenticado
   if (!session) {
     return <LoginPage onLogin={() => {}} />
   }
 
+  // Autenticado pero sin perfil en la BD
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-w-sm w-full text-center space-y-4">
+          <p className="text-gray-500 text-sm">
+            Tu cuenta no tiene un perfil asignado. Contacta con el administrador.
+          </p>
+          <button
+            onClick={() => supabase.auth.signOut()}
+            className="text-teal-600 underline text-sm hover:text-teal-800 transition"
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   // Portal cliente
-  if (profile?.portal_type === 'client') {
+  if (profile.portal_type === 'client') {
     return <ClientPortalPage profile={profile} onLogout={() => supabase.auth.signOut()} />
   }
 
