@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
+import { useState } from 'react'
 import NotificationBell from '../components/NotificationBell'
 
-// ── Icons ───────────────────────────────────────────────────────────────────
+// ── Icons ──────────────────────────────────────────────────────────────────
 function IcDashboard()   { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> }
 function IcPharmacy()    { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> }
 function IcProjects()    { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> }
@@ -18,11 +17,11 @@ function IcSettings()    { return <svg width="16" height="16" viewBox="0 0 24 24
 function IcLogout()      { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> }
 function IcChevronRight(){ return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg> }
 function IcChevronLeft() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg> }
-function IcMenu()        { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg> }
+export function IcMenu() { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg> }
 function IcClose()       { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> }
 
-// ── Nav config ───────────────────────────────────────────────────────────────
-const NAV_ITEMS = [
+// ── Nav items ───────────────────────────────────────────────────────────────
+export const NAV_ITEMS = [
   { id: 'dashboard',     label: 'Dashboard',     icon: IcDashboard,  roles: ['owner','admin','technician','commercial'] },
   { id: 'pharmacies',    label: 'Farmacias',     icon: IcPharmacy,   roles: ['owner','admin','technician','commercial'] },
   { id: 'projects',      label: 'Proyectos',     icon: IcProjects,   roles: ['owner','admin','technician','commercial'] },
@@ -38,174 +37,58 @@ const NAV_ITEMS = [
 ]
 
 // ── NavLink ─────────────────────────────────────────────────────────────────
-function NavLink({ item, active, expanded, onClick }) {
+function NavLink({ item, active, onClick }) {
   const Icon = item.icon
   return (
     <button
-      title={!expanded ? item.label : undefined}
       onClick={onClick}
-      className={`group relative flex w-full items-center rounded-lg transition-all duration-150
-        ${ expanded ? 'gap-3 px-3 py-2' : 'justify-center px-0 py-2.5' }
-        ${ active
-            ? 'bg-white/12 text-white font-medium'
-            : 'text-white/60 hover:bg-white/8 hover:text-white/90 font-normal'
-        }`}
+      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-150 ${
+        active
+          ? 'bg-white/12 font-medium text-white'
+          : 'font-normal text-white/60 hover:bg-white/8 hover:text-white/90'
+      }`}
     >
-      <span className={`shrink-0 ${ active ? 'text-white' : 'text-white/50 group-hover:text-white/80' }`}>
-        <Icon />
-      </span>
-      {expanded && <span className="truncate text-sm">{item.label}</span>}
-      {expanded && active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-white/60" />}
+      <span className={active ? 'text-white' : 'text-white/50'}><Icon /></span>
+      <span className="truncate">{item.label}</span>
+      {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-white/60" />}
     </button>
   )
 }
 
-// ── Mobile Drawer (portal → se monta en document.body) ───────────────────────
-function MobileDrawer({ visibleNav, currentPage, navigate, profile, onLogout, open, onClose }) {
-  useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
-  }, [open])
-
-  if (!open) return null
-
-  const drawer = (
-    <div
-      style={{
-        position: 'fixed', inset: 0,
-        zIndex: 99999,
-        display: 'flex',
-      }}
-    >
-      {/* Backdrop */}
-      <div
-        style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)' }}
-        onClick={onClose}
-      />
-
-      {/* Panel */}
-      <div
-        style={{
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100%',
-          width: '280px',
-          maxWidth: '85vw',
-          backgroundColor: '#1c473c',
-          boxShadow: '4px 0 24px rgba(0,0,0,0.3)',
-          overflowY: 'auto',
-        }}
-      >
-        {/* Header */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '12px 16px', flexShrink: 0,
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          minHeight: '60px',
-        }}>
-          <img src="/brand/logo-white.svg" alt="Viteka" style={{ height: '38px', maxWidth: '140px', objectFit: 'contain' }} draggable={false} />
-          <button
-            onClick={onClose}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              height: '32px', width: '32px', borderRadius: '8px',
-              color: 'rgba(255,255,255,0.6)', background: 'transparent', border: 'none', cursor: 'pointer',
-            }}
-          >
-            <IcClose />
-          </button>
-        </div>
-
-        {/* Nav */}
-        <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 8px' }}>
-          {visibleNav.map(item => (
-            <NavLink
-              key={item.id}
-              item={item}
-              active={currentPage === item.id}
-              expanded={true}
-              onClick={() => { navigate(item.id); onClose() }}
-            />
-          ))}
-        </nav>
-
-        {/* Footer */}
-        <div style={{ flexShrink: 0, padding: '12px 12px 24px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ marginBottom: '8px', padding: '0 4px' }}>
-            <NotificationBell userId={profile?.id} dark sidebarExpanded={true} />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 4px' }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              height: '32px', width: '32px', flexShrink: 0,
-              borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.15)',
-              fontSize: '13px', fontWeight: 700, color: 'white',
-            }}>
-              {profile?.full_name?.[0]?.toUpperCase() || 'U'}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: '13px', fontWeight: 500, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {profile?.full_name}
-              </p>
-              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', textTransform: 'capitalize' }}>
-                {profile?.role}
-              </p>
-            </div>
-            <button
-              onClick={onLogout}
-              style={{ color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              <IcLogout />
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-
-  return createPortal(drawer, document.body)
-}
-
-// ── Desktop Sidebar ────────────────────────────────────────────────────────────
-function DesktopSidebar({ visibleNav, currentPage, navigate, profile, onLogout, expanded, onToggle }) {
+// ── Desktop sidebar (sólo visible en md+) ────────────────────────────────────
+export function DesktopSidebar({ visibleNav, currentPage, navigate, profile, onLogout, expanded, onToggle }) {
   return (
     <aside
-      className="hidden md:flex flex-col flex-shrink-0 h-screen sticky top-0 overflow-hidden transition-all duration-200 ease-in-out"
+      className="hidden md:flex flex-col flex-shrink-0 h-screen sticky top-0 overflow-hidden transition-all duration-200"
       style={{ width: expanded ? '224px' : '56px', backgroundColor: '#1c473c' }}
     >
-      <div
-        className="flex-shrink-0 flex flex-col items-center justify-center py-3 gap-1.5"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', minHeight: expanded ? '80px' : '84px' }}
-      >
+      {/* Logo */}
+      <div className="flex-shrink-0 flex flex-col items-center justify-center py-3 gap-1.5"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', minHeight: expanded ? '80px' : '84px' }}>
         {expanded ? (
           <div className="flex w-full items-center gap-2 px-3">
-            <img src="/brand/logo-white.svg" alt="Viteka" className="object-contain flex-1 min-w-0" style={{ height: '56px', maxWidth: '172px' }} draggable={false} />
-            <button onClick={onToggle} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/40 hover:bg-white/10 hover:text-white transition">
-              <IcChevronLeft />
-            </button>
+            <img src="/brand/logo-white.svg" alt="Viteka" style={{ height: '56px', maxWidth: '172px', objectFit: 'contain' }} draggable={false} className="flex-1 min-w-0" />
+            <button onClick={onToggle} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/40 hover:bg-white/10 hover:text-white transition"><IcChevronLeft /></button>
           </div>
         ) : (
           <>
-            <img src="/brand/logo-icon.svg" alt="Viteka" className="object-contain" style={{ height: '32px', width: '32px' }} draggable={false} />
-            <button onClick={onToggle} className="flex h-5 w-5 items-center justify-center rounded text-white/30 hover:bg-white/10 hover:text-white transition">
-              <IcChevronRight />
-            </button>
+            <img src="/brand/logo-icon.svg" alt="Viteka" style={{ height: '32px', width: '32px', objectFit: 'contain' }} draggable={false} />
+            <button onClick={onToggle} className="flex h-5 w-5 items-center justify-center rounded text-white/30 hover:bg-white/10 hover:text-white transition"><IcChevronRight /></button>
           </>
         )}
       </div>
-
-      <nav className={`flex-1 overflow-y-auto py-2 space-y-0.5 ${ expanded ? 'px-2' : 'px-1.5' }`}>
+      {/* Nav */}
+      <nav className={`flex-1 overflow-y-auto py-2 space-y-0.5 ${expanded ? 'px-2' : 'px-1.5'}`}>
         {visibleNav.map(item => (
-          <NavLink key={item.id} item={item} active={currentPage === item.id} expanded={expanded} onClick={() => navigate(item.id)} />
+          <NavLink key={item.id} item={item} active={currentPage === item.id} onClick={() => navigate(item.id)} />
         ))}
       </nav>
-
+      {/* Bottom */}
       <div className="flex-shrink-0 pb-3 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <div className={`px-2 py-1 ${ !expanded && 'flex justify-center' }`}>
+        <div className={`px-2 py-1 ${!expanded && 'flex justify-center'}`}>
           <NotificationBell userId={profile?.id} dark sidebarExpanded={expanded} />
         </div>
-        <div className={`mt-1 ${ expanded ? 'px-2' : 'flex flex-col items-center px-1' }`}>
+        <div className={`mt-1 ${expanded ? 'px-2' : 'flex flex-col items-center px-1'}`}>
           {expanded ? (
             <div className="flex items-center gap-2.5 rounded-lg px-2 py-2">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/15 text-xs font-bold text-white">
@@ -218,7 +101,7 @@ function DesktopSidebar({ visibleNav, currentPage, navigate, profile, onLogout, 
               <button onClick={onLogout} title="Cerrar sesión" className="text-white/30 hover:text-red-300 transition"><IcLogout /></button>
             </div>
           ) : (
-            <button onClick={onLogout} title={`${profile?.full_name} — Cerrar sesión`}
+            <button onClick={onLogout} title="Cerrar sesión"
               className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-xs font-bold text-white hover:ring-2 hover:ring-red-400 transition">
               {profile?.full_name?.[0]?.toUpperCase() || 'U'}
             </button>
@@ -229,10 +112,9 @@ function DesktopSidebar({ visibleNav, currentPage, navigate, profile, onLogout, 
   )
 }
 
-// ── AppLayout ──────────────────────────────────────────────────────────────
-export default function AppLayout({ children, profile, currentPage, navigate, onLogout }) {
-  const [expanded,   setExpanded]   = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
+// ── AppLayout (sólo estructura, sin drawer móvil) ────────────────────────────────
+export default function AppLayout({ children, profile, currentPage, navigate, onLogout, onMenuOpen }) {
+  const [expanded, setExpanded] = useState(false)
 
   const role       = profile?.role || 'technician'
   const visibleNav = NAV_ITEMS.filter(item => item.roles.includes(role))
@@ -247,29 +129,15 @@ export default function AppLayout({ children, profile, currentPage, navigate, on
         expanded={expanded} onToggle={() => setExpanded(v => !v)}
       />
 
-      {/* Drawer móvil via portal — se monta en document.body, fuera de cualquier stacking context */}
-      <MobileDrawer
-        visibleNav={visibleNav} currentPage={currentPage} navigate={navigate}
-        profile={profile} onLogout={onLogout}
-        open={mobileOpen} onClose={() => setMobileOpen(false)}
-      />
-
       <div className="flex min-w-0 flex-1 flex-col">
-
-        {/* Top bar móvil — verde corporativo */}
-        <div
-          className="flex items-center justify-between px-4 py-3 md:hidden"
-          style={{ backgroundColor: '#1c473c' }}
-        >
+        {/* Top bar móvil */}
+        <div className="flex items-center justify-between px-4 py-3 md:hidden"
+          style={{ backgroundColor: '#1c473c' }}>
           <img src="/brand/logo-icon.svg" alt="Viteka" className="h-8 w-8 object-contain" draggable={false} />
           <button
-            onClick={() => setMobileOpen(true)}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              height: '36px', width: '36px', borderRadius: '8px',
-              color: 'rgba(255,255,255,0.85)', background: 'none', border: 'none', cursor: 'pointer',
-            }}
+            onClick={onMenuOpen}
             aria-label="Abrir menú"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-white hover:bg-white/10 transition"
           >
             <IcMenu />
           </button>
@@ -288,10 +156,9 @@ export default function AppLayout({ children, profile, currentPage, navigate, on
             <button key={item.id} onClick={() => navigate(item.id)}
               className={`flex flex-1 flex-col items-center py-2.5 transition ${
                 currentPage === item.id ? 'text-[#1c473c]' : 'text-gray-400'
-              }`}
-            >
+              }`}>
               <Icon />
-              <span className="mt-0.5 text-[10px] truncate font-medium">{item.label}</span>
+              <span className="mt-0.5 text-[10px] font-medium">{item.label}</span>
             </button>
           )
         })}
