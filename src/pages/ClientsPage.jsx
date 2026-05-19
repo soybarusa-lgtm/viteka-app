@@ -1,8 +1,5 @@
 import { useMemo, useState } from 'react'
 
-// ---------------------------------------------------------------------------
-// Icons
-// ---------------------------------------------------------------------------
 function Icon({ children, size = 16 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -21,83 +18,97 @@ function IconList()      { return <Icon size={15}><line x1="8" y1="6" x2="21" y2
 function IconChevronL()  { return <Icon size={18}><polyline points="15 18 9 12 15 6"/></Icon> }
 function IconChevronR()  { return <Icon size={18}><polyline points="9 18 15 12 9 6"/></Icon> }
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
 const PROVINCES_AN = ['Almería','Cádiz','Córdoba','Granada','Huelva','Jaén','Málaga','Sevilla']
-
 const PROVINCE_COLORS = {
-  'Almería': '#6366f1',
-  'Cádiz':   '#0ea5e9',
-  'Córdoba': '#f59e0b',
-  'Granada': '#10b981',
-  'Huelva':  '#f43f5e',
-  'Jaén':    '#8b5cf6',
-  'Málaga':  '#14b8a6',
-  'Sevilla': '#fb923c',
+  'Almería':'#6366f1','Cádiz':'#0ea5e9','Córdoba':'#f59e0b','Granada':'#10b981',
+  'Huelva':'#f43f5e','Jaén':'#8b5cf6','Málaga':'#14b8a6','Sevilla':'#fb923c',
 }
-
 const VITEKA_PRODUCTS = [
-  { key: 'nix',  label: 'Nixfarma', color: '#ef4444', test: c => c.products?.erp?.brand === 'Nixfarma' && c.products?.erp?.viteka_support === 'SI' },
-  { key: 'cash', label: 'Cashlogy', color: '#eab308', test: c => c.products?.caja_cobro?.brand === 'Cashlogy' && c.products?.caja_cobro?.viteka_support === 'SI' },
-  { key: 'han',  label: 'Hanshow',  color: '#3b82f6', test: c => c.products?.etiquetas?.brand === 'Hanshow' && c.products?.etiquetas?.viteka_support === 'SI' },
+  { key:'nix',  label:'Nixfarma', color:'#ef4444', test: c => c.products?.erp?.brand==='Nixfarma' && c.products?.erp?.viteka_support==='SI' },
+  { key:'cash', label:'Cashlogy', color:'#eab308', test: c => c.products?.caja_cobro?.brand==='Cashlogy' && c.products?.caja_cobro?.viteka_support==='SI' },
+  { key:'han',  label:'Hanshow',  color:'#3b82f6', test: c => c.products?.etiquetas?.brand==='Hanshow' && c.products?.etiquetas?.viteka_support==='SI' },
+]
+const TYPE_FILTERS = [
+  { id:'all', label:'Todas' }, { id:'autonomo', label:'Autónomo' },
+  { id:'cb',  label:'C.B.'  }, { id:'sl',       label:'S.L.'    },
+]
+const SUPPORT_FILTERS = [
+  { id:'all', label:'Todo' }, { id:'viteka', label:'Viteka' }, { id:'no-viteka', label:'No Viteka' },
 ]
 
-// ---------------------------------------------------------------------------
-// Avatar helpers
-// ---------------------------------------------------------------------------
 const AVATAR_COLORS = ['#005643','#0369a1','#7c3aed','#b45309','#0f766e','#be123c','#1d4ed8','#15803d']
-function avatarColor(str = '') {
-  let h = 0; for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h)
-  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length]
+function avatarColor(str='') {
+  let h=0; for(let i=0;i<str.length;i++) h=str.charCodeAt(i)+((h<<5)-h)
+  return AVATAR_COLORS[Math.abs(h)%AVATAR_COLORS.length]
 }
 function getInitials(name) {
-  if (!name) return '?'
-  return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
+  if(!name) return '?'
+  return name.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase()
+}
+function normalizeType(value) {
+  const types = Array.isArray(value) ? value.join(' ') : String(value||'')
+  const v = types.toLowerCase()
+  if(v.includes('aut')) return 'autonomo'
+  if(v.includes('cb')||v.includes('c.b')) return 'cb'
+  if(v.includes('sl')||v.includes('s.l')) return 'sl'
+  return 'other'
+}
+function isVitekaClient(c) {
+  return !!c.is_viteka_client || VITEKA_PRODUCTS.some(p => p.test(c))
 }
 
-// ---------------------------------------------------------------------------
-// ProvinceCard — desktop: hover verde + scale
-// ---------------------------------------------------------------------------
+function StatCard({ label, value, hint, tone='text-gray-900' }) {
+  return (
+    <div className="card p-4">
+      <p className="text-xs text-gray-400">{label}</p>
+      <div className={`mt-2 text-2xl font-semibold ${tone}`}>{value}</div>
+      {hint && <p className="mt-1 text-xs text-gray-400">{hint}</p>}
+    </div>
+  )
+}
+
+function PillFilter({ filters, active, onSelect, activeBg='bg-[#1c473c] border-[#1c473c] text-white' }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {filters.map(f => (
+        <button key={f.id} type="button" onClick={() => onSelect(f.id)}
+          className={`px-3 py-1.5 text-xs rounded-full border transition ${
+            active===f.id ? activeBg : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+          }`}>{f.label}</button>
+      ))}
+    </div>
+  )
+}
+
 function ProvinceCard({ province, clients }) {
   const [hovered, setHovered] = useState(false)
-  const provClients = clients.filter(c => c.province === province)
+  const provClients = clients.filter(c => c.province===province)
   const total = provClients.length
   const provinceColor = PROVINCE_COLORS[province]
-
   return (
-    <div style={{ flexShrink: 0, width: '116px', height: '120px', position: 'relative' }}>
-      <div
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-          position: 'absolute', top: 0, left: 0, width: '100%',
-          display: 'flex', flexDirection: 'column',
-          zIndex: hovered ? 20 : 1,
-          padding: hovered ? '14px' : '11px',
-          borderRadius: '12px',
-          border: hovered ? '1.5px solid #86efac' : '1px solid #e2e8f0',
-          background: hovered ? '#f0fdf4' : '#f8fafc',
-          boxShadow: hovered ? '0 8px 24px 0 #bbf7d066' : 'none',
-          transform: hovered ? 'scale(1.1)' : 'scale(1)',
-          transformOrigin: 'top center',
-          transition: 'all 0.22s cubic-bezier(.4,0,.2,1)',
-          cursor: 'default',
-        }}
+    <div style={{ flexShrink:0, width:'116px', height:'120px', position:'relative' }}>
+      <div onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)}
+        style={{ position:'absolute', top:0, left:0, width:'100%', display:'flex', flexDirection:'column',
+          zIndex: hovered?20:1, padding: hovered?'14px':'11px', borderRadius:'12px',
+          border: hovered?'1.5px solid #86efac':'1px solid #e2e8f0',
+          background: hovered?'#f0fdf4':'#f8fafc',
+          boxShadow: hovered?'0 8px 24px 0 #bbf7d066':'none',
+          transform: hovered?'scale(1.1)':'scale(1)', transformOrigin:'top center',
+          transition:'all 0.22s cubic-bezier(.4,0,.2,1)', cursor:'default' }}
       >
-        <p style={{ fontSize: hovered ? '12px' : '10px', fontWeight: 700, color: hovered ? provinceColor : '#94a3b8', transition: 'all 0.22s ease', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{province}</p>
-        <p style={{ marginTop: '2px', fontSize: hovered ? '30px' : '22px', fontWeight: 800, lineHeight: 1, color: hovered ? '#15803d' : '#475569', transition: 'all 0.22s ease' }}>{total}</p>
-        <div style={{ margin: hovered ? '10px 0' : '7px 0', borderTop: `1px solid ${hovered ? '#86efac' : '#e2e8f0'}`, transition: 'all 0.22s ease' }} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: hovered ? '7px' : '5px', transition: 'gap 0.22s ease' }}>
-          {VITEKA_PRODUCTS.map(({ key, label, color: pc, test }) => {
+        <p style={{ fontSize:hovered?'12px':'10px', fontWeight:700, color:hovered?provinceColor:'#94a3b8', transition:'all 0.22s ease', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{province}</p>
+        <p style={{ marginTop:'2px', fontSize:hovered?'30px':'22px', fontWeight:800, lineHeight:1, color:hovered?'#15803d':'#475569', transition:'all 0.22s ease' }}>{total}</p>
+        <div style={{ margin:hovered?'10px 0':'7px 0', borderTop:`1px solid ${hovered?'#86efac':'#e2e8f0'}`, transition:'all 0.22s ease' }} />
+        <div style={{ display:'flex', flexDirection:'column', gap:hovered?'7px':'5px', transition:'gap 0.22s ease' }}>
+          {VITEKA_PRODUCTS.map(({ key, label, color:pc, test }) => {
             const count = provClients.filter(test).length
             return (
-              <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span style={{ display: 'inline-block', height: hovered ? '8px' : '6px', width: hovered ? '8px' : '6px', borderRadius: '50%', backgroundColor: pc, flexShrink: 0, transition: 'all 0.22s ease' }} />
-                  <span style={{ fontSize: hovered ? '11px' : '10px', color: hovered ? '#374151' : '#94a3b8', whiteSpace: 'nowrap', transition: 'all 0.22s ease' }}>{label}</span>
+              <div key={key} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'4px' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:'5px' }}>
+                  <span style={{ display:'inline-block', height:hovered?'8px':'6px', width:hovered?'8px':'6px', borderRadius:'50%', backgroundColor:pc, flexShrink:0, transition:'all 0.22s ease' }} />
+                  <span style={{ fontSize:hovered?'11px':'10px', color:hovered?'#374151':'#94a3b8', whiteSpace:'nowrap', transition:'all 0.22s ease' }}>{label}</span>
                 </div>
-                <span style={{ fontSize: hovered ? '12px' : '10px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: count > 0 ? pc : (hovered ? '#94a3b8' : '#cbd5e1'), transition: 'all 0.22s ease' }}>{count}</span>
+                <span style={{ fontSize:hovered?'12px':'10px', fontWeight:700, fontVariantNumeric:'tabular-nums', color:count>0?pc:(hovered?'#94a3b8':'#cbd5e1'), transition:'all 0.22s ease' }}>{count}</span>
               </div>
             )
           })}
@@ -107,210 +118,145 @@ function ProvinceCard({ province, clients }) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// MobileProvinceCarousel — una card a la vez con flechas + dots
-// ---------------------------------------------------------------------------
 function MobileProvinceCarousel({ clients }) {
   const [idx, setIdx] = useState(0)
   const province = PROVINCES_AN[idx]
-  const provClients = clients.filter(c => c.province === province)
+  const provClients = clients.filter(c => c.province===province)
   const total = provClients.length
   const color = PROVINCE_COLORS[province]
-
-  const prev = () => setIdx(i => (i - 1 + PROVINCES_AN.length) % PROVINCES_AN.length)
-  const next = () => setIdx(i => (i + 1) % PROVINCES_AN.length)
-
+  const prev = () => setIdx(i => (i-1+PROVINCES_AN.length)%PROVINCES_AN.length)
+  const next = () => setIdx(i => (i+1)%PROVINCES_AN.length)
+  const btnStyle = { flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', width:'34px', height:'34px', borderRadius:'50%', border:'1px solid #e2e8f0', background:'#f8fafc', color:'#64748b', cursor:'pointer', transition:'all 0.15s ease' }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-      {/* Fila: flecha izq + card + flecha dcha */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
-        {/* Flecha izquierda */}
-        <button
-          onClick={prev}
-          style={{
-            flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: '34px', height: '34px', borderRadius: '50%',
-            border: '1px solid #e2e8f0', background: '#f8fafc',
-            color: '#64748b', cursor: 'pointer', transition: 'all 0.15s ease',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#f0fdf4'; e.currentTarget.style.borderColor = '#86efac'; e.currentTarget.style.color = '#15803d' }}
-          onMouseLeave={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#64748b' }}
-        >
-          <IconChevronL />
-        </button>
-
-        {/* Card central */}
-        <div style={{
-          flex: 1,
-          borderRadius: '14px',
-          border: `1.5px solid ${color}40`,
-          background: `${color}08`,
-          padding: '16px',
-          boxShadow: `0 4px 16px 0 ${color}20`,
-          transition: 'all 0.25s ease',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'12px' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:'10px', width:'100%' }}>
+        <button onClick={prev} style={btnStyle}><IconChevronL /></button>
+        <div style={{ flex:1, borderRadius:'14px', border:`1.5px solid ${color}40`, background:`${color}08`, padding:'16px', boxShadow:`0 4px 16px 0 ${color}20`, transition:'all 0.25s ease' }}>
+          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
             <div>
-              <p style={{ fontSize: '13px', fontWeight: 700, color }}>{province}</p>
-              <p style={{ fontSize: '36px', fontWeight: 800, lineHeight: 1, color: '#15803d', marginTop: '2px' }}>{total}</p>
-              <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>farmacias</p>
+              <p style={{ fontSize:'13px', fontWeight:700, color }}>{province}</p>
+              <p style={{ fontSize:'36px', fontWeight:800, lineHeight:1, color:'#15803d', marginTop:'2px' }}>{total}</p>
+              <p style={{ fontSize:'11px', color:'#94a3b8', marginTop:'2px' }}>farmacias</p>
             </div>
-            {/* Mini indicador de posición */}
-            <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>{idx + 1} / {PROVINCES_AN.length}</span>
+            <span style={{ fontSize:'11px', color:'#94a3b8', marginTop:'2px' }}>{idx+1} / {PROVINCES_AN.length}</span>
           </div>
-
-          <div style={{ margin: '12px 0', borderTop: `1px solid ${color}30` }} />
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {VITEKA_PRODUCTS.map(({ key, label, color: pc, test }) => {
+          <div style={{ margin:'12px 0', borderTop:`1px solid ${color}30` }} />
+          <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+            {VITEKA_PRODUCTS.map(({ key, label, color:pc, test }) => {
               const count = provClients.filter(test).length
               return (
-                <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                    <span style={{ display: 'inline-block', height: '9px', width: '9px', borderRadius: '50%', backgroundColor: pc, flexShrink: 0 }} />
-                    <span style={{ fontSize: '12px', color: '#374151' }}>{label}</span>
+                <div key={key} style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:'7px' }}>
+                    <span style={{ display:'inline-block', height:'9px', width:'9px', borderRadius:'50%', backgroundColor:pc, flexShrink:0 }} />
+                    <span style={{ fontSize:'12px', color:'#374151' }}>{label}</span>
                   </div>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: count > 0 ? pc : '#cbd5e1', fontVariantNumeric: 'tabular-nums' }}>{count}</span>
+                  <span style={{ fontSize:'13px', fontWeight:700, color:count>0?pc:'#cbd5e1', fontVariantNumeric:'tabular-nums' }}>{count}</span>
                 </div>
               )
             })}
           </div>
         </div>
-
-        {/* Flecha derecha */}
-        <button
-          onClick={next}
-          style={{
-            flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: '34px', height: '34px', borderRadius: '50%',
-            border: '1px solid #e2e8f0', background: '#f8fafc',
-            color: '#64748b', cursor: 'pointer', transition: 'all 0.15s ease',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#f0fdf4'; e.currentTarget.style.borderColor = '#86efac'; e.currentTarget.style.color = '#15803d' }}
-          onMouseLeave={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#64748b' }}
-        >
-          <IconChevronR />
-        </button>
+        <button onClick={next} style={btnStyle}><IconChevronR /></button>
       </div>
-
-      {/* Dots de paginación */}
-      <div style={{ display: 'flex', gap: '5px' }}>
-        {PROVINCES_AN.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setIdx(i)}
-            style={{
-              width: i === idx ? '18px' : '6px',
-              height: '6px',
-              borderRadius: '3px',
-              border: 'none',
-              background: i === idx ? color : '#cbd5e1',
-              padding: 0,
-              cursor: 'pointer',
-              transition: 'all 0.22s ease',
-            }}
-          />
+      <div style={{ display:'flex', gap:'5px' }}>
+        {PROVINCES_AN.map((_,i) => (
+          <button key={i} onClick={()=>setIdx(i)} style={{ width:i===idx?'18px':'6px', height:'6px', borderRadius:'3px', border:'none', background:i===idx?color:'#cbd5e1', padding:0, cursor:'pointer', transition:'all 0.22s ease' }} />
         ))}
       </div>
     </div>
   )
 }
 
-// ---------------------------------------------------------------------------
-// ClientsPage
-// ---------------------------------------------------------------------------
-export default function ClientsPage({
-  clients = [],
-  onCreateClient,
-  onEditClient,
-  onDeleteClient,
-  onOpenClient,
-}) {
-  const [search,   setSearch]   = useState('')
-  const [province, setProvince] = useState('')
-  const [view,     setView]     = useState('table')
+export default function ClientsPage({ clients=[], onCreateClient, onEditClient, onDeleteClient, onOpenClient }) {
+  const [search,        setSearch]        = useState('')
+  const [province,      setProvince]      = useState('')
+  const [view,          setView]          = useState('table')
+  const [typeFilter,    setTypeFilter]    = useState('all')
+  const [supportFilter, setSupportFilter] = useState('all')
+
+  const metrics = useMemo(() => ({
+    total:    clients.length,
+    viteka:   clients.filter(isVitekaClient).length,
+    noViteka: clients.filter(c => !isVitekaClient(c)).length,
+    contacts: clients.filter(c => c.contact_phone||c.phone||c.contact_email||c.email).length,
+  }), [clients])
 
   const filtered = useMemo(() => {
     return clients.filter(c => {
-      const text = [
-        c.name, c.pharmacy_name, c.pharmacist_owner,
-        c.email, c.contact_email, c.phone, c.contact_phone,
-        c.city, c.province, c.nif_cif, c.tax_id, c.notes, c.observations,
-      ].join(' ').toLowerCase()
-      return (!search   || text.includes(search.toLowerCase()))
-          && (!province || c.province === province)
+      const text = [c.name,c.pharmacy_name,c.pharmacist_owner,c.email,c.contact_email,c.phone,c.contact_phone,c.city,c.province,c.nif_cif,c.tax_id,c.notes,c.observations].join(' ').toLowerCase()
+      const matchesSearch   = !search   || text.includes(search.toLowerCase())
+      const matchesProvince = !province || c.province===province
+      const matchesType     = typeFilter==='all' || normalizeType(c.legal_type)===typeFilter
+      const matchesSupport  = supportFilter==='all' || (supportFilter==='viteka' ? isVitekaClient(c) : !isVitekaClient(c))
+      return matchesSearch && matchesProvince && matchesType && matchesSupport
     })
-  }, [clients, search, province])
+  }, [clients, search, province, typeFilter, supportFilter])
+
+  const hasFilters = search || province || typeFilter!=='all' || supportFilter!=='all'
+  const clearFilters = () => { setSearch(''); setProvince(''); setTypeFilter('all'); setSupportFilter('all') }
 
   return (
     <div className="space-y-5">
-
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text)' }}>Farmacias</h1>
-          <p className="mt-1 text-[14px]" style={{ color: 'var(--muted)' }}>Gestión de clientes, contactos y datos operativos</p>
+          <h1 className="text-2xl font-semibold tracking-tight" style={{ color:'var(--text)' }}>Farmacias</h1>
+          <p className="mt-1 text-[14px]" style={{ color:'var(--muted)' }}>Gestión de clientes, contactos y datos operativos</p>
         </div>
-        <button type="button" onClick={onCreateClient}
-          className="btn-primary flex items-center gap-2 text-[13px]">
+        <button type="button" onClick={onCreateClient} className="btn-primary flex items-center gap-2 text-[13px]">
           <span className="text-base leading-none">+</span> Nueva farmacia
         </button>
       </div>
 
-      {/* Province section */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard label="Total"        value={metrics.total}    hint="Registradas"             />
+        <StatCard label="Viteka"       value={metrics.viteka}   hint="Con soporte"  tone="text-emerald-700" />
+        <StatCard label="No Viteka"    value={metrics.noViteka} hint="Seguimiento"  tone="text-gray-500"    />
+        <StatCard label="Con contacto" value={metrics.contacts} hint="Ficha completa" tone="text-teal-700"  />
+      </div>
+
       <div className="card p-4">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
-          Farmacias por provincia
-        </p>
-
-        {/* MOBILE: carrusel con flechas */}
-        <div className="sm:hidden">
-          <MobileProvinceCarousel clients={clients} />
-        </div>
-
-        {/* DESKTOP: scroll horizontal con hover */}
-        <div
-          className="hidden sm:flex"
-          style={{ gap: '8px', overflowX: 'auto', overflowY: 'visible', paddingBottom: '4px', paddingTop: '4px', scrollbarWidth: 'none' }}
-        >
-          {PROVINCES_AN.map(prov => (
-            <ProvinceCard key={prov} province={prov} clients={clients} />
-          ))}
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color:'var(--muted)' }}>Farmacias por provincia</p>
+        <div className="sm:hidden"><MobileProvinceCarousel clients={clients} /></div>
+        <div className="hidden sm:flex" style={{ gap:'8px', overflowX:'auto', overflowY:'visible', paddingBottom:'4px', paddingTop:'4px', scrollbarWidth:'none' }}>
+          {PROVINCES_AN.map(prov => <ProvinceCard key={prov} province={prov} clients={clients} />)}
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted)' }}><IconSearch /></span>
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar por nombre, NIF, email, teléfono, ciudad..."
-            className="input w-full pl-9" />
+      <div className="card p-4 space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color:'var(--muted)' }}><IconSearch /></span>
+            <input value={search} onChange={e=>setSearch(e.target.value)}
+              placeholder="Buscar por nombre, NIF, email, teléfono, ciudad..." className="input w-full pl-9" />
+          </div>
+          <select value={province} onChange={e=>setProvince(e.target.value)} className="input sm:w-[180px]">
+            <option value="">Todas las provincias</option>
+            {PROVINCES_AN.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+          <div className="flex overflow-hidden rounded-xl" style={{ border:'1px solid var(--border)', background:'var(--surface)' }}>
+            {[['table',<IconList />,'Lista'],['grid',<IconGrid />,'Tarjetas']].map(([v,icon,lbl]) => (
+              <button key={v} type="button" onClick={()=>setView(v)}
+                className="flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-medium transition"
+                style={view===v ? { background:'var(--primary)', color:'#fff' } : { color:'var(--muted)' }}>
+                {icon} {lbl}
+              </button>
+            ))}
+          </div>
         </div>
-        <select value={province} onChange={e => setProvince(e.target.value)} className="input sm:w-[180px]">
-          <option value="">Todas las provincias</option>
-          {PROVINCES_AN.map(p => <option key={p} value={p}>{p}</option>)}
-        </select>
-        <div className="flex overflow-hidden rounded-xl" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
-          {[['table', <IconList />, 'Lista'], ['grid', <IconGrid />, 'Tarjetas']].map(([v, icon, lbl]) => (
-            <button key={v} type="button" onClick={() => setView(v)}
-              className="flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-medium transition"
-              style={view === v ? { background: 'var(--primary)', color: '#fff' } : { color: 'var(--muted)' }}>
-              {icon} {lbl}
-            </button>
-          ))}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
+          <PillFilter filters={TYPE_FILTERS}    active={typeFilter}    onSelect={setTypeFilter} />
+          <PillFilter filters={SUPPORT_FILTERS} active={supportFilter} onSelect={setSupportFilter} activeBg="bg-gray-900 border-gray-900 text-white" />
+          {hasFilters && <button type="button" className="btn-ghost text-xs" onClick={clearFilters}>Limpiar filtros</button>}
         </div>
       </div>
 
-      <p className="text-[12px]" style={{ color: 'var(--muted)' }}>
-        {filtered.length === clients.length
-          ? `${clients.length} farmacias`
-          : `${filtered.length} de ${clients.length} farmacias`}
+      <p className="text-[12px]" style={{ color:'var(--muted)' }}>
+        {filtered.length===clients.length ? `${clients.length} farmacias` : `${filtered.length} de ${clients.length} farmacias`}
       </p>
 
-      {filtered.length === 0
-        ? <EmptyState hasFilters={Boolean(search || province)} onClear={() => { setSearch(''); setProvince('') }} />
-        : view === 'table'
+      {filtered.length===0
+        ? <EmptyState hasFilters={Boolean(hasFilters)} onClear={clearFilters} />
+        : view==='table'
           ? <TableView clients={filtered} onOpen={onOpenClient} onEdit={onEditClient} onDelete={onDeleteClient} />
           : <GridView  clients={filtered} onOpen={onOpenClient} onEdit={onEditClient} onDelete={onDeleteClient} />
       }
@@ -318,73 +264,50 @@ export default function ClientsPage({
   )
 }
 
-// ---------------------------------------------------------------------------
-// TableView
-// ---------------------------------------------------------------------------
 function TableView({ clients, onOpen, onEdit, onDelete }) {
   return (
     <div className="table-wrap">
       <table className="table-base min-w-[700px]">
-        <thead>
-          <tr>{['Farmacia','Titular','Tipo jurídico','Provincia / Ciudad','Contacto',''].map(h => <th key={h}>{h}</th>)}</tr>
-        </thead>
+        <thead><tr>{['Farmacia','Titular','Tipo jurídico','Provincia / Ciudad','Contacto',''].map(h=><th key={h}>{h}</th>)}</tr></thead>
         <tbody>
           {clients.map(c => (
             <tr key={c.id} className="group">
               <td>
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[13px] font-semibold text-white"
-                    style={{ backgroundColor: avatarColor(c.pharmacy_name || c.name) }}>
-                    {getInitials(c.pharmacy_name || c.name)}
+                    style={{ backgroundColor:avatarColor(c.pharmacy_name||c.name) }}>
+                    {getInitials(c.pharmacy_name||c.name)}
                   </div>
                   <div>
-                    <p className="text-[14px] font-medium" style={{ color: 'var(--text)' }}>{c.pharmacy_name || c.name}</p>
-                    {c.name !== c.pharmacy_name && c.name && (
-                      <p className="text-[12px]" style={{ color: 'var(--muted)' }}>{c.name}</p>
-                    )}
+                    <p className="text-[14px] font-medium" style={{ color:'var(--text)' }}>{c.pharmacy_name||c.name}</p>
+                    {c.name!==c.pharmacy_name && c.name && <p className="text-[12px]" style={{ color:'var(--muted)' }}>{c.name}</p>}
                   </div>
                 </div>
               </td>
-              <td className="text-[13px]" style={{ color: 'var(--text-soft)' }}>{c.pharmacist_owner || '—'}</td>
+              <td className="text-[13px]" style={{ color:'var(--text-soft)' }}>{c.pharmacist_owner||'—'}</td>
               <td>
                 <div className="flex flex-wrap gap-1">
-                  {(c.legal_type || []).map(t => (
-                    <span key={t} className="rounded-md px-2 py-0.5 text-[11px] font-medium uppercase"
-                      style={{ background: 'var(--badge-blue-bg)', color: 'var(--badge-blue-text)' }}>{t}</span>
-                  ))}
-                  {!c.legal_type?.length && <span className="text-[12px]" style={{ color: 'var(--muted)' }}>—</span>}
+                  {(c.legal_type||[]).map(t => <span key={t} className="rounded-md px-2 py-0.5 text-[11px] font-medium uppercase" style={{ background:'var(--badge-blue-bg)', color:'var(--badge-blue-text)' }}>{t}</span>)}
+                  {!c.legal_type?.length && <span className="text-[12px]" style={{ color:'var(--muted)' }}>—</span>}
                 </div>
               </td>
               <td>
-                {(c.province || c.city) ? (
-                  <div className="flex items-center gap-1.5 text-[13px]" style={{ color: 'var(--text-soft)' }}>
-                    <span style={{ color: 'var(--muted)' }}><IconPin /></span>
-                    {[c.city, c.province].filter(Boolean).join(', ')}
-                  </div>
-                ) : <span className="text-[13px]" style={{ color: 'var(--muted)' }}>—</span>}
+                {(c.province||c.city)
+                  ? <div className="flex items-center gap-1.5 text-[13px]" style={{ color:'var(--text-soft)' }}><span style={{ color:'var(--muted)' }}><IconPin /></span>{[c.city,c.province].filter(Boolean).join(', ')}</div>
+                  : <span className="text-[13px]" style={{ color:'var(--muted)' }}>—</span>}
               </td>
               <td>
                 <div className="space-y-1">
-                  {(c.contact_phone || c.phone) && (
-                    <div className="flex items-center gap-1.5 text-[12px]" style={{ color: 'var(--text-soft)' }}>
-                      <span style={{ color: 'var(--muted)' }}><IconPhone /></span>{c.contact_phone || c.phone}
-                    </div>
-                  )}
-                  {(c.contact_email || c.email) && (
-                    <div className="flex items-center gap-1.5 text-[12px]" style={{ color: 'var(--text-soft)' }}>
-                      <span style={{ color: 'var(--muted)' }}><IconMail /></span>{c.contact_email || c.email}
-                    </div>
-                  )}
-                  {!c.contact_phone && !c.phone && !c.contact_email && !c.email && (
-                    <span className="text-[12px]" style={{ color: 'var(--muted)' }}>Sin contacto</span>
-                  )}
+                  {(c.contact_phone||c.phone) && <div className="flex items-center gap-1.5 text-[12px]" style={{ color:'var(--text-soft)' }}><span style={{ color:'var(--muted)' }}><IconPhone /></span>{c.contact_phone||c.phone}</div>}
+                  {(c.contact_email||c.email) && <div className="flex items-center gap-1.5 text-[12px]" style={{ color:'var(--text-soft)' }}><span style={{ color:'var(--muted)' }}><IconMail /></span>{c.contact_email||c.email}</div>}
+                  {!c.contact_phone&&!c.phone&&!c.contact_email&&!c.email && <span className="text-[12px]" style={{ color:'var(--muted)' }}>Sin contacto</span>}
                 </div>
               </td>
               <td>
                 <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                  {onOpen && <ActionBtn onClick={() => onOpen(c.id)} title="Ver detalle" color="green"><IconEye /></ActionBtn>}
-                  <ActionBtn onClick={() => onEdit(c)}      title="Editar"   color="slate"><IconEdit /></ActionBtn>
-                  <ActionBtn onClick={() => onDelete(c.id)} title="Eliminar" color="red"><IconTrash /></ActionBtn>
+                  {onOpen && <ActionBtn onClick={()=>onOpen(c.id)} title="Ver detalle" color="green"><IconEye /></ActionBtn>}
+                  <ActionBtn onClick={()=>onEdit(c)}      title="Editar"   color="slate"><IconEdit /></ActionBtn>
+                  <ActionBtn onClick={()=>onDelete(c.id)} title="Eliminar" color="red"><IconTrash /></ActionBtn>
                 </div>
               </td>
             </tr>
@@ -395,48 +318,32 @@ function TableView({ clients, onOpen, onEdit, onDelete }) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// GridView
-// ---------------------------------------------------------------------------
 function GridView({ clients, onOpen, onEdit, onDelete }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {clients.map(c => (
         <div key={c.id} className="group card flex flex-col p-5 transition hover:shadow-sm"
-          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'}
-          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+          onMouseEnter={e=>e.currentTarget.style.borderColor='var(--primary)'}
+          onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}
         >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[13px] font-semibold text-white"
-              style={{ backgroundColor: avatarColor(c.pharmacy_name || c.name) }}>
-              {getInitials(c.pharmacy_name || c.name)}
+              style={{ backgroundColor:avatarColor(c.pharmacy_name||c.name) }}>
+              {getInitials(c.pharmacy_name||c.name)}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-[14px] font-medium" style={{ color: 'var(--text)' }}>{c.pharmacy_name || c.name}</p>
-              {c.pharmacist_owner && <p className="truncate text-[12px]" style={{ color: 'var(--muted)' }}>{c.pharmacist_owner}</p>}
+              <p className="truncate text-[14px] font-medium" style={{ color:'var(--text)' }}>{c.pharmacy_name||c.name}</p>
+              {c.pharmacist_owner && <p className="truncate text-[12px]" style={{ color:'var(--muted)' }}>{c.pharmacist_owner}</p>}
             </div>
           </div>
           <div className="mt-4 flex-1 space-y-2">
-            {(c.province || c.city) && (
-              <div className="flex items-center gap-1.5 text-[12px]" style={{ color: 'var(--text-soft)' }}>
-                <span style={{ color: 'var(--muted)' }}><IconPin /></span>
-                <span className="truncate">{[c.city, c.province].filter(Boolean).join(', ')}</span>
-              </div>
-            )}
-            {(c.contact_phone || c.phone) && (
-              <div className="flex items-center gap-1.5 text-[12px]" style={{ color: 'var(--text-soft)' }}>
-                <span style={{ color: 'var(--muted)' }}><IconPhone /></span>
-                <span className="truncate">{c.contact_phone || c.phone}</span>
-              </div>
-            )}
+            {(c.province||c.city) && <div className="flex items-center gap-1.5 text-[12px]" style={{ color:'var(--text-soft)' }}><span style={{ color:'var(--muted)' }}><IconPin /></span><span className="truncate">{[c.city,c.province].filter(Boolean).join(', ')}</span></div>}
+            {(c.contact_phone||c.phone) && <div className="flex items-center gap-1.5 text-[12px]" style={{ color:'var(--text-soft)' }}><span style={{ color:'var(--muted)' }}><IconPhone /></span><span className="truncate">{c.contact_phone||c.phone}</span></div>}
           </div>
-          <div className="mt-4 flex items-center gap-2 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
-            {onOpen && (
-              <button type="button" onClick={() => onOpen(c.id)}
-                className="btn-primary flex-1 py-1.5 text-center text-[12px]">Ver detalle</button>
-            )}
-            <ActionBtn onClick={() => onEdit(c)}      title="Editar"   color="slate"><IconEdit /></ActionBtn>
-            <ActionBtn onClick={() => onDelete(c.id)} title="Eliminar" color="red"><IconTrash /></ActionBtn>
+          <div className="mt-4 flex items-center gap-2 pt-4" style={{ borderTop:'1px solid var(--border)' }}>
+            {onOpen && <button type="button" onClick={()=>onOpen(c.id)} className="btn-primary flex-1 py-1.5 text-center text-[12px]">Ver detalle</button>}
+            <ActionBtn onClick={()=>onEdit(c)}      title="Editar"   color="slate"><IconEdit /></ActionBtn>
+            <ActionBtn onClick={()=>onDelete(c.id)} title="Eliminar" color="red"><IconTrash /></ActionBtn>
           </div>
         </div>
       ))}
@@ -444,42 +351,26 @@ function GridView({ clients, onOpen, onEdit, onDelete }) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// EmptyState
-// ---------------------------------------------------------------------------
 function EmptyState({ hasFilters, onClear }) {
   return (
     <div className="empty-state">
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: 'var(--surface-soft)', color: 'var(--muted)' }}>
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background:'var(--surface-soft)', color:'var(--muted)' }}>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-          <polyline points="9 22 9 12 15 12 15 22"/>
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
         </svg>
       </div>
-      <p className="mt-4 text-[14px] font-medium" style={{ color: 'var(--text)' }}>
-        {hasFilters ? 'Sin resultados' : 'Aún no hay farmacias'}
-      </p>
-      <p className="mt-1 text-[13px]" style={{ color: 'var(--muted)' }}>
-        {hasFilters ? 'Prueba con otros términos de búsqueda' : 'Crea la primera farmacia para empezar'}
-      </p>
-      {hasFilters && (
-        <button type="button" onClick={onClear}
-          className="mt-4 text-[13px] font-medium hover:underline" style={{ color: 'var(--primary)' }}>
-          Limpiar filtros
-        </button>
-      )}
+      <p className="mt-4 text-[14px] font-medium" style={{ color:'var(--text)' }}>{hasFilters?'Sin resultados':'Aún no hay farmacias'}</p>
+      <p className="mt-1 text-[13px]" style={{ color:'var(--muted)' }}>{hasFilters?'Prueba con otros términos de búsqueda':'Crea la primera farmacia para empezar'}</p>
+      {hasFilters && <button type="button" onClick={onClear} className="mt-4 text-[13px] font-medium hover:underline" style={{ color:'var(--primary)' }}>Limpiar filtros</button>}
     </div>
   )
 }
 
-// ---------------------------------------------------------------------------
-// ActionBtn
-// ---------------------------------------------------------------------------
-function ActionBtn({ onClick, title, color = 'slate', children }) {
+function ActionBtn({ onClick, title, color='slate', children }) {
   const styles = {
-    green: { background: 'var(--badge-green-bg)', color: 'var(--badge-green-text)' },
-    slate: { background: 'var(--surface-soft)',   color: 'var(--text-soft)' },
-    red:   { background: 'var(--badge-red-bg)',   color: 'var(--badge-red-text)' },
+    green: { background:'var(--badge-green-bg)', color:'var(--badge-green-text)' },
+    slate: { background:'var(--surface-soft)',   color:'var(--text-soft)' },
+    red:   { background:'var(--badge-red-bg)',   color:'var(--badge-red-text)' },
   }
   return (
     <button type="button" onClick={onClick} title={title}
