@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Component } from 'react'
 import { supabase } from './lib/supabase'
 
 import AppLayout, { NAV_ITEMS } from './layouts/AppLayout'
@@ -23,6 +23,48 @@ import UsersPage from './pages/UsersPage'
 import SettingsPage from './pages/SettingsPage'
 import ClientPortalPage from './pages/ClientPortalPage'
 import LoginPage from './pages/LoginPage'
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+  componentDidCatch(error, info) {
+    console.error('[ErrorBoundary]', error, info)
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 99999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backgroundColor: '#f6f5f0', padding: '24px',
+        }}>
+          <div style={{ textAlign: 'center', maxWidth: '320px' }}>
+            <p style={{ color: '#dc2626', fontWeight: 600, marginBottom: '8px' }}>Algo fue mal</p>
+            <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '16px' }}>
+              {this.state.error?.message || 'Error desconocido'}
+            </p>
+            <button
+              onClick={() => this.setState({ hasError: false, error: null })}
+              style={{
+                backgroundColor: '#1c473c', color: 'white',
+                border: 'none', borderRadius: '10px',
+                padding: '8px 20px', cursor: 'pointer', fontSize: '14px',
+              }}
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 export default function App() {
   const [session,     setSession]     = useState(null)
@@ -65,8 +107,8 @@ export default function App() {
 
   if (loadingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f9fafb' }}>
+        <div style={{ width: '32px', height: '32px', border: '4px solid #1c473c', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
       </div>
     )
   }
@@ -75,10 +117,12 @@ export default function App() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-w-sm w-full text-center space-y-4">
-          <p className="text-gray-500 text-sm">Tu cuenta no tiene perfil asignado. Contacta con el administrador.</p>
-          <button onClick={() => supabase.auth.signOut()} className="text-teal-600 underline text-sm">Cerrar sesión</button>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f9fafb', padding: '24px' }}>
+        <div style={{ background: 'white', borderRadius: '16px', padding: '32px', maxWidth: '360px', width: '100%', textAlign: 'center' }}>
+          <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '16px' }}>Tu cuenta no tiene perfil asignado. Contacta con el administrador.</p>
+          <button onClick={() => supabase.auth.signOut()} style={{ color: '#0d9488', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '14px' }}>
+            Cerrar sesión
+          </button>
         </div>
       </div>
     )
@@ -116,18 +160,18 @@ export default function App() {
   }
 
   return (
-    <>
-      {/* Drawer móvil: sibling de AppLayout, fuera de cualquier overflow/stacking context */}
-      <MobileDrawer
-        open={mobileOpen}
-        onClose={() => setMobileOpen(false)}
-        visibleNav={visibleNav}
-        currentPage={currentPage}
-        navigate={navigate}
-        profile={profile}
-        onLogout={() => supabase.auth.signOut()}
-      />
-
+    <div style={{ minHeight: '100vh' }}>
+      <ErrorBoundary>
+        <MobileDrawer
+          open={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+          visibleNav={visibleNav}
+          currentPage={currentPage}
+          navigate={navigate}
+          profile={profile}
+          onLogout={() => supabase.auth.signOut()}
+        />
+      </ErrorBoundary>
       <AppLayout
         profile={profile}
         currentPage={currentPage}
@@ -137,6 +181,6 @@ export default function App() {
       >
         {renderPage()}
       </AppLayout>
-    </>
+    </div>
   )
 }
