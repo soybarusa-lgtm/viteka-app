@@ -18,34 +18,73 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ── Shared btn base (inline, sin @apply de clase custom) ── */
+@utility btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  border-radius: 0.75rem;
+  transition-property: all;
+  transition-duration: 150ms;
+  outline: none;
+}
+@utility btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 @layer components {
   @reference "tailwindcss";
 
   /* ── Buttons ── */
-  .btn {
+  .btn-sm {
     @apply inline-flex items-center justify-center gap-2 font-medium rounded-xl
            transition-all duration-150 focus:outline-none
-           disabled:opacity-40 disabled:cursor-not-allowed;
+           disabled:opacity-40 disabled:cursor-not-allowed
+           px-3 py-1.5 text-xs;
   }
-  .btn-sm  { @apply btn px-3 py-1.5 text-xs; }
-  .btn-md  { @apply btn px-4 py-2 text-sm; }
-  .btn-lg  { @apply btn px-5 py-2.5 text-sm; }
+  .btn-md {
+    @apply inline-flex items-center justify-center gap-2 font-medium rounded-xl
+           transition-all duration-150 focus:outline-none
+           disabled:opacity-40 disabled:cursor-not-allowed
+           px-4 py-2 text-sm;
+  }
+  .btn-lg {
+    @apply inline-flex items-center justify-center gap-2 font-medium rounded-xl
+           transition-all duration-150 focus:outline-none
+           disabled:opacity-40 disabled:cursor-not-allowed
+           px-5 py-2.5 text-sm;
+  }
 
   .btn-primary {
-    @apply btn px-4 py-2 text-sm text-white;
+    @apply inline-flex items-center justify-center gap-2 font-medium rounded-xl
+           transition-all duration-150 focus:outline-none
+           disabled:opacity-40 disabled:cursor-not-allowed
+           px-4 py-2 text-sm text-white;
     background-color: var(--viteka);
   }
   .btn-primary:hover:not(:disabled) { background-color: var(--viteka-dark); }
 
   .btn-secondary {
-    @apply btn px-4 py-2 text-sm bg-white text-gray-700
+    @apply inline-flex items-center justify-center gap-2 font-medium rounded-xl
+           transition-all duration-150 focus:outline-none
+           disabled:opacity-40 disabled:cursor-not-allowed
+           px-4 py-2 text-sm bg-white text-gray-700
            border border-gray-200 hover:bg-gray-50;
   }
   .btn-danger {
-    @apply btn px-4 py-2 text-sm bg-red-600 text-white hover:bg-red-700;
+    @apply inline-flex items-center justify-center gap-2 font-medium rounded-xl
+           transition-all duration-150 focus:outline-none
+           disabled:opacity-40 disabled:cursor-not-allowed
+           px-4 py-2 text-sm bg-red-600 text-white hover:bg-red-700;
   }
   .btn-ghost {
-    @apply btn px-4 py-2 text-sm text-gray-500 hover:bg-gray-100;
+    @apply inline-flex items-center justify-center gap-2 font-medium rounded-xl
+           transition-all duration-150 focus:outline-none
+           disabled:opacity-40 disabled:cursor-not-allowed
+           px-4 py-2 text-sm text-gray-500 hover:bg-gray-100;
   }
 
   /* ── Inputs ── */
@@ -91,12 +130,12 @@ html, body {
            max-w-full md:max-w-2xl
            flex flex-col overflow-hidden z-50;
   }
-  .modal-header  {
+  .modal-header {
     @apply flex items-center justify-between px-5 py-4
            border-b border-gray-100 flex-shrink-0;
   }
-  .modal-body    { @apply flex-1 overflow-y-auto px-5 py-5; }
-  .modal-footer  {
+  .modal-body   { @apply flex-1 overflow-y-auto px-5 py-5; }
+  .modal-footer {
     @apply flex items-center justify-end gap-2 px-5 py-4
            border-t border-gray-100 flex-shrink-0;
   }
@@ -115,8 +154,8 @@ html, body {
   .page-title     { @apply text-2xl font-medium text-gray-900; }
   .page-subtitle  { @apply mt-0.5 text-sm text-gray-400; }
 
-  /* ── Section head (dentro de card) ── */
-  .section-head {
+  /* ── Section head ── */
+  .section-head  {
     @apply flex items-center justify-between px-5 py-4
            border-b border-gray-100;
   }
@@ -134,8 +173,7 @@ html, body {
            bg-white border border-gray-200 text-gray-600 hover:border-gray-300;
   }
   .pill-active {
-    @apply shrink-0 rounded-full px-4 py-1.5 text-xs font-medium transition
-           text-white;
+    @apply shrink-0 rounded-full px-4 py-1.5 text-xs font-medium transition text-white;
     background-color: var(--viteka);
   }
 
@@ -161,7 +199,7 @@ html, body {
   .overflow-y-auto::-webkit-scrollbar-track { background: transparent; }
   .overflow-y-auto::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.10); border-radius: 99px; }
 
-  /* ── Divider list (rows dentro de card) ── */
+  /* ── Divider list ── */
   .card-row {
     @apply flex w-full items-center gap-3 px-5 py-3.5 text-left
            hover:bg-gray-50/60 transition
