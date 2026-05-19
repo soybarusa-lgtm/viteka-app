@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { usePharmacies } from '../hooks/usePharmacies'
+import PharmacyCreateModal from '../components/pharmacy/PharmacyCreateModal'
 
 function IcSearch() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> }
 function IcPlus() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> }
@@ -13,9 +14,9 @@ const TYPE_FILTERS = [
 ]
 
 const SUPPORT_FILTERS = [
-  { id: 'all',      label: 'Todo'      },
-  { id: 'viteka',   label: 'Viteka'    },
-  { id: 'no-viteka',label: 'No Viteka' },
+  { id: 'all',       label: 'Todo'      },
+  { id: 'viteka',    label: 'Viteka'    },
+  { id: 'no-viteka', label: 'No Viteka' },
 ]
 
 function StatCard({ label, value, hint, tone = 'text-gray-900' }) {
@@ -42,10 +43,7 @@ function getContact(p) { return p.contact_name || p.manager_name || p.full_name 
 
 function PharmacyRow({ pharmacy, navigate }) {
   return (
-    <tr
-      className="cursor-pointer"
-      onClick={() => navigate('pharmacy-detail', { pharmacyId: pharmacy.id })}
-    >
+    <tr className="cursor-pointer" onClick={() => navigate('pharmacy-detail', { pharmacyId: pharmacy.id })}>
       <td className="font-medium text-gray-900">{getName(pharmacy)}</td>
       <td className="text-gray-500">{pharmacy.province || '—'}</td>
       <td className="text-gray-500">{getCity(pharmacy)}</td>
@@ -63,41 +61,32 @@ function PharmacyRow({ pharmacy, navigate }) {
 
 function PharmacyCard({ pharmacy, navigate }) {
   return (
-    <button
-      onClick={() => navigate('pharmacy-detail', { pharmacyId: pharmacy.id })}
-      className="card-hover w-full p-4 text-left"
-    >
+    <button onClick={() => navigate('pharmacy-detail', { pharmacyId: pharmacy.id })}
+      className="card-hover w-full p-4 text-left">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-gray-900 truncate">{getName(pharmacy)}</p>
-          <p className="mt-0.5 text-xs text-gray-400 truncate">
-            {pharmacy.province || '—'} · {getCity(pharmacy)}
-          </p>
+          <p className="mt-0.5 text-xs text-gray-400 truncate">{pharmacy.province || '—'} · {getCity(pharmacy)}</p>
         </div>
         <span className={pharmacy.is_viteka_client ? 'badge-green' : 'badge-gray'}>
           {pharmacy.is_viteka_client ? 'Viteka' : 'No Viteka'}
         </span>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
-        <div>
-          <p className="text-gray-400">Tipo</p>
-          <p className="mt-1 font-medium text-gray-700">{pharmacy.legal_type || '—'}</p>
-        </div>
-        <div>
-          <p className="text-gray-400">Contacto</p>
-          <p className="mt-1 font-medium text-gray-700 truncate">{getContact(pharmacy)}</p>
-        </div>
+        <div><p className="text-gray-400">Tipo</p><p className="mt-1 font-medium text-gray-700">{pharmacy.legal_type || '—'}</p></div>
+        <div><p className="text-gray-400">Contacto</p><p className="mt-1 font-medium text-gray-700 truncate">{getContact(pharmacy)}</p></div>
       </div>
     </button>
   )
 }
 
-export default function PharmaciesPage({ navigate }) {
-  const { pharmacies = [], loading, error } = usePharmacies()
+export default function PharmaciesPage({ navigate, profile }) {
+  const { pharmacies = [], loading, error, refetch } = usePharmacies()
 
   const [search,        setSearch]        = useState('')
   const [typeFilter,    setTypeFilter]    = useState('all')
   const [supportFilter, setSupportFilter] = useState('all')
+  const [showCreate,    setShowCreate]    = useState(false)
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -120,6 +109,11 @@ export default function PharmaciesPage({ navigate }) {
 
   const hasFilters = search || typeFilter !== 'all' || supportFilter !== 'all'
 
+  function handleCreated(newId) {
+    refetch?.()
+    navigate('pharmacy-detail', { pharmacyId: newId })
+  }
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -127,13 +121,13 @@ export default function PharmaciesPage({ navigate }) {
           <h1 className="page-title">Farmacias</h1>
           <p className="page-subtitle">Gestión de fichas, contacto y distribución</p>
         </div>
-        <button onClick={() => navigate('pharmacy-create')} className="btn-primary">
+        <button onClick={() => setShowCreate(true)} className="btn-primary">
           <IcPlus /> Nueva farmacia
         </button>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Total"        value={metrics.total}    hint="Registradas"            />
+        <StatCard label="Total"        value={metrics.total}    hint="Registradas"             />
         <StatCard label="Viteka"       value={metrics.viteka}   hint="Con soporte"  tone="text-emerald-700" />
         <StatCard label="No Viteka"    value={metrics.noViteka} hint="Seguimiento"  tone="text-gray-500"    />
         <StatCard label="Con contacto" value={metrics.contacts} hint="Ficha completa" tone="text-teal-700"  />
@@ -142,12 +136,9 @@ export default function PharmaciesPage({ navigate }) {
       <div className="card p-4 mb-6 space-y-4">
         <div className="relative max-w-xl">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><IcSearch /></span>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
+          <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Buscar por farmacia, provincia, ciudad o contacto"
-            className="input pl-9"
-          />
+            className="input pl-9" />
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
           <div className="flex flex-wrap gap-1.5">
@@ -197,15 +188,8 @@ export default function PharmaciesPage({ navigate }) {
           <>
             <div className="hidden md:block table-container">
               <table className="table">
-                <thead>
-                  <tr>
-                    <th>Farmacia</th><th>Provincia</th><th>Población</th>
-                    <th>Distribución</th><th>Tipo</th><th>Contacto</th><th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map(p => <PharmacyRow key={p.id} pharmacy={p} navigate={navigate} />)}
-                </tbody>
+                <thead><tr><th>Farmacia</th><th>Provincia</th><th>Población</th><th>Distribución</th><th>Tipo</th><th>Contacto</th><th /></tr></thead>
+                <tbody>{filtered.map(p => <PharmacyRow key={p.id} pharmacy={p} navigate={navigate} />)}</tbody>
               </table>
             </div>
             <div className="md:hidden space-y-2">
@@ -214,6 +198,14 @@ export default function PharmaciesPage({ navigate }) {
           </>
         )
       )}
+
+      {/* Modal alta */}
+      <PharmacyCreateModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreated={handleCreated}
+        profile={profile}
+      />
     </div>
   )
 }
