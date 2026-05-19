@@ -54,19 +54,15 @@ function NavLink({ item, active, onClick }) {
   )
 }
 
-// ── LogoIcon — logo-white.svg como icono pequeño, fondo transparente garantizado ────
+// ── LogoIcon ───────────────────────────────────────────────────────────────
 function LogoIcon() {
   return (
     <img
-      src="/brand/logo-white.svg"
+      src="/brand/logo-icon.svg"
       alt="Viteka"
-      style={{
-        height: '32px',
-        width: 'auto',
-        objectFit: 'contain',
-        background: 'transparent',
-        display: 'block',
-      }}
+      width={32}
+      height={32}
+      style={{ objectFit: 'contain', background: 'transparent', display: 'block' }}
       draggable={false}
     />
   )
