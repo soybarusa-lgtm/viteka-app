@@ -1,29 +1,39 @@
 import { supabase } from './supabase'
 
+/**
+ * Crea una notificación interna para un usuario.
+ * @param {object} params
+ * @param {string} params.user_id
+ * @param {string} params.company_id
+ * @param {string} params.title
+ * @param {string} [params.message]
+ * @param {string} [params.type]        - 'info' | 'warning' | 'error' | 'success'
+ * @param {string} [params.entity_type]
+ * @param {string} [params.entity_id]
+ * @param {boolean} [params.send_email] - true para incidencias críticas
+ */
 export async function createNotification({
-  userId,
+  user_id,
+  company_id,
   title,
-  message,
+  message = '',
   type = 'info',
-  entityType = null,
-  entityId = null,
+  entity_type = null,
+  entity_id = null,
+  send_email = false,
 }) {
-  if (!userId) return
-
-  const { error } = await supabase
-    .from('notifications')
-    .insert({
-      user_id: userId,
+  try {
+    await supabase.from('notifications').insert({
+      user_id,
+      company_id,
       title,
       message,
       type,
-      entity_type: entityType,
-      entity_id: entityId,
-      read: false,
+      entity_type,
+      entity_id,
+      send_email,
     })
-
-  if (error) {
-    console.error('Notification error:', error.message)
-    alert(`Notification error: ${error.message}`)
+  } catch (err) {
+    console.error('Error al crear notificación:', err)
   }
 }
