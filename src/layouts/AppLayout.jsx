@@ -20,11 +20,6 @@ function IcChevronLeft() { return <svg width="13" height="13" viewBox="0 0 24 24
 function IcMenu()        { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg> }
 function IcClose()       { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> }
 
-// ── Brand logos ──────────────────────────────────────────────────────────────────
-function LogoIcon()      { return <img src="/brand/logo-icon.svg"      alt="Viteka" className="h-9 w-9 object-contain"  draggable={false} /> }
-function LogoFull()      { return <img src="/brand/logo-white.svg"     alt="Viteka" className="h-10 object-contain w-full" draggable={false} /> }
-function LogoIconColor() { return <img src="/brand/logo-icon-colr.svg" alt="Viteka" className="h-8 w-8 object-contain"  draggable={false} /> }
-
 // ── Nav config ───────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
   { id: 'dashboard',     label: 'Dashboard',     icon: IcDashboard,  roles: ['owner','admin','technician','commercial'] },
@@ -71,20 +66,20 @@ function DesktopSidebar({ visibleNav, currentPage, navigate, profile, onLogout, 
       className="hidden md:flex flex-col flex-shrink-0 h-screen sticky top-0 overflow-hidden transition-all duration-200 ease-in-out"
       style={{ width: expanded ? '224px' : '56px', backgroundColor: '#1c473c' }}
     >
-      {/* ─── HEADER: logo + toggle ─── */}
+      {/* ─── HEADER ─── */}
       <div
         className="flex-shrink-0 flex flex-col items-center justify-center py-3 gap-1.5"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', minHeight: expanded ? '72px' : '80px' }}
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', minHeight: expanded ? '80px' : '84px' }}
       >
         {expanded ? (
-          // Abierta: logo white centrado + flecha a la derecha
+          // Sidebar abierta: logo white centrado + flecha a la derecha
           <div className="flex w-full items-center px-3">
             <div className="flex-1 flex justify-center">
               <img
                 src="/brand/logo-white.svg"
                 alt="Viteka"
                 className="object-contain"
-                style={{ height: '36px', maxWidth: '148px' }}
+                style={{ height: '45px', maxWidth: '165px' }}
                 draggable={false}
               />
             </div>
@@ -96,7 +91,7 @@ function DesktopSidebar({ visibleNav, currentPage, navigate, profile, onLogout, 
             </button>
           </div>
         ) : (
-          // Cerrada: icon centrado + flecha debajo
+          // Sidebar cerrada: icono centrado + flecha debajo
           <>
             <img
               src="/brand/logo-icon.svg"
@@ -190,7 +185,7 @@ export default function AppLayout({ children, profile, currentPage, navigate, on
           <div className="fixed inset-0" style={{ backgroundColor: 'rgba(0,0,0,0.45)' }} onClick={() => setMobileOpen(false)} />
           <aside className="relative z-10 flex h-full w-64 flex-col shadow-2xl" style={{ backgroundColor: '#1c473c' }}>
             <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', minHeight: '56px' }}>
-              <img src="/brand/logo-white.svg" alt="Viteka" className="h-8 object-contain" style={{ maxWidth: '130px' }} draggable={false} />
+              <img src="/brand/logo-white.svg" alt="Viteka" className="h-9 object-contain" style={{ maxWidth: '140px' }} draggable={false} />
               <button onClick={() => setMobileOpen(false)} className="text-white/50 hover:text-white transition"><IcClose /></button>
             </div>
             <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
@@ -219,19 +214,13 @@ export default function AppLayout({ children, profile, currentPage, navigate, on
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Top bar solo móvil */}
         <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 md:hidden">
           <img src="/brand/logo-icon-colr.svg" alt="Viteka" className="h-8 w-8 object-contain" draggable={false} />
-          <button onClick={() => setMobileOpen(true)} className="text-gray-400 hover:text-gray-700 transition">
-            <IcMenu />
-          </button>
+          <button onClick={() => setMobileOpen(true)} className="text-gray-400 hover:text-gray-700 transition"><IcMenu /></button>
         </div>
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
 
-      {/* Bottom nav móvil */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 flex border-t border-gray-200 bg-white md:hidden">
         {bottomNav.map(item => {
           const Icon = item.icon
