@@ -20,35 +20,26 @@ function IcChevronLeft() { return <svg width="14" height="14" viewBox="0 0 24 24
 function IcMenu()        { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg> }
 function IcClose()       { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> }
 
-// ── Logo SVG (blanco — para sidebar) ────────────────────────────────────────────
-function LogoSVG({ size = 20 }) {
+// ── Brand logos — rutas absolutas desde /public/brand ───────────────────────────
+
+/** Sidebar cerrada: icono solo */
+function LogoIcon() {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-      <path d="M2 17l10 5 10-5"/>
-      <path d="M2 12l10 5 10-5"/>
-    </svg>
+    <img src="/brand/logo-icon.svg" alt="Viteka" className="h-8 w-8 object-contain" draggable={false} />
   )
 }
 
-// Logo colapsado: icono solo, sobre fondo verde
-function LogoCollapsed() {
+/** Sidebar abierta: logo completo blanco */
+function LogoFull() {
   return (
-    <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: '#1c473c' }}>
-      <LogoSVG size={16} />
-    </div>
+    <img src="/brand/logo-white.svg" alt="Viteka" className="h-8 object-contain" style={{ maxWidth: '128px' }} draggable={false} />
   )
 }
 
-// Logo expandido: icono + wordmark blancos
-function LogoExpanded() {
+/** Top bar móvil: icono en color */
+function LogoIconColor() {
   return (
-    <div className="flex items-center gap-2.5">
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/20">
-        <LogoSVG size={16} />
-      </div>
-      <span className="text-sm font-semibold tracking-wide text-white">Viteka</span>
-    </div>
+    <img src="/brand/logo-icon-colr.svg" alt="Viteka" className="h-8 w-8 object-contain" draggable={false} />
   )
 }
 
@@ -98,26 +89,28 @@ function DesktopSidebar({ visibleNav, currentPage, navigate, profile, onLogout, 
       className="hidden md:flex flex-col flex-shrink-0 h-screen sticky top-0 overflow-hidden transition-all duration-200 ease-in-out"
       style={{ width: expanded ? '224px' : '56px', backgroundColor: '#1c473c' }}
     >
-      {/* ─ Logo + toggle ─ */}
+      {/* Logo + toggle */}
       <div
-        className="flex items-center flex-shrink-0 px-3 py-3"
+        className="flex items-center flex-shrink-0 px-2 py-3"
         style={{
           borderBottom: '1px solid rgba(255,255,255,0.08)',
           minHeight: '56px',
           justifyContent: expanded ? 'space-between' : 'center',
         }}
       >
-        {expanded && <LogoExpanded />}
-        {!expanded && <div className="w-5" />}
+        {expanded
+          ? <div className="flex-1 flex items-center pl-1 overflow-hidden"><LogoFull /></div>
+          : <LogoIcon />
+        }
         <button
           onClick={onToggle}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/40 hover:bg-white/10 hover:text-white transition"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/40 hover:bg-white/10 hover:text-white transition ml-1"
         >
           {expanded ? <IcChevronLeft /> : <IcChevronRight />}
         </button>
       </div>
 
-      {/* ─ Nav ─ */}
+      {/* Nav */}
       <nav className={`flex-1 overflow-y-auto py-2 space-y-0.5 ${ expanded ? 'px-2' : 'px-1.5' }`}>
         {visibleNav.map(item => (
           <NavLink
@@ -130,21 +123,11 @@ function DesktopSidebar({ visibleNav, currentPage, navigate, profile, onLogout, 
         ))}
       </nav>
 
-      {/* ─ Bottom: notificaciones + usuario ─ */}
-      <div
-        className="flex-shrink-0 pb-3 pt-2"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
-      >
-        {/* Bell */}
+      {/* Bottom: notificaciones + usuario */}
+      <div className="flex-shrink-0 pb-3 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         <div className={`px-2 py-1 ${ !expanded && 'flex justify-center' }`}>
-          <NotificationBell
-            userId={profile?.id}
-            dark
-            sidebarExpanded={expanded}
-          />
+          <NotificationBell userId={profile?.id} dark sidebarExpanded={expanded} />
         </div>
-
-        {/* Usuario */}
         <div className={`mt-1 ${ expanded ? 'px-2' : 'flex flex-col items-center px-1' }`}>
           {expanded ? (
             <div className="flex items-center gap-2.5 rounded-lg px-2 py-2">
@@ -186,7 +169,6 @@ export default function AppLayout({ children, profile, currentPage, navigate, on
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: '#f6f5f0' }}>
 
-      {/* Desktop sidebar */}
       <DesktopSidebar
         visibleNav={visibleNav}
         currentPage={currentPage}
@@ -203,7 +185,7 @@ export default function AppLayout({ children, profile, currentPage, navigate, on
           <div className="fixed inset-0" style={{ backgroundColor: 'rgba(0,0,0,0.45)' }} onClick={() => setMobileOpen(false)} />
           <aside className="relative z-10 flex h-full w-64 flex-col shadow-2xl" style={{ backgroundColor: '#1c473c' }}>
             <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', minHeight: '56px' }}>
-              <LogoExpanded />
+              <LogoFull />
               <button onClick={() => setMobileOpen(false)} className="text-white/50 hover:text-white transition"><IcClose /></button>
             </div>
             <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
@@ -231,17 +213,14 @@ export default function AppLayout({ children, profile, currentPage, navigate, on
         </div>
       )}
 
-      {/* Contenido — SIN header superior */}
       <div className="flex min-w-0 flex-1 flex-col">
-
-        {/* Top bar móvil minimalista */}
+        {/* Top bar solo móvil */}
         <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 md:hidden">
-          <LogoCollapsed />
+          <LogoIconColor />
           <button onClick={() => setMobileOpen(true)} className="text-gray-400 hover:text-gray-700 transition">
             <IcMenu />
           </button>
         </div>
-
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
