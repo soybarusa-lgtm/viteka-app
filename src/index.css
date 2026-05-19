@@ -18,23 +18,6 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Shared btn base (inline, sin @apply de clase custom) ── */
-@utility btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  font-weight: 500;
-  border-radius: 0.75rem;
-  transition-property: all;
-  transition-duration: 150ms;
-  outline: none;
-}
-@utility btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
 @layer components {
   @reference "tailwindcss";
 
@@ -57,7 +40,6 @@ html, body {
            disabled:opacity-40 disabled:cursor-not-allowed
            px-5 py-2.5 text-sm;
   }
-
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 font-medium rounded-xl
            transition-all duration-150 focus:outline-none
@@ -155,10 +137,7 @@ html, body {
   .page-subtitle  { @apply mt-0.5 text-sm text-gray-400; }
 
   /* ── Section head ── */
-  .section-head  {
-    @apply flex items-center justify-between px-5 py-4
-           border-b border-gray-100;
-  }
+  .section-head  { @apply flex items-center justify-between px-5 py-4 border-b border-gray-100; }
   .section-title { @apply text-sm font-medium text-gray-900; }
 
   /* ── Empty states ── */
