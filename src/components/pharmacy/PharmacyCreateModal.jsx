@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase } from '../../lib/supabase'
+import { usePharmacies } from '../../hooks/usePharmacies'
 
 const PROVINCES = [
   { value: 'almeria', label: 'Almería' },
@@ -12,23 +12,14 @@ const PROVINCES = [
   { value: 'sevilla', label: 'Sevilla' },
 ]
 
-// Figura jurídica: Autónomo y C.B. son excluyentes; S.L. es opcional adicional
 const BASE_OPTIONS = [
   { value: 'autonomo', label: 'Autónomo' },
   { value: 'cb',       label: 'C.B.'     },
 ]
 
-/**
- * Convierte (base, sl) a un string de BD
- * '' => null
- * 'autonomo' + false => 'autonomo'
- * 'autonomo' + true  => 'autonomo_sl'
- * 'cb'       + true  => 'cb_sl'
- */
 function buildLegalType(base, withSl) {
   if (!base) return null
-  if (withSl) return `${base}_sl`
-  return base
+  return withSl ? `${base}_sl` : base
 }
 
 const EMPTY = {
@@ -47,7 +38,6 @@ const EMPTY = {
   contact_email:     '',
   schedule:          '',
   has_guards:        false,
-  is_viteka_client:  false,
   is_active:         true,
   observations:      '',
 }
@@ -64,34 +54,51 @@ function Field({ label, required, error, children }) {
   )
 }
 
+/* Toggle sin herencia de estilos .btn — usa <span> como track */
 function Toggle({ label, checked, onChange }) {
   return (
-    <label className="flex items-center gap-2.5 cursor-pointer select-none">
-      <button
-        type="button" role="switch" aria-checked={checked}
+    <label className="flex items-center gap-3 cursor-pointer select-none group">
+      <span
+        role="switch"
+        aria-checked={checked}
+        tabIndex={0}
         onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent
-          transition-colors focus:outline-none ${
-          checked ? 'bg-[#1c473c]' : 'bg-gray-200'
-        }`}
+        onKeyDown={e => (e.key === ' ' || e.key === 'Enter') && onChange(!checked)}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          width: '36px',
+          height: '20px',
+          borderRadius: '9999px',
+          flexShrink: 0,
+          padding: '2px',
+          transition: 'background-color 150ms',
+          backgroundColor: checked ? '#1c473c' : '#d1d5db',
+          outline: 'none',
+          cursor: 'pointer',
+        }}
       >
-        <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow
-          transition-transform ${checked ? 'translate-x-4' : 'translate-x-0'}`} />
-      </button>
-      <span className="text-sm text-gray-700">{label}</span>
+        <span style={{
+          display: 'block',
+          width: '16px',
+          height: '16px',
+          borderRadius: '9999px',
+          backgroundColor: '#ffffff',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+          transform: checked ? 'translateX(16px)' : 'translateX(0)',
+          transition: 'transform 150ms',
+          flexShrink: 0,
+        }} />
+      </span>
+      <span className="text-sm text-gray-700 leading-none">{label}</span>
     </label>
   )
 }
 
-/** Selector de figura jurídica con lógica de exclusión */
 function LegalTypeSelector({ base, withSl, onBase, onSl, error }) {
   return (
     <div>
-      <p className="text-xs font-medium text-gray-500 mb-2">
-        Figura jurídica<span className="text-red-400 ml-0.5">*</span>
-      </p>
-
-      {/* Paso 1: Autónomo vs C.B. (radio excluyente) */}
+      {/* Paso 1: Autónomo vs C.B. — excluyentes */}
       <div className="flex gap-2 mb-3">
         {BASE_OPTIONS.map(opt => (
           <button
@@ -109,7 +116,7 @@ function LegalTypeSelector({ base, withSl, onBase, onSl, error }) {
         ))}
       </div>
 
-      {/* Paso 2: S.L. adicional (solo habilitado si hay base) */}
+      {/* Paso 2: S.L. adicional opcional */}
       <button
         type="button"
         disabled={!base}
@@ -123,28 +130,27 @@ function LegalTypeSelector({ base, withSl, onBase, onSl, error }) {
         }`}
       >
         {withSl && base
-          ? `✓ \u00a0${base === 'autonomo' ? 'Autónomo' : 'C.B.'} + S.L.`
+          ? `✓  ${base === 'autonomo' ? 'Autónomo' : 'C.B.'} + S.L.`
           : '+ Añadir S.L.'}
       </button>
 
-      {/* Resumen visual */}
       {base && (
         <p className="mt-2 text-xs text-gray-400">
           Figura: <span className="font-medium text-gray-600">
-            {base === 'autonomo' ? 'Autónomo' : 'C.B.'}
-            {withSl ? ' + S.L.' : ''}
+            {base === 'autonomo' ? 'Autónomo' : 'C.B.'}{withSl ? ' + S.L.' : ''}
           </span>
         </p>
       )}
-
       {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
     </div>
   )
 }
 
-export default function PharmacyCreateModal({ open, onClose, onCreated, profile }) {
+export default function PharmacyCreateModal({ open, onClose, onCreated }) {
+  const { createPharmacy } = usePharmacies()
+
   const [form,     setForm]     = useState(EMPTY)
-  const [legalBase,setLegalBase] = useState('')   // 'autonomo' | 'cb' | ''
+  const [legalBase,setLegalBase] = useState('')
   const [withSl,   setWithSl]   = useState(false)
   const [errors,   setErrors]   = useState({})
   const [saving,   setSaving]   = useState(false)
@@ -170,14 +176,13 @@ export default function PharmacyCreateModal({ open, onClose, onCreated, profile 
   }
 
   async function handleSubmit(ev) {
-    ev.preventDefault()
+    ev?.preventDefault()
     const errs = validate()
     if (Object.keys(errs).length) { setErrors(errs); return }
 
     setSaving(true); setApiError(null)
     try {
       const payload = {
-        ...form,
         pharmacy_name:     form.pharmacy_name.trim(),
         owner_name:        form.owner_name.trim()        || null,
         nif:               form.nif.trim()               || null,
@@ -185,6 +190,7 @@ export default function PharmacyCreateModal({ open, onClose, onCreated, profile 
         soe_number:        form.soe_number.trim()        || null,
         razon_social:      form.razon_social.trim()      || null,
         cif:               form.cif.trim()               || null,
+        province:          form.province,
         city:              form.city.trim()              || null,
         address:           form.address.trim()           || null,
         postal_code:       form.postal_code.trim()       || null,
@@ -192,17 +198,12 @@ export default function PharmacyCreateModal({ open, onClose, onCreated, profile 
         contact_email:     form.contact_email.trim()     || null,
         schedule:          form.schedule.trim()          || null,
         observations:      form.observations.trim()      || null,
+        has_guards:        form.has_guards,
+        is_active:         form.is_active,
         legal_type:        buildLegalType(legalBase, withSl),
-        company_id:        profile?.company_id           || null,
       }
 
-      const { data, error } = await supabase
-        .from('pharmacies')
-        .insert(payload)
-        .select('id')
-        .single()
-
-      if (error) throw error
+      const data = await createPharmacy(payload)
       handleClose()
       onCreated?.(data.id)
     } catch (err) {
@@ -221,7 +222,8 @@ export default function PharmacyCreateModal({ open, onClose, onCreated, profile 
       style={{ backgroundColor: 'rgba(0,0,0,0.35)' }}
       onClick={e => e.target === e.currentTarget && handleClose()}
     >
-      <div className="w-full sm:max-w-2xl bg-white rounded-t-2xl sm:rounded-2xl flex flex-col"
+      <div
+        className="w-full sm:max-w-2xl bg-white rounded-t-2xl sm:rounded-2xl flex flex-col"
         style={{ maxHeight: '92dvh' }}
       >
         {/* Header */}
@@ -230,14 +232,18 @@ export default function PharmacyCreateModal({ open, onClose, onCreated, profile 
             <h2 className="text-base font-semibold text-gray-900">Nueva farmacia</h2>
             <p className="text-xs text-gray-400 mt-0.5">Los campos con * son obligatorios</p>
           </div>
-          <button type="button" onClick={handleClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 transition">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <button
+            type="button" onClick={handleClose}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 transition"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
           </button>
         </div>
 
-        {/* Body — scrollable */}
-        <form onSubmit={handleSubmit} noValidate className="flex-1 overflow-y-auto">
+        {/* Body scrollable */}
+        <div className="flex-1 overflow-y-auto">
           <div className="px-5 py-5 space-y-6">
 
             {/* Identificación */}
@@ -277,7 +283,6 @@ export default function PharmacyCreateModal({ open, onClose, onCreated, profile 
                 onSl={setWithSl}
                 error={errors.legal_type}
               />
-              {/* Razón social y CIF, visibles si hay SL */}
               {withSl && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                   <Field label="Razón social S.L.">
@@ -340,10 +345,9 @@ export default function PharmacyCreateModal({ open, onClose, onCreated, profile 
             {/* Opciones */}
             <section>
               <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Opciones</p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Toggle label="Farmacia Viteka"   checked={form.is_viteka_client} onChange={v => set('is_viteka_client', v)} />
-                <Toggle label="Realiza guardias"  checked={form.has_guards}       onChange={v => set('has_guards', v)} />
-                <Toggle label="Activa"            checked={form.is_active}        onChange={v => set('is_active', v)} />
+              <div className="flex flex-col gap-3">
+                <Toggle label="Realiza guardias" checked={form.has_guards}  onChange={v => set('has_guards', v)} />
+                <Toggle label="Activa"           checked={form.is_active}   onChange={v => set('is_active', v)} />
               </div>
             </section>
 
@@ -360,7 +364,7 @@ export default function PharmacyCreateModal({ open, onClose, onCreated, profile 
               </div>
             )}
           </div>
-        </form>
+        </div>
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-100 flex-shrink-0">
