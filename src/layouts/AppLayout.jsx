@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import NotificationBell from '../components/NotificationBell'
 
-// ── SVG Icons ────────────────────────────────────────────────────────────────
+// ── Icons ───────────────────────────────────────────────────────────────────
 function IcDashboard()   { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> }
 function IcPharmacy()    { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> }
 function IcProjects()    { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> }
@@ -36,7 +37,7 @@ const NAV_ITEMS = [
   { id: 'settings',      label: 'Configuración', icon: IcSettings,   roles: ['owner','admin'] },
 ]
 
-// ── NavLink ──────────────────────────────────────────────────────────────────
+// ── NavLink ─────────────────────────────────────────────────────────────────
 function NavLink({ item, active, expanded, onClick }) {
   const Icon = item.icon
   return (
@@ -59,14 +60,120 @@ function NavLink({ item, active, expanded, onClick }) {
   )
 }
 
-// ── Desktop Sidebar ─────────────────────────────────────────────────────────────
+// ── Mobile Drawer (portal → se monta en document.body) ───────────────────────
+function MobileDrawer({ visibleNav, currentPage, navigate, profile, onLogout, open, onClose }) {
+  useEffect(() => {
+    document.body.style.overflow = open ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [open])
+
+  if (!open) return null
+
+  const drawer = (
+    <div
+      style={{
+        position: 'fixed', inset: 0,
+        zIndex: 99999,
+        display: 'flex',
+      }}
+    >
+      {/* Backdrop */}
+      <div
+        style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)' }}
+        onClick={onClose}
+      />
+
+      {/* Panel */}
+      <div
+        style={{
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          width: '280px',
+          maxWidth: '85vw',
+          backgroundColor: '#1c473c',
+          boxShadow: '4px 0 24px rgba(0,0,0,0.3)',
+          overflowY: 'auto',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '12px 16px', flexShrink: 0,
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          minHeight: '60px',
+        }}>
+          <img src="/brand/logo-white.svg" alt="Viteka" style={{ height: '38px', maxWidth: '140px', objectFit: 'contain' }} draggable={false} />
+          <button
+            onClick={onClose}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              height: '32px', width: '32px', borderRadius: '8px',
+              color: 'rgba(255,255,255,0.6)', background: 'transparent', border: 'none', cursor: 'pointer',
+            }}
+          >
+            <IcClose />
+          </button>
+        </div>
+
+        {/* Nav */}
+        <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 8px' }}>
+          {visibleNav.map(item => (
+            <NavLink
+              key={item.id}
+              item={item}
+              active={currentPage === item.id}
+              expanded={true}
+              onClick={() => { navigate(item.id); onClose() }}
+            />
+          ))}
+        </nav>
+
+        {/* Footer */}
+        <div style={{ flexShrink: 0, padding: '12px 12px 24px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ marginBottom: '8px', padding: '0 4px' }}>
+            <NotificationBell userId={profile?.id} dark sidebarExpanded={true} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 4px' }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              height: '32px', width: '32px', flexShrink: 0,
+              borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.15)',
+              fontSize: '13px', fontWeight: 700, color: 'white',
+            }}>
+              {profile?.full_name?.[0]?.toUpperCase() || 'U'}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: '13px', fontWeight: 500, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {profile?.full_name}
+              </p>
+              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', textTransform: 'capitalize' }}>
+                {profile?.role}
+              </p>
+            </div>
+            <button
+              onClick={onLogout}
+              style={{ color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              <IcLogout />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  return createPortal(drawer, document.body)
+}
+
+// ── Desktop Sidebar ────────────────────────────────────────────────────────────
 function DesktopSidebar({ visibleNav, currentPage, navigate, profile, onLogout, expanded, onToggle }) {
   return (
     <aside
       className="hidden md:flex flex-col flex-shrink-0 h-screen sticky top-0 overflow-hidden transition-all duration-200 ease-in-out"
       style={{ width: expanded ? '224px' : '56px', backgroundColor: '#1c473c' }}
     >
-      {/* Header */}
       <div
         className="flex-shrink-0 flex flex-col items-center justify-center py-3 gap-1.5"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', minHeight: expanded ? '80px' : '84px' }}
@@ -88,14 +195,12 @@ function DesktopSidebar({ visibleNav, currentPage, navigate, profile, onLogout, 
         )}
       </div>
 
-      {/* Nav */}
       <nav className={`flex-1 overflow-y-auto py-2 space-y-0.5 ${ expanded ? 'px-2' : 'px-1.5' }`}>
         {visibleNav.map(item => (
           <NavLink key={item.id} item={item} active={currentPage === item.id} expanded={expanded} onClick={() => navigate(item.id)} />
         ))}
       </nav>
 
-      {/* Bottom */}
       <div className="flex-shrink-0 pb-3 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         <div className={`px-2 py-1 ${ !expanded && 'flex justify-center' }`}>
           <NotificationBell userId={profile?.id} dark sidebarExpanded={expanded} />
@@ -124,80 +229,7 @@ function DesktopSidebar({ visibleNav, currentPage, navigate, profile, onLogout, 
   )
 }
 
-// ── Mobile Drawer ─────────────────────────────────────────────────────────────
-function MobileDrawer({ visibleNav, currentPage, navigate, profile, onLogout, open, onClose }) {
-  // Bloquear scroll del body cuando el drawer está abierto
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => { document.body.style.overflow = '' }
-  }, [open])
-
-  if (!open) return null
-
-  return (
-    // Portal-level: fixed inset-0 z-[9999] para que nada lo tape
-    <div className="fixed inset-0 z-[9999] flex md:hidden">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0"
-        style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-        onClick={onClose}
-      />
-      {/* Drawer */}
-      <aside
-        className="relative flex h-full w-72 max-w-[85vw] flex-col shadow-2xl"
-        style={{ backgroundColor: '#1c473c' }}
-      >
-        {/* Header del drawer */}
-        <div
-          className="flex flex-shrink-0 items-center justify-between px-4 py-3"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', minHeight: '60px' }}
-        >
-          <img src="/brand/logo-white.svg" alt="Viteka" className="object-contain" style={{ height: '40px', maxWidth: '140px' }} draggable={false} />
-          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white transition">
-            <IcClose />
-          </button>
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-          {visibleNav.map(item => (
-            <NavLink
-              key={item.id}
-              item={item}
-              active={currentPage === item.id}
-              expanded={true}
-              onClick={() => { navigate(item.id); onClose() }}
-            />
-          ))}
-        </nav>
-
-        {/* Bottom */}
-        <div className="flex-shrink-0 px-3 pb-6 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-          <div className="mb-2 px-1">
-            <NotificationBell userId={profile?.id} dark sidebarExpanded={true} />
-          </div>
-          <div className="flex items-center gap-2.5 rounded-lg px-1 py-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-sm font-bold text-white">
-              {profile?.full_name?.[0]?.toUpperCase() || 'U'}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-white">{profile?.full_name}</p>
-              <p className="text-[11px] text-white/50 capitalize">{profile?.role}</p>
-            </div>
-            <button onClick={onLogout} className="text-white/30 hover:text-red-300 transition"><IcLogout /></button>
-          </div>
-        </div>
-      </aside>
-    </div>
-  )
-}
-
-// ── Main layout ───────────────────────────────────────────────────────────────
+// ── AppLayout ──────────────────────────────────────────────────────────────
 export default function AppLayout({ children, profile, currentPage, navigate, onLogout }) {
   const [expanded,   setExpanded]   = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -209,47 +241,34 @@ export default function AppLayout({ children, profile, currentPage, navigate, on
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: '#f6f5f0' }}>
 
-      {/* Desktop sidebar */}
       <DesktopSidebar
-        visibleNav={visibleNav}
-        currentPage={currentPage}
-        navigate={navigate}
-        profile={profile}
-        onLogout={onLogout}
-        expanded={expanded}
-        onToggle={() => setExpanded(v => !v)}
+        visibleNav={visibleNav} currentPage={currentPage} navigate={navigate}
+        profile={profile} onLogout={onLogout}
+        expanded={expanded} onToggle={() => setExpanded(v => !v)}
       />
 
-      {/* Mobile drawer (z-[9999], no tiene problema de contexto) */}
+      {/* Drawer móvil via portal — se monta en document.body, fuera de cualquier stacking context */}
       <MobileDrawer
-        visibleNav={visibleNav}
-        currentPage={currentPage}
-        navigate={navigate}
-        profile={profile}
-        onLogout={onLogout}
-        open={mobileOpen}
-        onClose={() => setMobileOpen(false)}
+        visibleNav={visibleNav} currentPage={currentPage} navigate={navigate}
+        profile={profile} onLogout={onLogout}
+        open={mobileOpen} onClose={() => setMobileOpen(false)}
       />
 
-      {/* Contenido principal */}
       <div className="flex min-w-0 flex-1 flex-col">
 
-        {/* ── Top bar móvil — verde corporativo ── */}
+        {/* Top bar móvil — verde corporativo */}
         <div
           className="flex items-center justify-between px-4 py-3 md:hidden"
           style={{ backgroundColor: '#1c473c' }}
         >
-          {/* Logo icon blanco */}
-          <img
-            src="/brand/logo-icon.svg"
-            alt="Viteka"
-            className="h-8 w-8 object-contain"
-            draggable={false}
-          />
-          {/* Hamburger */}
+          <img src="/brand/logo-icon.svg" alt="Viteka" className="h-8 w-8 object-contain" draggable={false} />
           <button
             onClick={() => setMobileOpen(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              height: '36px', width: '36px', borderRadius: '8px',
+              color: 'rgba(255,255,255,0.85)', background: 'none', border: 'none', cursor: 'pointer',
+            }}
             aria-label="Abrir menú"
           >
             <IcMenu />
@@ -266,11 +285,9 @@ export default function AppLayout({ children, profile, currentPage, navigate, on
         {bottomNav.map(item => {
           const Icon = item.icon
           return (
-            <button
-              key={item.id}
-              onClick={() => navigate(item.id)}
+            <button key={item.id} onClick={() => navigate(item.id)}
               className={`flex flex-1 flex-col items-center py-2.5 transition ${
-                currentPage === item.id ? 'text-[#1c473c]' : 'text-gray-400 hover:text-gray-600'
+                currentPage === item.id ? 'text-[#1c473c]' : 'text-gray-400'
               }`}
             >
               <Icon />
