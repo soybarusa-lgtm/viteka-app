@@ -21,12 +21,9 @@ const CATEGORY_LIST = [
   { id: 'other',      label: 'Otros',                  icon: '📦' },
 ]
 
-const YEARS = Array.from({ length: 15 }, (_, i) => String(new Date().getFullYear() - i))
-
 const EMPTY = {
   category: '', brand: '', model: '',
-  install_year: '', serial_number: '',
-  install_date: '', warranty_end: '',
+  serial_number: '', install_date: '', warranty_end: '',
   is_viteka: false, observations: '',
 }
 
@@ -64,7 +61,6 @@ export default function EquipmentTab({ detail }) {
       category:      e.equipment_type || '',
       brand:         e.brand          || '',
       model:         e.model          || '',
-      install_year:  e.install_year   || '',
       serial_number: e.serial_number  || '',
       install_date:  e.install_date   || '',
       warranty_end:  e.warranty_end   || '',
@@ -93,7 +89,6 @@ export default function EquipmentTab({ detail }) {
         equipment_type: form.category,
         brand:          form.brand         || null,
         model:          form.model         || null,
-        install_year:   form.install_year  || null,
         serial_number:  form.serial_number || null,
         install_date:   form.install_date  || null,
         warranty_end:   form.warranty_end  || null,
@@ -200,14 +195,7 @@ export default function EquipmentTab({ detail }) {
             )}
 
             {form.category && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="label">Año instalación</label>
-                  <select className="input" value={form.install_year} onChange={e => set('install_year', e.target.value)}>
-                    <option value="">Año...</option>
-                    {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-                  </select>
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="label">Fecha instalación</label>
                   <input className="input" type="date" value={form.install_date} onChange={e => set('install_date', e.target.value)} />
@@ -279,8 +267,7 @@ function EquipmentList({ items, onEdit, onDelete }) {
                 </div>
                 <div className="flex flex-wrap gap-3 mt-1 text-xs text-gray-500">
                   {e.serial_number && <span>S/N: {e.serial_number}</span>}
-                  {e.install_year  && <span>Instalación: {e.install_year}</span>}
-                  {e.install_date  && <span>Fecha: {new Date(e.install_date).toLocaleDateString('es-ES')}</span>}
+                  {e.install_date  && <span>Instalación: {new Date(e.install_date).toLocaleDateString('es-ES')}</span>}
                   {e.warranty_end  && (
                     <span className={warrantyExpired ? 'text-red-500 font-medium' : ''}>
                       Garantía: {new Date(e.warranty_end).toLocaleDateString('es-ES')}
