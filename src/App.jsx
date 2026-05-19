@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { supabase } from './lib/supabase'
 
 // Layouts
@@ -10,6 +9,7 @@ import Dashboard from './pages/Dashboard'
 import PharmaciesPage from './pages/PharmaciesPage'
 import PharmacyDetailPage from './pages/PharmacyDetailPage'
 import ProjectsPage from './pages/ProjectsPage'
+import ProjectDetailPage from './pages/ProjectDetailPage'
 import TasksPage from './pages/TasksPage'
 import ChecklistsPage from './pages/ChecklistsPage'
 import ChecklistExecutionPage from './pages/ChecklistExecutionPage'
@@ -101,6 +101,7 @@ export default function App() {
       case 'pharmacies':            return <PharmaciesPage {...props} />
       case 'pharmacy-detail':       return <PharmacyDetailPage {...props} />
       case 'projects':              return <ProjectsPage {...props} />
+      case 'project-detail':        return <ProjectDetailPage {...props} />
       case 'tasks':                 return <TasksPage {...props} />
       case 'checklists':            return <ChecklistsPage {...props} />
       case 'checklist-execution':   return <ChecklistExecutionPage {...props} />
