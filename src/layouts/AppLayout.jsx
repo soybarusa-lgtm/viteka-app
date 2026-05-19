@@ -15,33 +15,15 @@ function IcAudit()       { return <svg width="16" height="16" viewBox="0 0 24 24
 function IcUsers()       { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> }
 function IcSettings()    { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> }
 function IcLogout()      { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> }
-function IcChevronRight(){ return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg> }
-function IcChevronLeft() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg> }
+function IcChevronRight(){ return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg> }
+function IcChevronLeft() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg> }
 function IcMenu()        { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg> }
 function IcClose()       { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> }
 
-// ── Brand logos — rutas absolutas desde /public/brand ───────────────────────────
-
-/** Sidebar cerrada: icono solo */
-function LogoIcon() {
-  return (
-    <img src="/brand/logo-icon.svg" alt="Viteka" className="h-8 w-8 object-contain" draggable={false} />
-  )
-}
-
-/** Sidebar abierta: logo completo blanco */
-function LogoFull() {
-  return (
-    <img src="/brand/logo-white.svg" alt="Viteka" className="h-8 object-contain" style={{ maxWidth: '128px' }} draggable={false} />
-  )
-}
-
-/** Top bar móvil: icono en color */
-function LogoIconColor() {
-  return (
-    <img src="/brand/logo-icon-colr.svg" alt="Viteka" className="h-8 w-8 object-contain" draggable={false} />
-  )
-}
+// ── Brand logos ──────────────────────────────────────────────────────────────────
+function LogoIcon()      { return <img src="/brand/logo-icon.svg"      alt="Viteka" className="h-9 w-9 object-contain"  draggable={false} /> }
+function LogoFull()      { return <img src="/brand/logo-white.svg"     alt="Viteka" className="h-10 object-contain w-full" draggable={false} /> }
+function LogoIconColor() { return <img src="/brand/logo-icon-colr.svg" alt="Viteka" className="h-8 w-8 object-contain"  draggable={false} /> }
 
 // ── Nav config ───────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
@@ -89,28 +71,51 @@ function DesktopSidebar({ visibleNav, currentPage, navigate, profile, onLogout, 
       className="hidden md:flex flex-col flex-shrink-0 h-screen sticky top-0 overflow-hidden transition-all duration-200 ease-in-out"
       style={{ width: expanded ? '224px' : '56px', backgroundColor: '#1c473c' }}
     >
-      {/* Logo + toggle */}
+      {/* ─── HEADER: logo + toggle ─── */}
       <div
-        className="flex items-center flex-shrink-0 px-2 py-3"
-        style={{
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          minHeight: '56px',
-          justifyContent: expanded ? 'space-between' : 'center',
-        }}
+        className="flex-shrink-0 flex flex-col items-center justify-center py-3 gap-1.5"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', minHeight: expanded ? '72px' : '80px' }}
       >
-        {expanded
-          ? <div className="flex-1 flex items-center pl-1 overflow-hidden"><LogoFull /></div>
-          : <LogoIcon />
-        }
-        <button
-          onClick={onToggle}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/40 hover:bg-white/10 hover:text-white transition ml-1"
-        >
-          {expanded ? <IcChevronLeft /> : <IcChevronRight />}
-        </button>
+        {expanded ? (
+          // Abierta: logo white centrado + flecha a la derecha
+          <div className="flex w-full items-center px-3">
+            <div className="flex-1 flex justify-center">
+              <img
+                src="/brand/logo-white.svg"
+                alt="Viteka"
+                className="object-contain"
+                style={{ height: '36px', maxWidth: '148px' }}
+                draggable={false}
+              />
+            </div>
+            <button
+              onClick={onToggle}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/40 hover:bg-white/10 hover:text-white transition"
+            >
+              <IcChevronLeft />
+            </button>
+          </div>
+        ) : (
+          // Cerrada: icon centrado + flecha debajo
+          <>
+            <img
+              src="/brand/logo-icon.svg"
+              alt="Viteka"
+              className="object-contain"
+              style={{ height: '32px', width: '32px' }}
+              draggable={false}
+            />
+            <button
+              onClick={onToggle}
+              className="flex h-5 w-5 items-center justify-center rounded text-white/30 hover:bg-white/10 hover:text-white transition"
+            >
+              <IcChevronRight />
+            </button>
+          </>
+        )}
       </div>
 
-      {/* Nav */}
+      {/* ─── Nav ─── */}
       <nav className={`flex-1 overflow-y-auto py-2 space-y-0.5 ${ expanded ? 'px-2' : 'px-1.5' }`}>
         {visibleNav.map(item => (
           <NavLink
@@ -123,7 +128,7 @@ function DesktopSidebar({ visibleNav, currentPage, navigate, profile, onLogout, 
         ))}
       </nav>
 
-      {/* Bottom: notificaciones + usuario */}
+      {/* ─── Bottom: notificaciones + usuario ─── */}
       <div className="flex-shrink-0 pb-3 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         <div className={`px-2 py-1 ${ !expanded && 'flex justify-center' }`}>
           <NotificationBell userId={profile?.id} dark sidebarExpanded={expanded} />
@@ -185,7 +190,7 @@ export default function AppLayout({ children, profile, currentPage, navigate, on
           <div className="fixed inset-0" style={{ backgroundColor: 'rgba(0,0,0,0.45)' }} onClick={() => setMobileOpen(false)} />
           <aside className="relative z-10 flex h-full w-64 flex-col shadow-2xl" style={{ backgroundColor: '#1c473c' }}>
             <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', minHeight: '56px' }}>
-              <LogoFull />
+              <img src="/brand/logo-white.svg" alt="Viteka" className="h-8 object-contain" style={{ maxWidth: '130px' }} draggable={false} />
               <button onClick={() => setMobileOpen(false)} className="text-white/50 hover:text-white transition"><IcClose /></button>
             </div>
             <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
@@ -216,7 +221,7 @@ export default function AppLayout({ children, profile, currentPage, navigate, on
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top bar solo móvil */}
         <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 md:hidden">
-          <LogoIconColor />
+          <img src="/brand/logo-icon-colr.svg" alt="Viteka" className="h-8 w-8 object-contain" draggable={false} />
           <button onClick={() => setMobileOpen(true)} className="text-gray-400 hover:text-gray-700 transition">
             <IcMenu />
           </button>
