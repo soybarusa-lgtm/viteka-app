@@ -24,10 +24,15 @@ const EMPTY = {
  * PharmacyModal — crea o edita una farmacia.
  *
  * Props:
+ *   open      {boolean}      — controla visibilidad (por defecto true para compatibilidad)
  *   pharmacy  {object|null}  — si se pasa, modo edición; si no, modo creación
  *   onClose   {function}     — callback al cerrar/guardar
+ *   onCreated {function}     — callback con el id de la nueva farmacia (solo modo creación)
  */
-export default function PharmacyModal({ pharmacy = null, onClose }) {
+export default function PharmacyModal({ open = true, pharmacy = null, onClose, onCreated }) {
+  // Guarda principal — no monta nada si el modal está cerrado
+  if (!open) return null
+
   const isEdit = Boolean(pharmacy)
   const { createPharmacy, updatePharmacy } = usePharmacies()
   const { provinces, cities, setSelectedProvince } = useSpanishLocations()
@@ -37,7 +42,6 @@ export default function PharmacyModal({ pharmacy = null, onClose }) {
   const [error, setError] = useState('')
   const [cbOwner, setCbOwner] = useState({ name: '', nif: '', collegiate_number: '' })
 
-  // En modo edición, carga las ciudades de la provincia existente
   useEffect(() => {
     if (isEdit && pharmacy.province) setSelectedProvince(pharmacy.province)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -60,13 +64,13 @@ export default function PharmacyModal({ pharmacy = null, onClose }) {
     set('cb_owners', (form.cb_owners || []).filter((_, idx) => idx !== i))
   }
 
-  const isAutonomo   = ['autonomo', 'autonomo_sl'].includes(form.legal_type)
-  const isCB         = ['cb', 'cb_sl'].includes(form.legal_type)
-  const hasSL        = ['sl', 'autonomo_sl', 'cb_sl'].includes(form.legal_type)
+  const isAutonomo    = ['autonomo', 'autonomo_sl'].includes(form.legal_type)
+  const isCB          = ['cb', 'cb_sl'].includes(form.legal_type)
+  const hasSL         = ['sl', 'autonomo_sl', 'cb_sl'].includes(form.legal_type)
   const showOperativa = ['autonomo', 'cb'].includes(form.legal_type)
 
   async function handleSubmit(e) {
-    e.preventDefault()
+    e?.preventDefault()
     if (!form.pharmacy_name?.trim()) { setError('El nombre es obligatorio'); return }
     setSaving(true)
     setError('')
@@ -74,10 +78,11 @@ export default function PharmacyModal({ pharmacy = null, onClose }) {
       if (isEdit) {
         const { id, company_id, created_at, updated_at, ...payload } = form
         await updatePharmacy(pharmacy.id, payload)
+        onClose()
       } else {
-        await createPharmacy(form)
+        const newPharmacy = await createPharmacy(form)
+        onCreated ? onCreated(newPharmacy?.id) : onClose()
       }
-      onClose()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -99,7 +104,6 @@ export default function PharmacyModal({ pharmacy = null, onClose }) {
 
         <form onSubmit={handleSubmit} className="modal-body space-y-5">
 
-          {/* Datos básicos */}
           <section>
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Datos básicos</h3>
             <div className="space-y-3">
@@ -116,7 +120,6 @@ export default function PharmacyModal({ pharmacy = null, onClose }) {
             </div>
           </section>
 
-          {/* Autónomo */}
           {isAutonomo && (
             <section>
               <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Datos autónomo</h3>
@@ -129,7 +132,6 @@ export default function PharmacyModal({ pharmacy = null, onClose }) {
             </section>
           )}
 
-          {/* CB */}
           {isCB && (
             <section>
               <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Datos CB</h3>
@@ -153,7 +155,6 @@ export default function PharmacyModal({ pharmacy = null, onClose }) {
             </section>
           )}
 
-          {/* SL */}
           {hasSL && (
             <section>
               <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Datos SL</h3>
@@ -164,7 +165,6 @@ export default function PharmacyModal({ pharmacy = null, onClose }) {
             </section>
           )}
 
-          {/* Contacto */}
           <section>
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Contacto</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -173,7 +173,6 @@ export default function PharmacyModal({ pharmacy = null, onClose }) {
             </div>
           </section>
 
-          {/* Ubicación */}
           <section>
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Ubicación</h3>
             <div className="space-y-3">
@@ -190,7 +189,7 @@ export default function PharmacyModal({ pharmacy = null, onClose }) {
                   <label className="label">Municipio</label>
                   <select className="input" value={v('city')} onChange={e => set('city', e.target.value)} disabled={!form.province}>
                     <option value="">Selecciona...</option>
-                    {cities.map(c => <option key={c} value={c}>{c}</option>)}
+                    {cities.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                   </select>
                 </div>
               </div>
@@ -201,7 +200,6 @@ export default function PharmacyModal({ pharmacy = null, onClose }) {
             </div>
           </section>
 
-          {/* Operativa */}
           {showOperativa && (
             <section>
               <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Operativa</h3>
@@ -222,7 +220,6 @@ export default function PharmacyModal({ pharmacy = null, onClose }) {
             </section>
           )}
 
-          {/* Activa */}
           <section>
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={form.is_active ?? true} onChange={e => set('is_active', e.target.checked)} className="rounded border-gray-300 text-teal-600 focus:ring-teal-500" />
