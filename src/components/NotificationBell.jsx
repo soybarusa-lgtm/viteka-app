@@ -1,32 +1,44 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-/**
- * Props:
- *  - userId: string         — ID del usuario autenticado
- *  - dark: bool             — modo sidebar oscura (icono y badge adaptados)
- *  - sidebarExpanded: bool  — si la sidebar está expandida (dropdown a la derecha)
- *  - onNavigate: fn         — callback al hacer click en notificación
- */
 export default function NotificationBell({ userId, dark = false, sidebarExpanded = false, onNavigate }) {
-  const wrapperRef = useRef(null)
+  const wrapperRef   = useRef(null)
+  const channelRef   = useRef(null)
   const [open,          setOpen]          = useState(false)
   const [notifications, setNotifications] = useState([])
   const [loading,       setLoading]       = useState(false)
 
-  // ─ Carga + suscripción realtime ───────────────────────────────────────────
   useEffect(() => {
     if (!userId) return
+
+    // Limpiar canal anterior antes de crear uno nuevo
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current)
+      channelRef.current = null
+    }
+
     loadNotifications()
+
+    const channelName = `notifications-${userId}-${Date.now()}`
     const channel = supabase
-      .channel(`notifications-${userId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
-        () => loadNotifications())
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+        () => loadNotifications()
+      )
       .subscribe()
-    return () => supabase.removeChannel(channel)
+
+    channelRef.current = channel
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current)
+        channelRef.current = null
+      }
+    }
   }, [userId])
 
-  // ─ Click outside ──────────────────────────────────────────────────────
   useEffect(() => {
     function onOutside(e) {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setOpen(false)
@@ -68,21 +80,17 @@ export default function NotificationBell({ userId, dark = false, sidebarExpanded
   }
 
   async function deleteAll() {
-    if (!window.confirm('¿Eliminar todas las notificaciones?')) return
+    if (!window.confirm('\u00bfEliminar todas las notificaciones?')) return
     await supabase.from('notifications').delete().eq('user_id', userId)
     await loadNotifications()
   }
 
   const unread = useMemo(() => notifications.filter(n => !n.read).length, [notifications])
 
-  // ─ Posición del dropdown ─────────────────────────────────────────────────
-  // Siempre abre hacia la derecha desde la sidebar (left-full)
   const dropdownPos = 'left-full top-0 ml-2'
 
   return (
     <div ref={wrapperRef} className="relative">
-
-      {/* ─ Botón campana ─ */}
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
@@ -93,22 +101,17 @@ export default function NotificationBell({ userId, dark = false, sidebarExpanded
               : 'text-gray-500 hover:bg-gray-100'
           }`}
       >
-        {/* Icono campana SVG */}
         <span className="shrink-0">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
           </svg>
         </span>
-
-        {/* Badge no leídas */}
         {unread > 0 && (
           <span className="absolute left-4 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
             {unread > 99 ? '99+' : unread}
           </span>
         )}
-
-        {/* Label (solo sidebar expandida) */}
         {sidebarExpanded && (
           <span className="text-sm">Notificaciones</span>
         )}
@@ -119,12 +122,8 @@ export default function NotificationBell({ userId, dark = false, sidebarExpanded
         )}
       </button>
 
-      {/* ─ Dropdown ─ */}
       {open && (
-        <div
-          className={`absolute ${dropdownPos} z-50 w-[380px] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl`}
-        >
-          {/* Header */}
+        <div className={`absolute ${dropdownPos} z-50 w-[380px] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl`}>
           <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">Notificaciones</h2>
@@ -134,7 +133,7 @@ export default function NotificationBell({ userId, dark = false, sidebarExpanded
               {unread > 0 && (
                 <button onClick={markAllRead}
                   className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-200 transition">
-                  Marcar leídas
+                  Marcar le\u00eddas
                 </button>
               )}
               {notifications.length > 0 && (
@@ -145,20 +144,13 @@ export default function NotificationBell({ userId, dark = false, sidebarExpanded
               )}
             </div>
           </div>
-
-          {/* Lista */}
           <div className="max-h-[480px] overflow-y-auto divide-y divide-gray-100">
-            {loading && (
-              <div className="py-10 text-center text-sm text-gray-400">Cargando...</div>
-            )}
+            {loading && <div className="py-10 text-center text-sm text-gray-400">Cargando...</div>}
             {!loading && notifications.length === 0 && (
               <div className="py-10 text-center text-sm text-gray-400">No hay notificaciones</div>
             )}
             {!loading && notifications.map(n => (
-              <div
-                key={n.id}
-                className={`flex items-start gap-3 px-5 py-4 transition hover:bg-gray-50 ${ !n.read ? 'bg-[#f0faf6]' : '' }`}
-              >
+              <div key={n.id} className={`flex items-start gap-3 px-5 py-4 transition hover:bg-gray-50 ${ !n.read ? 'bg-[#f0faf6]' : '' }`}>
                 <button onClick={() => openNotification(n)} className="min-w-0 flex-1 text-left">
                   <div className="flex items-center gap-2 mb-1">
                     <span className={getTypeClass(n.type)}>{getTypeLabel(n.type)}</span>
@@ -171,9 +163,8 @@ export default function NotificationBell({ userId, dark = false, sidebarExpanded
                   {!n.read && <div className="h-2 w-2 rounded-full bg-emerald-500" />}
                   <button onClick={(e) => deleteOne(n.id, e)}
                     className="rounded px-1.5 py-1 text-xs text-gray-400 hover:bg-red-50 hover:text-red-500 transition"
-                    title="Eliminar"
-                  >
-                    ✕
+                    title="Eliminar">
+                    \u2715
                   </button>
                 </div>
               </div>
@@ -196,10 +187,10 @@ function getTypeClass(type) {
 }
 
 function getTypeLabel(type) {
-  return { success: 'Éxito', warning: 'Aviso', error: 'Error', info: 'Info' }[type] || 'Info'
+  return { success: '\u00c9xito', warning: 'Aviso', error: 'Error', info: 'Info' }[type] || 'Info'
 }
 
 function formatDate(value) {
   if (!value) return '-'
-  return new Date(value).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })
+  return new Date(value).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
