@@ -7,6 +7,7 @@ import MobileDrawer from './layouts/MobileDrawer'
 import Dashboard from './pages/Dashboard'
 import PharmaciesPage from './pages/PharmaciesPage'
 import PharmacyDetailPage from './pages/PharmacyDetailPage'
+import PharmacyCreatePage from './pages/PharmacyCreatePage'
 import ProjectsPage from './pages/ProjectsPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
 import TasksPage from './pages/TasksPage'
@@ -141,6 +142,7 @@ export default function App() {
       case 'dashboard':           return <Dashboard {...props} />
       case 'pharmacies':          return <PharmaciesPage {...props} />
       case 'pharmacy-detail':     return <PharmacyDetailPage {...props} />
+      case 'pharmacy-create':     return <PharmacyCreatePage {...props} />
       case 'projects':            return <ProjectsPage {...props} />
       case 'project-detail':      return <ProjectDetailPage {...props} />
       case 'tasks':               return <TasksPage {...props} />
