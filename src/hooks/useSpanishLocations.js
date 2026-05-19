@@ -1,1 +1,38 @@
-aW1wb3J0IHsgdXNlU3RhdGUsIHVzZUVmZmVjdCB9IGZyb20gJ3JlYWN0JwoKLyoqCiAqIENhcmdhIGFyYm9sLmpzb24gZGVzZGUgL3B1YmxpYyB2w61hIGZldGNoIHkgZXhwb25lOgogKiAgLSBwcm92aW5jZXM6ICAgICAgICAgICBbeyBjb2RlLCBsYWJlbCB9XSAgICAgICh0b2RhcyBsYXMgcHJvdmluY2lhcykKICogIC0gZ2V0VG93bnMobGFiZWwpOiAgICBbc3RyaW5nXSAgICAgICAgICAgICAgICAobXVuaWNpcGlvcyBwb3IgbGFiZWwpCiAqICAtIGNpdGllczogICAgICAgICAgICAgIFtzdHJpbmddICAgICAgICAgICAgICAgIChwb2JsYWNpb25lcyBkZSBsYSBwcm92aW5jaWEgc2VsZWNjaW9uYWRhKQogKiAgLSBzZXRTZWxlY3RlZFByb3ZpbmNlOiAodmFsdWUpID0+IHZvaWQgICAgICAgIChhY3R1YWxpemEgY2l0aWVzKQogKi8KZXhwb3J0IGZ1bmN0aW9uIHVzZVNwYW5pc2hMb2NhdGlvbnMoKSB7CiAgY29uc3QgW2RhdGEsIHNldERhdGFdID0gdXNlU3RhdGUoW10pCiAgY29uc3QgW3NlbGVjdGVkUHJvdmluY2UsIHNldFNlbGVjdGVkUHJvdmluY2VdID0gdXNlU3RhdGUoJycpCgogIHVzZUVmZmVjdCgoKSA9PiB7CiAgICBmZXRjaCgnL2FyYm9sLmpzb24nKQogICAgICAudGhlbigocmVzKSA9PiByZXMuanNvbigpKQogICAgICAudGhlbigoY29tbXVuaXRpZXMpID0+IHsKICAgICAgICBjb25zdCBhbGxQcm92aW5jZXMgPSBjb21tdW5pdGllcy5mbGF0TWFwKChjKSA9PiBjLnByb3ZpbmNlcykKICAgICAgICBzZXREYXRhKGFsbFByb3ZpbmNlcykKICAgICAgfSkKICAgICAgLmNhdGNoKChlKSA9PiBjb25zb2xlLmVycm9yKCdFcnJvciBjYXJnYW5kbyBhcmJvbC5qc29uJywgZSkpCiAgfSwgW10pCgogIGNvbnN0IHByb3ZpbmNlcyA9IGRhdGEubWFwKChwKSA9PiAoeyBjb2RlOiBwLmNvZGUsIGxhYmVsOiBwLmxhYmVsLCB2YWx1ZTogcC5sYWJlbCB9KSkKCiAgY29uc3QgZ2V0VG93bnMgPSAocHJvdmluY2VMYWJlbCkgPT4gewogICAgaWYgKCFwcm92aW5jZUxhYmVsKSByZXR1cm4gW10KICAgIGNvbnN0IHByb3ZpbmNlID0gZGF0YS5maW5kKAogICAgICAocCkgPT4gcC5sYWJlbC50b0xvd2VyQ2FzZSgpID09PSBwcm92aW5jZUxhYmVsLnRvTG93ZXJDYXNlKCkKICAgICkKICAgIHJldHVybiBwcm92aW5jZSA/IHByb3ZpbmNlLnRvd25zLm1hcCgodCkgPT4gdC5sYWJlbCkgOiBbXQogIH0KCiAgLy8gY2l0aWVzOiBsaXN0YSBwbGFuYSBkZSBwb2JsYWNpb25lcyBwYXJhIGxhIHByb3ZpbmNpYSBzZWxlY2Npb25hZGEKICBjb25zdCBjaXRpZXMgPSBnZXRUb3ducyhzZWxlY3RlZFByb3ZpbmNlKS5tYXAoKG5hbWUpID0+ICh7IHZhbHVlOiBuYW1lLCBsYWJlbDogbmFtZSB9KSkKCiAgcmV0dXJuIHsgcHJvdmluY2VzLCBnZXRUb3ducywgY2l0aWVzLCBzZXRTZWxlY3RlZFByb3ZpbmNlIH0KfQo=
+import { useState, useEffect } from 'react'
+
+/**
+ * Carga arbol.json desde /public vía fetch y expone:
+ *  - provinces:           [{ code, label }]      (todas las provincias)
+ *  - getTowns(label):    [string]                (municipios por label)
+ *  - cities:              [string]                (poblaciones de la provincia seleccionada)
+ *  - setSelectedProvince: (value) => void        (actualiza cities)
+ */
+export function useSpanishLocations() {
+  const [data, setData] = useState([])
+  const [selectedProvince, setSelectedProvince] = useState('')
+
+  useEffect(() => {
+    fetch('/arbol.json')
+      .then((res) => res.json())
+      .then((communities) => {
+        const allProvinces = communities.flatMap((c) => c.provinces)
+        setData(allProvinces)
+      })
+      .catch((e) => console.error('Error cargando arbol.json', e))
+  }, [])
+
+  const provinces = data.map((p) => ({ code: p.code, label: p.label, value: p.label }))
+
+  const getTowns = (provinceLabel) => {
+    if (!provinceLabel) return []
+    const province = data.find(
+      (p) => p.label.toLowerCase() === provinceLabel.toLowerCase()
+    )
+    return province ? province.towns.map((t) => t.label) : []
+  }
+
+  // cities: lista plana de poblaciones para la provincia seleccionada
+  const cities = getTowns(selectedProvince).map((name) => ({ value: name, label: name }))
+
+  return { provinces, getTowns, cities, setSelectedProvince }
+}
