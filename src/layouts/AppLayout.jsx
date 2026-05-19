@@ -18,7 +18,6 @@ function IcLogout()       { return <svg width="14" height="14" viewBox="0 0 24 2
 function IcChevronRight() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg> }
 function IcChevronLeft()  { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg> }
 export function IcMenu()  { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg> }
-function IcClose()        { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> }
 
 // ── Nav items ───────────────────────────────────────────────────────────
 export const NAV_ITEMS = [
@@ -55,6 +54,24 @@ function NavLink({ item, active, onClick }) {
   )
 }
 
+// ── LogoIcon — logo-white.svg como icono pequeño, fondo transparente garantizado ────
+function LogoIcon() {
+  return (
+    <img
+      src="/brand/logo-white.svg"
+      alt="Viteka"
+      style={{
+        height: '32px',
+        width: 'auto',
+        objectFit: 'contain',
+        background: 'transparent',
+        display: 'block',
+      }}
+      draggable={false}
+    />
+  )
+}
+
 // ── Desktop sidebar ────────────────────────────────────────────────────────
 export function DesktopSidebar({ visibleNav, currentPage, navigate, profile, onLogout, expanded, onToggle }) {
   return (
@@ -85,15 +102,7 @@ export function DesktopSidebar({ visibleNav, currentPage, navigate, profile, onL
           </div>
         ) : (
           <>
-            {/* logo-icon-colr.svg es el icon a color, funciona sobre fondos oscuros sin fondo propio */}
-            <img
-              src="/brand/logo-icon-colr.svg"
-              alt="Viteka"
-              width={32}
-              height={32}
-              style={{ objectFit: 'contain', background: 'transparent', mixBlendMode: 'screen' }}
-              draggable={false}
-            />
+            <LogoIcon />
             <button
               onClick={onToggle}
               className="flex h-5 w-5 items-center justify-center rounded text-white/30 hover:bg-white/10 hover:text-white transition"
@@ -168,15 +177,7 @@ export default function AppLayout({ children, profile, currentPage, navigate, on
           className="flex items-center justify-between px-4 py-3 md:hidden"
           style={{ backgroundColor: '#1c473c' }}
         >
-          {/* En móvil usamos logo-icon-colr con mixBlendMode screen para fondo transparente */}
-          <img
-            src="/brand/logo-icon-colr.svg"
-            alt="Viteka"
-            width={32}
-            height={32}
-            style={{ objectFit: 'contain', background: 'transparent', mixBlendMode: 'screen' }}
-            draggable={false}
-          />
+          <LogoIcon />
           <button
             onClick={onMenuOpen}
             aria-label="Abrir menú"
