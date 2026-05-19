@@ -1,183 +1,171 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
+import { useProjects } from '../hooks/useProjects'
+import CreateProjectModal from '../components/modals/CreateProjectModal'
 
-// ── Icons ──────────────────────────────────────────────────────────────────
-function IconSearch() {
-  return (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>)
-}
-function IconEdit() {
-  return (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>)
-}
-function IconTrash() {
-  return (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>)
-}
-function IconBuilding() {
-  return (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h1"/><path d="M14 9h1"/><path d="M9 14h1"/><path d="M14 14h1"/><path d="M9 19v-5h6v5"/></svg>)
-}
+const COMMERCIAL_STAGES = [
+  { id: 'leads',       label: 'Leads',        color: 'bg-gray-100 border-gray-300' },
+  { id: 'contactado',  label: 'Contactado',   color: 'bg-blue-50 border-blue-300' },
+  { id: 'visita',      label: 'Visita',       color: 'bg-yellow-50 border-yellow-300' },
+  { id: 'propuesta',   label: 'Propuesta',    color: 'bg-orange-50 border-orange-300' },
+  { id: 'negociacion', label: 'Negociación', color: 'bg-purple-50 border-purple-300' },
+  { id: 'cerrado',     label: 'Cerrado ✅',   color: 'bg-green-50 border-green-300' },
+  { id: 'perdido',     label: 'Perdido ❌',   color: 'bg-red-50 border-red-300' },
+]
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-const STATUS = {
-  draft:     { label: 'Borrador',   cls: 'badge-amber' },
-  active:    { label: 'Activo',     cls: 'badge-green' },
-  completed: { label: 'Completado', cls: 'badge-blue'  },
-  cancelled: { label: 'Cancelado',  cls: 'badge-red'   },
-}
-function badge(status) { return STATUS[status] || STATUS.active }
-function fmtDate(str) {
-  if (!str) return null
-  return new Date(str).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
-}
+const SUPPORT_STATUS = [
+  { id: 'pending',     label: 'Pendiente',   badge: 'badge-gray' },
+  { id: 'active',      label: 'En curso',    badge: 'badge-blue' },
+  { id: 'completed',   label: 'Completado',  badge: 'badge-green' },
+  { id: 'paused',      label: 'Pausado',     badge: 'badge-gray' },
+  { id: 'cancelled',   label: 'Cancelado',   badge: 'badge-red' },
+]
 
-// ── Component ─────────────────────────────────────────────────────────────
-export default function ProjectsPage({
-  projects = [],
-  onCreateProject,
-  onEditProject,
-  onDeleteProject,
-}) {
+export default function ProjectsPage({ navigate }) {
+  const { projects, loading, error, moveStage } = useProjects()
+  const [tab, setTab] = useState('commercial')
+  const [view, setView] = useState('kanban')
+  const [showCreate, setShowCreate] = useState(null) // 'commercial' | 'support'
   const [search, setSearch] = useState('')
-  const [status, setStatus] = useState('all')
-  const [client, setClient] = useState('')
+  const [dragging, setDragging] = useState(null)
 
-  const clients = useMemo(() => {
-    const map = {}
-    projects.forEach(p => {
-      if (p.clients?.id) map[p.clients.id] = p.clients.pharmacy_name || p.clients.name
-    })
-    return Object.entries(map).sort((a, b) => a[1].localeCompare(b[1]))
-  }, [projects])
+  const commercial = projects.filter(p => p.project_type === 'commercial')
+  const support = projects.filter(p => p.project_type === 'support')
 
-  const filtered = useMemo(() => {
-    return projects.filter(p => {
-      const text = [p.name, p.clients?.name, p.clients?.pharmacy_name, p.notes].join(' ').toLowerCase()
-      return (
-        (!search || text.includes(search.toLowerCase())) &&
-        (status === 'all' || p.status === status) &&
-        (!client || p.clients?.id === client)
-      )
-    })
-  }, [projects, search, status, client])
+  const filteredSupport = support.filter(p => {
+    const q = search.toLowerCase()
+    return !q || p.name?.toLowerCase().includes(q) || p.pharmacy?.pharmacy_name?.toLowerCase().includes(q)
+  })
 
-  const counts = useMemo(() => ({
-    total:     projects.length,
-    active:    projects.filter(p => p.status === 'active').length,
-    completed: projects.filter(p => p.status === 'completed').length,
-    cancelled: projects.filter(p => p.status === 'cancelled').length,
-  }), [projects])
+  // Kanban drag
+  function onDragStart(e, project) {
+    setDragging(project)
+    e.dataTransfer.effectAllowed = 'move'
+  }
 
-  const dotColors = { draft: 'bg-amber-400', active: 'bg-emerald-500', completed: 'bg-blue-500', cancelled: 'bg-red-400' }
+  function onDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }
+
+  async function onDrop(e, stageId) {
+    e.preventDefault()
+    if (!dragging || dragging.pipeline_stage === stageId) return
+    await moveStage(dragging.id, stageId)
+    setDragging(null)
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="page-container pb-24 md:pb-6">
+
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="page-header">
         <div>
-          <h1 className="page-title">Proyectos</h1>
-          <p className="page-subtitle">Gestión técnica de instalaciones y operaciones</p>
+          <h1 className="page-title">📂 Proyectos</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{commercial.length} comerciales · {support.length} de soporte</p>
         </div>
-        <button type="button" onClick={onCreateProject} className="btn-primary flex items-center gap-2 text-[13px]">
-          <span className="text-base leading-none">+</span> Nuevo proyecto
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setShowCreate('support')} className="btn-secondary">+ Soporte</button>
+          <button onClick={() => setShowCreate('commercial')} className="btn-primary">+ Comercial</button>
+        </div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {[
-          { label: 'Total',       value: counts.total,     dot: 'bg-slate-400' },
-          { label: 'Activos',     value: counts.active,    dot: dotColors.active },
-          { label: 'Completados', value: counts.completed, dot: dotColors.completed },
-          { label: 'Cancelados',  value: counts.cancelled, dot: dotColors.cancelled },
-        ].map(k => (
-          <div key={k.label} className="card flex flex-col justify-between p-5">
-            <div className="flex items-center gap-2">
-              <span className={`h-2 w-2 rounded-full ${k.dot}`} />
-              <p className="text-[12px]" style={{ color: 'var(--muted)' }}>{k.label}</p>
-            </div>
-            <p className="mt-3 text-3xl font-semibold tracking-tight" style={{ color: 'var(--text)' }}>{k.value}</p>
+      {/* Tabs tipo / vista */}
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div className="flex gap-1 border-b border-gray-200">
+          {[['commercial', '💼 Comercial'], ['support', '🔧 Soporte']].map(([id, label]) => (
+            <button key={id} onClick={() => setTab(id)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition ${
+                tab === id ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}>
+              {label}
+            </button>
+          ))}
+        </div>
+        {tab === 'commercial' && (
+          <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+            <button onClick={() => setView('kanban')}
+              className={`px-3 py-1 text-xs rounded-md transition ${
+                view === 'kanban' ? 'bg-white shadow text-gray-800' : 'text-gray-500'
+              }`}>📌 Kanban</button>
+            <button onClick={() => setView('list')}
+              className={`px-3 py-1 text-xs rounded-md transition ${
+                view === 'list' ? 'bg-white shadow text-gray-800' : 'text-gray-500'
+              }`}>☰ Lista</button>
           </div>
-        ))}
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted)' }}><IconSearch /></span>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar por nombre, cliente o notas..."
-            className="input w-full pl-9"
-          />
-        </div>
-        <select value={status} onChange={e => setStatus(e.target.value)} className="input sm:w-[160px]">
-          <option value="all">Todos los estados</option>
-          <option value="draft">Borrador</option>
-          <option value="active">Activo</option>
-          <option value="completed">Completado</option>
-          <option value="cancelled">Cancelado</option>
-        </select>
-        {clients.length > 0 && (
-          <select value={client} onChange={e => setClient(e.target.value)} className="input sm:w-[180px]">
-            <option value="">Todas las farmacias</option>
-            {clients.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-          </select>
         )}
       </div>
 
-      <p className="text-[12px]" style={{ color: 'var(--muted)' }}>
-        {filtered.length === projects.length ? `${projects.length} proyectos` : `${filtered.length} de ${projects.length} proyectos`}
-      </p>
-
-      {/* Table / Empty */}
-      {filtered.length === 0 ? (
-        <div className="empty-state border-dashed">
-          <p className="text-[14px] font-medium" style={{ color: 'var(--text)' }}>
-            {search || status !== 'all' || client ? 'Sin resultados' : 'Aún no hay proyectos'}
-          </p>
-          <p className="mt-1 text-[13px]" style={{ color: 'var(--muted)' }}>
-            {search || status !== 'all' || client ? 'Prueba con otros filtros' : 'Crea el primer proyecto para empezar'}
-          </p>
-          {(search || status !== 'all' || client) && (
-            <button type="button" onClick={() => { setSearch(''); setStatus('all'); setClient('') }}
-              className="mt-4 text-[13px] font-medium hover:underline" style={{ color: 'var(--primary)' }}>
-              Limpiar filtros
-            </button>
-          )}
+      {loading && (
+        <div className="flex items-center justify-center py-20">
+          <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : (
-        <div className="table-wrap">
-          <table className="table-base min-w-[640px]">
-            <thead>
-              <tr>
-                {['Proyecto', 'Farmacia', 'Estado', 'Creado', ''].map(h => (
-                  <th key={h}>{h}</th>
-                ))}
-              </tr>
-            </thead>
+      )}
+
+      {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">Error: {error}</div>}
+
+      {/* --- COMERCIAL: KANBAN --- */}
+      {!loading && tab === 'commercial' && view === 'kanban' && (
+        <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4">
+          {COMMERCIAL_STAGES.map(stage => {
+            const cards = commercial.filter(p => p.pipeline_stage === stage.id)
+            return (
+              <div
+                key={stage.id}
+                onDragOver={onDragOver}
+                onDrop={e => onDrop(e, stage.id)}
+                className={`shrink-0 w-64 rounded-xl border-2 ${stage.color} p-3 min-h-40`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wide">{stage.label}</h3>
+                  <span className="text-xs bg-white rounded-full px-2 py-0.5 font-semibold text-gray-500">{cards.length}</span>
+                </div>
+                <div className="space-y-2">
+                  {cards.map(p => (
+                    <div
+                      key={p.id}
+                      draggable
+                      onDragStart={e => onDragStart(e, p)}
+                      onClick={() => navigate('project-detail', { projectId: p.id })}
+                      className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md hover:border-teal-200 transition select-none"
+                    >
+                      <p className="text-sm font-semibold text-gray-800 leading-tight mb-1">{p.name}</p>
+                      {p.pharmacy && <p className="text-xs text-gray-400 truncate">🏪 {p.pharmacy.pharmacy_name}</p>}
+                      {p.amount && <p className="text-xs font-semibold text-teal-600 mt-1">{Number(p.amount).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>}
+                      {p.commercial && <p className="text-xs text-gray-400 mt-1">👤 {p.commercial.full_name}</p>}
+                      {p.expected_close_date && (
+                        <p className={`text-xs mt-1 ${
+                          new Date(p.expected_close_date) < new Date() ? 'text-red-500 font-medium' : 'text-gray-400'
+                        }`}>📅 {new Date(p.expected_close_date).toLocaleDateString('es-ES')}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* --- COMERCIAL: LISTA --- */}
+      {!loading && tab === 'commercial' && view === 'list' && (
+        <div className="table-container">
+          <table className="table">
+            <thead><tr><th>Proyecto</th><th>Farmacia</th><th>Etapa</th><th>Importe</th><th>Cierre</th><th>Comercial</th></tr></thead>
             <tbody>
-              {filtered.map(p => {
-                const b = badge(p.status)
+              {commercial.length === 0 && (
+                <tr><td colSpan={6} className="text-center text-gray-400 py-8">Sin proyectos comerciales</td></tr>
+              )}
+              {commercial.map(p => {
+                const stage = COMMERCIAL_STAGES.find(s => s.id === p.pipeline_stage)
                 return (
-                  <tr key={p.id} className="group">
-                    <td>
-                      <p className="text-[14px] font-medium" style={{ color: 'var(--text)' }}>{p.name}</p>
-                      {p.notes && <p className="mt-0.5 line-clamp-1 text-[12px]" style={{ color: 'var(--muted)' }}>{p.notes}</p>}
+                  <tr key={p.id} className="cursor-pointer" onClick={() => navigate('project-detail', { projectId: p.id })}>
+                    <td><p className="font-medium text-teal-700">{p.name}</p></td>
+                    <td className="text-sm text-gray-500">{p.pharmacy?.pharmacy_name || '—'}</td>
+                    <td><span className="badge-gray text-xs">{stage?.label || p.pipeline_stage}</span></td>
+                    <td className="text-sm font-medium">{p.amount ? Number(p.amount).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' }) : '—'}</td>
+                    <td className={`text-sm ${
+                      p.expected_close_date && new Date(p.expected_close_date) < new Date() ? 'text-red-500' : 'text-gray-500'
+                    }`}>
+                      {p.expected_close_date ? new Date(p.expected_close_date).toLocaleDateString('es-ES') : '—'}
                     </td>
-                    <td>
-                      {p.clients ? (
-                        <div className="flex items-center gap-1.5 text-[13px]" style={{ color: 'var(--text-soft)' }}>
-                          <span style={{ color: 'var(--muted)' }}><IconBuilding /></span>
-                          {p.clients.pharmacy_name || p.clients.name}
-                        </div>
-                      ) : <span className="text-[13px]" style={{ color: 'var(--muted)' }}>—</span>}
-                    </td>
-                    <td><span className={b.cls}>{b.label}</span></td>
-                    <td className="text-[13px]" style={{ color: 'var(--muted)' }}>{fmtDate(p.created_at)}</td>
-                    <td>
-                      <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                        <ActionBtn onClick={() => onEditProject(p)} title="Editar" color="slate"><IconEdit /></ActionBtn>
-                        <ActionBtn onClick={() => onDeleteProject(p.id)} title="Eliminar" color="red"><IconTrash /></ActionBtn>
-                      </div>
-                    </td>
+                    <td className="text-sm text-gray-500">{p.commercial?.full_name || '—'}</td>
                   </tr>
                 )
               })}
@@ -185,20 +173,70 @@ export default function ProjectsPage({
           </table>
         </div>
       )}
-    </div>
-  )
-}
 
-function ActionBtn({ onClick, title, color, children }) {
-  const styles = {
-    slate: { background: 'var(--surface-soft)', color: 'var(--text-soft)' },
-    red:   { background: 'var(--badge-red-bg)', color: 'var(--badge-red-text)' },
-  }
-  return (
-    <button type="button" onClick={onClick} title={title}
-      className="flex h-7 w-7 items-center justify-center rounded-lg transition hover:opacity-80"
-      style={styles[color]}>
-      {children}
-    </button>
+      {/* --- SOPORTE --- */}
+      {!loading && tab === 'support' && (
+        <div>
+          <div className="flex flex-wrap gap-2 mb-4">
+            <input className="input max-w-xs" placeholder="Buscar proyecto o farmacia..." value={search} onChange={e => setSearch(e.target.value)} />
+            {search && <button className="btn-ghost text-xs" onClick={() => setSearch('')}>× Limpiar</button>}
+          </div>
+
+          {filteredSupport.length === 0 ? (
+            <div className="empty-state">
+              <span className="text-4xl mb-3">🔧</span>
+              <p className="font-medium text-gray-500">Sin proyectos de soporte</p>
+            </div>
+          ) : (
+            <>
+              {/* Desktop */}
+              <div className="hidden md:block table-container">
+                <table className="table">
+                  <thead><tr><th>Proyecto</th><th>Farmacia</th><th>Estado</th><th>Técnico</th><th>Inicio</th><th>Cierre prev.</th></tr></thead>
+                  <tbody>
+                    {filteredSupport.map(p => {
+                      const st = SUPPORT_STATUS.find(s => s.id === p.status)
+                      return (
+                        <tr key={p.id} className="cursor-pointer" onClick={() => navigate('project-detail', { projectId: p.id })}>
+                          <td><p className="font-medium text-teal-700">{p.name}</p></td>
+                          <td className="text-sm text-gray-500">{p.pharmacy?.pharmacy_name || '—'}</td>
+                          <td><span className={st?.badge || 'badge-gray'}>{st?.label || p.status}</span></td>
+                          <td className="text-sm text-gray-500">{p.technician?.full_name || '—'}</td>
+                          <td className="text-sm text-gray-500">{p.start_date ? new Date(p.start_date).toLocaleDateString('es-ES') : '—'}</td>
+                          <td className="text-sm text-gray-500">{p.expected_close_date ? new Date(p.expected_close_date).toLocaleDateString('es-ES') : '—'}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {/* Móvil */}
+              <div className="md:hidden space-y-3">
+                {filteredSupport.map(p => {
+                  const st = SUPPORT_STATUS.find(s => s.id === p.status)
+                  return (
+                    <button key={p.id} onClick={() => navigate('project-detail', { projectId: p.id })} className="card-hover p-4 w-full text-left">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <p className="font-semibold text-gray-900 text-sm">{p.name}</p>
+                        <span className={st?.badge || 'badge-gray'}>{st?.label || p.status}</span>
+                      </div>
+                      <p className="text-xs text-gray-500">🏪 {p.pharmacy?.pharmacy_name || '—'}</p>
+                      {p.technician && <p className="text-xs text-gray-400 mt-0.5">🔧 {p.technician.full_name}</p>}
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {showCreate && (
+        <CreateProjectModal
+          defaultType={showCreate}
+          onClose={() => setShowCreate(null)}
+        />
+      )}
+    </div>
   )
 }
