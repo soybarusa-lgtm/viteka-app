@@ -72,17 +72,15 @@ function DesktopSidebar({ visibleNav, currentPage, navigate, profile, onLogout, 
         style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', minHeight: expanded ? '80px' : '84px' }}
       >
         {expanded ? (
-          // Sidebar abierta: logo white centrado + flecha a la derecha
-          <div className="flex w-full items-center px-3">
-            <div className="flex-1 flex justify-center">
-              <img
-                src="/brand/logo-white.svg"
-                alt="Viteka"
-                className="object-contain"
-                style={{ height: '45px', maxWidth: '165px' }}
-                draggable={false}
-              />
-            </div>
+          // Sidebar abierta: logo izquierda + flecha pegada a la derecha
+          <div className="flex w-full items-center gap-2 px-3">
+            <img
+              src="/brand/logo-white.svg"
+              alt="Viteka"
+              className="object-contain flex-1 min-w-0"
+              style={{ height: '56px', maxWidth: '172px' }}
+              draggable={false}
+            />
             <button
               onClick={onToggle}
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/40 hover:bg-white/10 hover:text-white transition"
