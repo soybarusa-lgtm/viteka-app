@@ -33,9 +33,8 @@ import CreateTemplateModal from './components/modals/CreateTemplateModal'
 import UsersPage from './pages/UsersPage'
 
 // ─── Helper: convierte el payload del modal a columnas de Supabase ───────────
-// El modal usa nombres «humanos» (owner_name, phone, nif…).
-// La tabla clients usa nombres heredados (pharmacist_owner, contact_phone, nif_cif…).
-// Este adaptador centraliza la traducción para crear Y editar.
+// IMPORTANTE: la columna legal_type es text[] en PostgreSQL, no text.
+// Siempre se envía como array de un elemento: ["autonomo"], ["cb"] o ["sl"].
 function modalPayloadToDbRow(payload) {
   const p = payload ?? {}
   const row = {}
@@ -47,8 +46,11 @@ function modalPayloadToDbRow(payload) {
     row.pharmacy_name = pharmacyName
   }
 
-  // Tipo jurídico
-  if (p.legal_type)  row.legal_type        = p.legal_type
+  // Tipo jurídico → columna text[] en Postgres
+  if (p.legal_type) {
+    // Si ya es array lo dejamos; si es string lo envolvemos
+    row.legal_type = Array.isArray(p.legal_type) ? p.legal_type : [p.legal_type]
+  }
 
   // Autónomo
   if (p.owner_name)  row.pharmacist_owner  = p.owner_name
@@ -60,10 +62,6 @@ function modalPayloadToDbRow(payload) {
   if (p.razon_social) row.razon_social     = p.razon_social
   if (p.cif)          row.nif_cif          = p.cif       // CB usa CIF
   if (p.cb_owners)    row.cb_owners        = p.cb_owners
-
-  // SL
-  if (p.razon_social) row.razon_social     = p.razon_social
-  // cif ya mapeado arriba
 
   // Contacto
   if (p.phone)        row.contact_phone    = p.phone
@@ -274,7 +272,7 @@ export default function App() {
 
   // ── Abrir modal crear farmacia ────────────────────────────────────────────
   function openCreateClientModal() {
-    setCreateClientKey(k => k + 1) // re-mount → estado del modal limpio
+    setCreateClientKey(k => k + 1)
     setIsCreateClientOpen(true)
   }
 
@@ -301,7 +299,6 @@ export default function App() {
       return
     }
 
-    // Adaptar nombres del modal a columnas de Supabase
     const row = modalPayloadToDbRow(payload)
 
     if (!row.pharmacy_name) {
@@ -349,7 +346,6 @@ export default function App() {
   async function updateClient(clientId, payload) {
     const previous = clients.find(c => c.id === clientId)
 
-    // Adaptar nombres del modal a columnas de Supabase
     const row = modalPayloadToDbRow(payload)
 
     if (!row.pharmacy_name) {
@@ -633,7 +629,7 @@ export default function App() {
         {currentPage === 'settings' && (profile?.role === 'owner' || profile?.role === 'admin') && (<SettingsPage />)}
       </>
 
-      {/* Modales — fuera del flujo de contenido principal */}
+      {/* Modales */}
       <CreateClientModal
         key={createClientKey}
         isOpen={isCreateClientOpen}

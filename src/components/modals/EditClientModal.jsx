@@ -40,12 +40,18 @@ export default function EditClientModal({ isOpen, client, onClose, onSave }) {
 
 function EditClientForm({ client, onClose, onSave }) {
   const [step, setStep] = useState(1);
-  const [legalType, setLegalType] = useState(client.legal_type || 'autonomo');
   const [expanded, setExpanded] = useState({});
   const [products, setProducts] = useState(
     client.products ? { ...emptyProducts(), ...client.products } : emptyProducts()
   );
   const { provinces, getTowns } = useSpanishLocations();
+
+  // legal_type en BD es text[] → leemos el primer elemento
+  const rawLegal = Array.isArray(client.legal_type)
+    ? (client.legal_type[0] || 'autonomo')
+    : (client.legal_type || 'autonomo');
+  const [legalType, setLegalType] = useState(rawLegal);
+
   const [autonomo, setAutonomo] = useState({
     pharmacy_name: client.pharmacy_name     || '',
     owner_name:    client.pharmacist_owner  || '',
@@ -102,6 +108,7 @@ function EditClientForm({ client, onClose, onSave }) {
   const removeCbOwner = (i) => setCb((p) => ({ ...p, owners: p.owners.filter((_, idx) => idx !== i) }));
 
   const handleSave = () => {
+    // legal_type se envía como string; modalPayloadToDbRow lo convierte a array
     let payload = { legal_type: legalType, products };
     if (legalType === 'autonomo') payload = { ...payload, ...autonomo };
     if (legalType === 'cb')       payload = { ...payload, ...cb, cb_owners: cb.owners };
