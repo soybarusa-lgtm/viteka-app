@@ -39,3 +39,6 @@ export async function logActivity({ entity_type, entity_id, entity_name, action,
     console.error('Error al registrar actividad:', err)
   }
 }
+
+// Alias para compatibilidad con imports existentes
+export const createActivityLog = logActivity
