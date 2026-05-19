@@ -1,5 +1,4 @@
 import { useDashboard } from '../hooks/useDashboard'
-import PharmacyKpiBlock from '../components/dashboard/PharmacyKpiBlock'
 
 const PRIORITY_DOT = {
   urgent: 'bg-red-400',
@@ -215,11 +214,6 @@ export default function Dashboard({ profile, navigate }) {
               </div>
             </div>
           </Card>
-        </div>
-
-        {/* KPI farmacias por provincia */}
-        <div className="mb-6">
-          <PharmacyKpiBlock companyId={profile?.company_id} />
         </div>
 
         {/* Fila inferior */}
