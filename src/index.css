@@ -1,70 +1,92 @@
 @import "tailwindcss";
 
 /* ============================================================
-   CLASES BASE REUTILIZABLES — Viteka App v2
+   VITEKA DESIGN SYSTEM — v2-rewrite
+   Compatible Tailwind v4: sin @apply chains entre clases custom
    ============================================================ */
 
 @layer components {
   @reference "tailwindcss";
 
-  /* --- Botones --- */
+  /* ── Buttons ── */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 font-medium rounded-lg
+           transition-all duration-150 focus:outline-none
+           disabled:opacity-50 disabled:cursor-not-allowed;
   }
-  .btn-sm   { @apply btn px-3 py-1.5 text-sm; }
-  .btn-md   { @apply btn px-4 py-2 text-sm; }
-  .btn-lg   { @apply btn px-6 py-3 text-base; }
-
+  .btn-sm {
+    @apply inline-flex items-center justify-center gap-2 font-medium rounded-lg
+           transition-all duration-150 focus:outline-none
+           disabled:opacity-50 disabled:cursor-not-allowed
+           px-3 py-1.5 text-sm;
+  }
+  .btn-md {
+    @apply inline-flex items-center justify-center gap-2 font-medium rounded-lg
+           transition-all duration-150 focus:outline-none
+           disabled:opacity-50 disabled:cursor-not-allowed
+           px-4 py-2 text-sm;
+  }
   .btn-primary {
-    @apply btn-md bg-teal-600 text-white hover:bg-teal-700 focus:ring-teal-500;
+    @apply inline-flex items-center justify-center gap-2 font-medium rounded-lg
+           transition-all duration-150 focus:outline-none
+           disabled:opacity-50 disabled:cursor-not-allowed
+           px-4 py-2 text-sm bg-teal-600 text-white hover:bg-teal-700;
   }
   .btn-secondary {
-    @apply btn-md bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-gray-300;
+    @apply inline-flex items-center justify-center gap-2 font-medium rounded-lg
+           transition-all duration-150 focus:outline-none
+           disabled:opacity-50 disabled:cursor-not-allowed
+           px-4 py-2 text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50;
   }
   .btn-danger {
-    @apply btn-md bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+    @apply inline-flex items-center justify-center gap-2 font-medium rounded-lg
+           transition-all duration-150 focus:outline-none
+           disabled:opacity-50 disabled:cursor-not-allowed
+           px-4 py-2 text-sm bg-red-600 text-white hover:bg-red-700;
   }
   .btn-ghost {
-    @apply btn-md text-gray-600 hover:bg-gray-100 focus:ring-gray-300;
+    @apply inline-flex items-center justify-center gap-2 font-medium rounded-lg
+           transition-all duration-150 focus:outline-none
+           disabled:opacity-50 disabled:cursor-not-allowed
+           px-4 py-2 text-sm text-gray-600 hover:bg-gray-100;
   }
 
-  /* --- Inputs --- */
+  /* ── Inputs ── */
   .input {
-    @apply w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white text-gray-900
-           placeholder-gray-400 transition focus:outline-none focus:ring-2 focus:ring-teal-500
-           focus:border-teal-500 disabled:bg-gray-50 disabled:text-gray-400;
+    @apply w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white
+           text-gray-900 placeholder-gray-400 transition
+           focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500
+           disabled:bg-gray-50 disabled:text-gray-400;
   }
   .input-error {
-    @apply input border-red-400 focus:ring-red-400 focus:border-red-400;
+    @apply w-full px-3 py-2 text-sm border border-red-400 rounded-lg bg-white
+           text-gray-900 placeholder-gray-400 transition
+           focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400
+           disabled:bg-gray-50 disabled:text-gray-400;
   }
-  .label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
-  }
-  .field-error {
-    @apply mt-1 text-xs text-red-500;
-  }
+  .label       { @apply block text-sm font-medium text-gray-700 mb-1; }
+  .field-error { @apply mt-1 text-xs text-red-500; }
 
-  /* --- Cards --- */
+  /* ── Cards ── */
   .card {
     @apply bg-white rounded-xl border border-gray-200 shadow-sm;
   }
   .card-hover {
-    @apply card transition hover:shadow-md hover:border-gray-300;
+    @apply bg-white rounded-xl border border-gray-200 shadow-sm transition hover:shadow-md hover:border-gray-300;
   }
 
-  /* --- Badges --- */
-  .badge {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
-  }
-  .badge-teal    { @apply badge bg-teal-100 text-teal-800; }
-  .badge-green   { @apply badge bg-green-100 text-green-800; }
-  .badge-yellow  { @apply badge bg-yellow-100 text-yellow-800; }
-  .badge-orange  { @apply badge bg-orange-100 text-orange-800; }
-  .badge-red     { @apply badge bg-red-100 text-red-800; }
-  .badge-gray    { @apply badge bg-gray-100 text-gray-700; }
-  .badge-blue    { @apply badge bg-blue-100 text-blue-800; }
+  /* ── Badges ── */
+  .badge        { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium; }
+  .badge-teal   { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800; }
+  .badge-green  { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800; }
+  .badge-yellow { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800; }
+  .badge-orange { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800; }
+  .badge-red    { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800; }
+  .badge-gray   { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700; }
+  .badge-blue   { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800; }
+  .badge-viteka { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-700 text-white; }
 
-  /* --- Modal --- */
+  /* ── Modals ── */
   .modal-backdrop {
     @apply fixed inset-0 bg-black/50 z-40 flex items-end md:items-center justify-center;
   }
@@ -74,58 +96,36 @@
            max-w-full md:max-w-2xl
            flex flex-col overflow-hidden z-50;
   }
-  .modal-header {
-    @apply flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0;
-  }
-  .modal-body {
-    @apply flex-1 overflow-y-auto px-4 py-4;
-  }
-  .modal-footer {
-    @apply flex items-center justify-end gap-3 px-4 py-3 border-t border-gray-200 flex-shrink-0;
+  .modal-header  { @apply flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0; }
+  .modal-body    { @apply flex-1 overflow-y-auto px-4 py-4; }
+  .modal-footer  { @apply flex items-center justify-end gap-3 px-4 py-3 border-t border-gray-200 flex-shrink-0; }
+
+  /* ── Tables ── */
+  .table-container { @apply w-full overflow-x-auto rounded-xl border border-gray-200; }
+  .table           { @apply w-full text-sm text-left; }
+  .table thead tr  { @apply bg-gray-50 text-xs uppercase tracking-wide text-gray-500; }
+  .table th        { @apply px-4 py-3 font-medium; }
+  .table td        { @apply px-4 py-3 text-gray-700; }
+  .table tbody tr  { @apply border-t border-gray-100 hover:bg-gray-50 transition; }
+
+  /* ── Page layout ── */
+  .page-container { @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6; }
+  .page-header    { @apply flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6; }
+  .page-title     { @apply text-xl font-bold text-gray-900; }
+  .page-subtitle  { @apply mt-0.5 text-sm text-gray-500; }
+
+  /* ── Empty states ── */
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-16 text-center text-gray-400;
   }
 
-  /* --- Tabla --- */
-  .table-container {
-    @apply w-full overflow-x-auto rounded-xl border border-gray-200;
-  }
-  .table {
-    @apply w-full text-sm text-left;
-  }
-  .table thead tr {
-    @apply bg-gray-50 text-xs uppercase tracking-wide text-gray-500;
-  }
-  .table th {
-    @apply px-4 py-3 font-medium;
-  }
-  .table td {
-    @apply px-4 py-3 text-gray-700;
-  }
-  .table tbody tr {
-    @apply border-t border-gray-100 hover:bg-gray-50 transition;
-  }
-
-  /* --- Page layout --- */
-  .page-container {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6;
-  }
-  .page-header {
-    @apply flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6;
-  }
-  .page-title {
-    @apply text-xl font-bold text-gray-900;
-  }
-
-  /* --- Sidebar --- */
+  /* ── Sidebar ── */
   .sidebar-link {
     @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium
            text-gray-600 hover:bg-teal-50 hover:text-teal-700 transition-all duration-150;
   }
   .sidebar-link-active {
-    @apply sidebar-link bg-teal-50 text-teal-700;
-  }
-
-  /* --- Estados vacíos --- */
-  .empty-state {
-    @apply flex flex-col items-center justify-center py-16 text-center text-gray-400;
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium
+           bg-teal-50 text-teal-700 transition-all duration-150;
   }
 }
