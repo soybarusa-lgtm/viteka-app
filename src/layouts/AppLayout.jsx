@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import NotificationBell from '../components/NotificationBell'
 
 // ── SVG Icons ────────────────────────────────────────────────────────────────
@@ -17,8 +17,8 @@ function IcSettings()    { return <svg width="16" height="16" viewBox="0 0 24 24
 function IcLogout()      { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> }
 function IcChevronRight(){ return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg> }
 function IcChevronLeft() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg> }
-function IcMenu()        { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg> }
-function IcClose()       { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> }
+function IcMenu()        { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg> }
+function IcClose()       { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> }
 
 // ── Nav config ───────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
@@ -36,7 +36,7 @@ const NAV_ITEMS = [
   { id: 'settings',      label: 'Configuración', icon: IcSettings,   roles: ['owner','admin'] },
 ]
 
-// ── Nav link ──────────────────────────────────────────────────────────────────
+// ── NavLink ──────────────────────────────────────────────────────────────────
 function NavLink({ item, active, expanded, onClick }) {
   const Icon = item.icon
   return (
@@ -66,62 +66,36 @@ function DesktopSidebar({ visibleNav, currentPage, navigate, profile, onLogout, 
       className="hidden md:flex flex-col flex-shrink-0 h-screen sticky top-0 overflow-hidden transition-all duration-200 ease-in-out"
       style={{ width: expanded ? '224px' : '56px', backgroundColor: '#1c473c' }}
     >
-      {/* ─── HEADER ─── */}
+      {/* Header */}
       <div
         className="flex-shrink-0 flex flex-col items-center justify-center py-3 gap-1.5"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', minHeight: expanded ? '80px' : '84px' }}
       >
         {expanded ? (
-          // Sidebar abierta: logo izquierda + flecha pegada a la derecha
           <div className="flex w-full items-center gap-2 px-3">
-            <img
-              src="/brand/logo-white.svg"
-              alt="Viteka"
-              className="object-contain flex-1 min-w-0"
-              style={{ height: '56px', maxWidth: '172px' }}
-              draggable={false}
-            />
-            <button
-              onClick={onToggle}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/40 hover:bg-white/10 hover:text-white transition"
-            >
+            <img src="/brand/logo-white.svg" alt="Viteka" className="object-contain flex-1 min-w-0" style={{ height: '56px', maxWidth: '172px' }} draggable={false} />
+            <button onClick={onToggle} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/40 hover:bg-white/10 hover:text-white transition">
               <IcChevronLeft />
             </button>
           </div>
         ) : (
-          // Sidebar cerrada: icono centrado + flecha debajo
           <>
-            <img
-              src="/brand/logo-icon.svg"
-              alt="Viteka"
-              className="object-contain"
-              style={{ height: '32px', width: '32px' }}
-              draggable={false}
-            />
-            <button
-              onClick={onToggle}
-              className="flex h-5 w-5 items-center justify-center rounded text-white/30 hover:bg-white/10 hover:text-white transition"
-            >
+            <img src="/brand/logo-icon.svg" alt="Viteka" className="object-contain" style={{ height: '32px', width: '32px' }} draggable={false} />
+            <button onClick={onToggle} className="flex h-5 w-5 items-center justify-center rounded text-white/30 hover:bg-white/10 hover:text-white transition">
               <IcChevronRight />
             </button>
           </>
         )}
       </div>
 
-      {/* ─── Nav ─── */}
+      {/* Nav */}
       <nav className={`flex-1 overflow-y-auto py-2 space-y-0.5 ${ expanded ? 'px-2' : 'px-1.5' }`}>
         {visibleNav.map(item => (
-          <NavLink
-            key={item.id}
-            item={item}
-            active={currentPage === item.id}
-            expanded={expanded}
-            onClick={() => navigate(item.id)}
-          />
+          <NavLink key={item.id} item={item} active={currentPage === item.id} expanded={expanded} onClick={() => navigate(item.id)} />
         ))}
       </nav>
 
-      {/* ─── Bottom: notificaciones + usuario ─── */}
+      {/* Bottom */}
       <div className="flex-shrink-0 pb-3 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         <div className={`px-2 py-1 ${ !expanded && 'flex justify-center' }`}>
           <NotificationBell userId={profile?.id} dark sidebarExpanded={expanded} />
@@ -136,22 +110,90 @@ function DesktopSidebar({ visibleNav, currentPage, navigate, profile, onLogout, 
                 <p className="truncate text-xs font-medium text-white">{profile?.full_name}</p>
                 <p className="text-[11px] text-white/50 capitalize">{profile?.role}</p>
               </div>
-              <button onClick={onLogout} title="Cerrar sesión" className="text-white/30 hover:text-red-300 transition">
-                <IcLogout />
-              </button>
+              <button onClick={onLogout} title="Cerrar sesión" className="text-white/30 hover:text-red-300 transition"><IcLogout /></button>
             </div>
           ) : (
-            <button
-              onClick={onLogout}
-              title={`${profile?.full_name} — Cerrar sesión`}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-xs font-bold text-white hover:ring-2 hover:ring-red-400 transition"
-            >
+            <button onClick={onLogout} title={`${profile?.full_name} — Cerrar sesión`}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-xs font-bold text-white hover:ring-2 hover:ring-red-400 transition">
               {profile?.full_name?.[0]?.toUpperCase() || 'U'}
             </button>
           )}
         </div>
       </div>
     </aside>
+  )
+}
+
+// ── Mobile Drawer ─────────────────────────────────────────────────────────────
+function MobileDrawer({ visibleNav, currentPage, navigate, profile, onLogout, open, onClose }) {
+  // Bloquear scroll del body cuando el drawer está abierto
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [open])
+
+  if (!open) return null
+
+  return (
+    // Portal-level: fixed inset-0 z-[9999] para que nada lo tape
+    <div className="fixed inset-0 z-[9999] flex md:hidden">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0"
+        style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+        onClick={onClose}
+      />
+      {/* Drawer */}
+      <aside
+        className="relative flex h-full w-72 max-w-[85vw] flex-col shadow-2xl"
+        style={{ backgroundColor: '#1c473c' }}
+      >
+        {/* Header del drawer */}
+        <div
+          className="flex flex-shrink-0 items-center justify-between px-4 py-3"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', minHeight: '60px' }}
+        >
+          <img src="/brand/logo-white.svg" alt="Viteka" className="object-contain" style={{ height: '40px', maxWidth: '140px' }} draggable={false} />
+          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white transition">
+            <IcClose />
+          </button>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
+          {visibleNav.map(item => (
+            <NavLink
+              key={item.id}
+              item={item}
+              active={currentPage === item.id}
+              expanded={true}
+              onClick={() => { navigate(item.id); onClose() }}
+            />
+          ))}
+        </nav>
+
+        {/* Bottom */}
+        <div className="flex-shrink-0 px-3 pb-6 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="mb-2 px-1">
+            <NotificationBell userId={profile?.id} dark sidebarExpanded={true} />
+          </div>
+          <div className="flex items-center gap-2.5 rounded-lg px-1 py-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-sm font-bold text-white">
+              {profile?.full_name?.[0]?.toUpperCase() || 'U'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-white">{profile?.full_name}</p>
+              <p className="text-[11px] text-white/50 capitalize">{profile?.role}</p>
+            </div>
+            <button onClick={onLogout} className="text-white/30 hover:text-red-300 transition"><IcLogout /></button>
+          </div>
+        </div>
+      </aside>
+    </div>
   )
 }
 
@@ -167,6 +209,7 @@ export default function AppLayout({ children, profile, currentPage, navigate, on
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: '#f6f5f0' }}>
 
+      {/* Desktop sidebar */}
       <DesktopSidebar
         visibleNav={visibleNav}
         currentPage={currentPage}
@@ -177,53 +220,55 @@ export default function AppLayout({ children, profile, currentPage, navigate, on
         onToggle={() => setExpanded(v => !v)}
       />
 
-      {/* Móvil overlay */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
-          <div className="fixed inset-0" style={{ backgroundColor: 'rgba(0,0,0,0.45)' }} onClick={() => setMobileOpen(false)} />
-          <aside className="relative z-10 flex h-full w-64 flex-col shadow-2xl" style={{ backgroundColor: '#1c473c' }}>
-            <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', minHeight: '56px' }}>
-              <img src="/brand/logo-white.svg" alt="Viteka" className="h-9 object-contain" style={{ maxWidth: '140px' }} draggable={false} />
-              <button onClick={() => setMobileOpen(false)} className="text-white/50 hover:text-white transition"><IcClose /></button>
-            </div>
-            <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
-              {visibleNav.map(item => (
-                <NavLink key={item.id} item={item} active={currentPage === item.id} expanded={true}
-                  onClick={() => { navigate(item.id); setMobileOpen(false) }} />
-              ))}
-            </nav>
-            <div className="px-3 pb-4 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-              <div className="mb-2 px-1">
-                <NotificationBell userId={profile?.id} dark sidebarExpanded={true} />
-              </div>
-              <div className="flex items-center gap-2.5 rounded-lg px-1 py-1.5">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/15 text-xs font-bold text-white">
-                  {profile?.full_name?.[0]?.toUpperCase() || 'U'}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-medium text-white">{profile?.full_name}</p>
-                  <p className="text-[11px] text-white/50 capitalize">{profile?.role}</p>
-                </div>
-                <button onClick={onLogout} className="text-white/30 hover:text-red-300 transition"><IcLogout /></button>
-              </div>
-            </div>
-          </aside>
-        </div>
-      )}
+      {/* Mobile drawer (z-[9999], no tiene problema de contexto) */}
+      <MobileDrawer
+        visibleNav={visibleNav}
+        currentPage={currentPage}
+        navigate={navigate}
+        profile={profile}
+        onLogout={onLogout}
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+      />
 
+      {/* Contenido principal */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 md:hidden">
-          <img src="/brand/logo-icon-colr.svg" alt="Viteka" className="h-8 w-8 object-contain" draggable={false} />
-          <button onClick={() => setMobileOpen(true)} className="text-gray-400 hover:text-gray-700 transition"><IcMenu /></button>
+
+        {/* ── Top bar móvil — verde corporativo ── */}
+        <div
+          className="flex items-center justify-between px-4 py-3 md:hidden"
+          style={{ backgroundColor: '#1c473c' }}
+        >
+          {/* Logo icon blanco */}
+          <img
+            src="/brand/logo-icon.svg"
+            alt="Viteka"
+            className="h-8 w-8 object-contain"
+            draggable={false}
+          />
+          {/* Hamburger */}
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition"
+            aria-label="Abrir menú"
+          >
+            <IcMenu />
+          </button>
         </div>
-        <main className="flex-1 overflow-y-auto">{children}</main>
+
+        <main className="flex-1 overflow-y-auto">
+          {children}
+        </main>
       </div>
 
+      {/* Bottom nav móvil */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 flex border-t border-gray-200 bg-white md:hidden">
         {bottomNav.map(item => {
           const Icon = item.icon
           return (
-            <button key={item.id} onClick={() => navigate(item.id)}
+            <button
+              key={item.id}
+              onClick={() => navigate(item.id)}
               className={`flex flex-1 flex-col items-center py-2.5 transition ${
                 currentPage === item.id ? 'text-[#1c473c]' : 'text-gray-400 hover:text-gray-600'
               }`}
