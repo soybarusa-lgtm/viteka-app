@@ -19,7 +19,9 @@ const PRODUCT_CATEGORIES = [
 ];
 
 const emptyProducts = () =>
-  Object.fromEntries(PRODUCT_CATEGORIES.map((c) => [c.key, { active: false, brand: '' }]));
+  Object.fromEntries(
+    PRODUCT_CATEGORIES.map((c) => [c.key, { active: false, brand: '', model: '', viteka_distributor: false }])
+  );
 
 const inputCls =
   'w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white ' +
@@ -41,9 +43,19 @@ export default function EditClientModal({ isOpen, client, onClose, onSave }) {
 function EditClientForm({ client, onClose, onSave }) {
   const [step, setStep] = useState(1);
   const [expanded, setExpanded] = useState({});
-  const [products, setProducts] = useState(
-    client.products ? { ...emptyProducts(), ...client.products } : emptyProducts()
-  );
+
+  // Mezcla datos guardados con estructura base para que siempre existan model y viteka_distributor
+  const mergedProducts = () => {
+    const base = emptyProducts();
+    if (!client.products) return base;
+    return Object.fromEntries(
+      Object.entries(base).map(([k, def]) => [
+        k,
+        { ...def, ...(client.products[k] || {}) },
+      ])
+    );
+  };
+  const [products, setProducts] = useState(mergedProducts);
   const { provinces, getTowns } = useSpanishLocations();
 
   // legal_type en BD es text[] → leemos el primer elemento
@@ -107,8 +119,10 @@ function EditClientForm({ client, onClose, onSave }) {
   const updateCbOwner = (i, f, v) => setCb((p) => ({ ...p, owners: p.owners.map((o, idx) => idx === i ? { ...o, [f]: v } : o) }));
   const removeCbOwner = (i) => setCb((p) => ({ ...p, owners: p.owners.filter((_, idx) => idx !== i) }));
 
+  const updateProduct = (key, field, value) =>
+    setProducts((prev) => ({ ...prev, [key]: { ...prev[key], [field]: value } }));
+
   const handleSave = () => {
-    // legal_type se envía como string; modalPayloadToDbRow lo convierte a array
     let payload = { legal_type: legalType, products };
     if (legalType === 'autonomo') payload = { ...payload, ...autonomo };
     if (legalType === 'cb')       payload = { ...payload, ...cb, cb_owners: cb.owners };
@@ -261,7 +275,7 @@ function EditClientForm({ client, onClose, onSave }) {
                         </div>
                       </div>
                     ))}
-                    <button type="button" onClick={addCbOwner} className="text-teal-600 text-sm font-medium">+ Añadir titular</button>
+                    <button type="button" onClick={addCbOwner} className="text-teal-600 text-sm font-medium">⬊ Añadir titular</button>
                   </div>
                   <Field label="Observaciones"><textarea rows={3} className={inputCls} value={cb.notes} onChange={(e) => setCb((p) => ({ ...p, notes: e.target.value }))} /></Field>
                 </div>
@@ -279,6 +293,7 @@ function EditClientForm({ client, onClose, onSave }) {
               )}
             </div>
           ) : (
+            /* ─── PASO 2: PRODUCTOS ─────────────────────────────────── */
             <div className="space-y-3 pb-4">
               {PRODUCT_CATEGORIES.map(({ label, key, options }) => (
                 <div key={key} className="border border-gray-200 rounded-lg overflow-hidden">
@@ -286,22 +301,59 @@ function EditClientForm({ client, onClose, onSave }) {
                     className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100">
                     <div className="flex items-center gap-3">
                       <input type="checkbox" checked={products[key]?.active || false}
-                        onChange={(e) => { e.stopPropagation(); setProducts((prev) => ({ ...prev, [key]: { ...prev[key], active: e.target.checked } })); }}
+                        onChange={(e) => { e.stopPropagation(); updateProduct(key, 'active', e.target.checked); }}
                         onClick={(e) => e.stopPropagation()} className="w-4 h-4 accent-teal-600" />
                       <span className="text-sm font-medium text-gray-700">{label}</span>
+                      {products[key]?.viteka_distributor && (
+                        <span className="text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full font-medium">Viteka</span>
+                      )}
                     </div>
                     <svg className={`w-4 h-4 text-gray-400 transition-transform ${expanded[key] ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
+
                   {expanded[key] && (
-                    <div className="px-4 py-3">
-                      <label className={labelCls}>Marca / Modelo</label>
-                      <select className={inputCls} value={products[key]?.brand || ''}
-                        onChange={(e) => setProducts((prev) => ({ ...prev, [key]: { ...prev[key], brand: e.target.value } }))}>
-                        <option value="">Seleccionar...</option>
-                        {options.map((o) => <option key={o} value={o}>{o}</option>)}
-                      </select>
+                    <div className="px-4 py-3 space-y-3 bg-white">
+                      <div>
+                        <label className={labelCls}>Marca / Modelo</label>
+                        <select className={inputCls} value={products[key]?.brand || ''}
+                          onChange={(e) => updateProduct(key, 'brand', e.target.value)}>
+                          <option value="">Seleccionar...</option>
+                          {options.map((o) => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className={labelCls}>Modelo exacto / Nº serie (opcional)</label>
+                        <input
+                          className={inputCls}
+                          placeholder="Ej: Nixfarma 9.0, Cashlogy 500..."
+                          value={products[key]?.model || ''}
+                          onChange={(e) => updateProduct(key, 'model', e.target.value)}
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => updateProduct(key, 'viteka_distributor', !products[key]?.viteka_distributor)}
+                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                          products[key]?.viteka_distributor
+                            ? 'border-teal-500 bg-teal-50 text-teal-700'
+                            : 'border-gray-200 bg-gray-50 text-gray-600'
+                        }`}
+                      >
+                        <span>Distribuidor: Viteka</span>
+                        <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          products[key]?.viteka_distributor ? 'border-teal-500 bg-teal-500' : 'border-gray-300'
+                        }`}>
+                          {products[key]?.viteka_distributor && (
+                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                              <path d="M2 5l2 2 4-4" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </span>
+                      </button>
                     </div>
                   )}
                 </div>
