@@ -46,11 +46,10 @@ export function useDashboard(companyId) {
         supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'pending').lt('due_date', today),
         supabase.from('incidents').select('*', { count: 'exact', head: true }).eq('company_id', companyId).in('status', ['open', 'in_progress']),
         supabase.from('checklists').select('*', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'in_progress'),
-        supabase.from('projects').select('id, name, status, priority, due_date, pharmacies(name)').eq('company_id', companyId).order('created_at', { ascending: false }).limit(5),
-        supabase.from('incidents').select('id, title, status, priority, created_at, pharmacies(name)').eq('company_id', companyId).in('status', ['open', 'in_progress']).order('created_at', { ascending: false }).limit(5),
+        supabase.from('projects').select('id, name, status, priority, due_date, pharmacies(pharmacy_name)').eq('company_id', companyId).order('created_at', { ascending: false }).limit(5),
+        supabase.from('incidents').select('id, title, status, priority, created_at, pharmacies(pharmacy_name)').eq('company_id', companyId).in('status', ['open', 'in_progress']).order('created_at', { ascending: false }).limit(5),
       ])
 
-      // Proyectos por estado para la mini-barra
       const { data: allProjects } = await supabase
         .from('projects')
         .select('status')
@@ -63,8 +62,8 @@ export function useDashboard(companyId) {
 
       const projectsByStatus = [
         { label: 'Activos',     count: (statusCount['active'] || 0) + (statusCount['in_progress'] || 0), color: 'bg-teal-500' },
-        { label: 'Pendientes',  count: statusCount['pending'] || 0,   color: 'bg-yellow-400' },
-        { label: 'Bloqueados',  count: statusCount['blocked'] || 0,   color: 'bg-red-500' },
+        { label: 'Pendientes',  count: statusCount['pending']   || 0, color: 'bg-yellow-400' },
+        { label: 'Bloqueados',  count: statusCount['blocked']   || 0, color: 'bg-red-500' },
         { label: 'Finalizados', count: statusCount['completed'] || 0, color: 'bg-gray-300' },
       ]
 
