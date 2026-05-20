@@ -8,27 +8,28 @@ import MobileDrawer from './layouts/MobileDrawer'
 import LoginPage from './pages/LoginPage'
 
 // Resto de páginas → carga perezosa (cada una genera un chunk independiente en Vite)
-const Dashboard             = lazy(() => import('./pages/Dashboard'))
-const PharmaciesPage        = lazy(() => import('./pages/PharmaciesPage'))
-const PharmacyDetailPage    = lazy(() => import('./pages/PharmacyDetailPage'))
-const PharmacyCreatePage    = lazy(() => import('./pages/PharmacyCreatePage'))
-const ProjectsPage          = lazy(() => import('./pages/ProjectsPage'))
-const ProjectDetailPage     = lazy(() => import('./pages/ProjectDetailPage'))
-const TasksPage             = lazy(() => import('./pages/TasksPage'))
-const ChecklistsPage        = lazy(() => import('./pages/ChecklistsPage'))
-const ChecklistExecutionPage = lazy(() => import('./pages/ChecklistExecutionPage'))
-const ChecklistReportPage   = lazy(() => import('./pages/ChecklistReportPage'))
-const TemplateEditorPage    = lazy(() => import('./pages/TemplateEditorPage'))
-const IncidentsPage         = lazy(() => import('./pages/IncidentsPage'))
-const DocumentsPage         = lazy(() => import('./pages/DocumentsPage'))
-const PeoplePage            = lazy(() => import('./pages/PeoplePage'))
-const TimelinePage          = lazy(() => import('./pages/TimelinePage'))
-const ActivityLogsPage      = lazy(() => import('./pages/ActivityLogsPage'))
-const UsersPage             = lazy(() => import('./pages/UsersPage'))
-const SettingsPage          = lazy(() => import('./pages/SettingsPage'))
-const ClientsPage           = lazy(() => import('./pages/ClientsPage'))
-const ClientDetailPage      = lazy(() => import('./pages/ClientDetailPage'))
-const ClientPortalPage      = lazy(() => import('./pages/ClientPortalPage'))
+const Dashboard                = lazy(() => import('./pages/Dashboard'))
+const PharmaciesPage           = lazy(() => import('./pages/PharmaciesPage'))
+const PharmacyDetailPage       = lazy(() => import('./pages/PharmacyDetailPage'))
+const PharmacyCreatePage       = lazy(() => import('./pages/PharmacyCreatePage'))
+const PharmacyEquipmentPage    = lazy(() => import('./pages/PharmacyEquipmentPage'))
+const ProjectsPage             = lazy(() => import('./pages/ProjectsPage'))
+const ProjectDetailPage        = lazy(() => import('./pages/ProjectDetailPage'))
+const TasksPage                = lazy(() => import('./pages/TasksPage'))
+const ChecklistsPage           = lazy(() => import('./pages/ChecklistsPage'))
+const ChecklistExecutionPage   = lazy(() => import('./pages/ChecklistExecutionPage'))
+const ChecklistReportPage      = lazy(() => import('./pages/ChecklistReportPage'))
+const TemplateEditorPage       = lazy(() => import('./pages/TemplateEditorPage'))
+const IncidentsPage            = lazy(() => import('./pages/IncidentsPage'))
+const DocumentsPage            = lazy(() => import('./pages/DocumentsPage'))
+const PeoplePage               = lazy(() => import('./pages/PeoplePage'))
+const TimelinePage             = lazy(() => import('./pages/TimelinePage'))
+const ActivityLogsPage         = lazy(() => import('./pages/ActivityLogsPage'))
+const UsersPage                = lazy(() => import('./pages/UsersPage'))
+const SettingsPage             = lazy(() => import('./pages/SettingsPage'))
+const ClientsPage              = lazy(() => import('./pages/ClientsPage'))
+const ClientDetailPage         = lazy(() => import('./pages/ClientDetailPage'))
+const ClientPortalPage         = lazy(() => import('./pages/ClientPortalPage'))
 
 // Fallback de Suspense — reutiliza el spinner existente
 function PageSpinner() {
@@ -157,27 +158,28 @@ export default function App() {
   function renderPage() {
     const props = { navigate, profile, ...pageParams }
     switch (currentPage) {
-      case 'dashboard':           return <Dashboard {...props} />
-      case 'pharmacies':          return <PharmaciesPage {...props} />
-      case 'pharmacy-detail':     return <PharmacyDetailPage {...props} />
-      case 'pharmacy-create':     return <PharmacyCreatePage {...props} />
-      case 'projects':            return <ProjectsPage {...props} />
-      case 'project-detail':      return <ProjectDetailPage {...props} />
-      case 'tasks':               return <TasksPage {...props} />
-      case 'checklists':          return <ChecklistsPage { ...props } />
-      case 'checklist-execution': return <ChecklistExecutionPage { ...props } />
-      case 'checklist-report':    return <ChecklistReportPage { ...props } />
-      case 'template-editor':     return <TemplateEditorPage {...props} />
-      case 'incidents':           return <IncidentsPage { ...props } />
-      case 'documents':           return <DocumentsPage { ...props } />
-      case 'people':              return <PeoplePage { ...props } />
-      case 'timeline':            return <TimelinePage {...props} />
-      case 'activity-logs':       return <ActivityLogsPage { ...props } />
-      case 'users':               return <UsersPage {...props} />
-      case 'settings':            return <SettingsPage {...props} />
-      case 'clients':             return <ClientsPage {...props} />
-      case 'client-detail':       return <ClientDetailPage {...props} />
-      default:                    return <Dashboard {...props} />
+      case 'dashboard':              return <Dashboard {...props} />
+      case 'pharmacies':             return <PharmaciesPage {...props} />
+      case 'pharmacy-detail':        return <PharmacyDetailPage {...props} />
+      case 'pharmacy-create':        return <PharmacyCreatePage {...props} />
+      case 'pharmacy-equipment':     return <PharmacyEquipmentPage {...props} />
+      case 'projects':               return <ProjectsPage {...props} />
+      case 'project-detail':         return <ProjectDetailPage {...props} />
+      case 'tasks':                  return <TasksPage {...props} />
+      case 'checklists':             return <ChecklistsPage { ...props } />
+      case 'checklist-execution':    return <ChecklistExecutionPage { ...props } />
+      case 'checklist-report':       return <ChecklistReportPage { ...props } />
+      case 'template-editor':        return <TemplateEditorPage {...props} />
+      case 'incidents':              return <IncidentsPage { ...props } />
+      case 'documents':              return <DocumentsPage { ...props } />
+      case 'people':                 return <PeoplePage { ...props } />
+      case 'timeline':               return <TimelinePage {...props} />
+      case 'activity-logs':          return <ActivityLogsPage { ...props } />
+      case 'users':                  return <UsersPage {...props} />
+      case 'settings':               return <SettingsPage {...props} />
+      case 'clients':                return <ClientsPage {...props} />
+      case 'client-detail':          return <ClientDetailPage {...props} />
+      default:                       return <Dashboard {...props} />
     }
   }
 
