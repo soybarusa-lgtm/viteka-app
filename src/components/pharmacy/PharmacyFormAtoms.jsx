@@ -1,4 +1,4 @@
-// Átomos UI compartidos entre NewPharmacyPage, PharmacyEditPage y PharmacyEquipmentPage
+// Átomos UI compartidos entre formularios de farmacia
 
 export function Label({ children, required }) {
   return (
@@ -88,7 +88,7 @@ export function ChipBtn({ active, onClick, children }) {
 export function SatisfactionSelect({ value, onChange }) {
   return (
     <Select value={value} onChange={onChange}>
-      <option value="">Grado de satisfacción</option>
+      <option value="">Grado de satisfacción con distribuidor actual</option>
       {[1, 2, 3, 4, 5].map(n => (
         <option key={n} value={n}>
           {n} — {['Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'][n - 1]}
@@ -98,7 +98,9 @@ export function SatisfactionSelect({ value, onChange }) {
   )
 }
 
-export function VitekaCheck({ value, onChange }) {
+// VitekaCheck: solo se renderiza si showViteka=true
+export function VitekaCheck({ value, onChange, showViteka = true }) {
+  if (!showViteka) return null
   return (
     <label className="flex items-center gap-2 p-3 bg-teal-50 rounded-lg cursor-pointer select-none">
       <input
@@ -120,5 +122,23 @@ export function YearSelect({ value, onChange }) {
       <option value="">Año</option>
       {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
     </Select>
+  )
+}
+
+// Badge de Viteka para vistas de solo lectura
+export function VitekaBadge({ value }) {
+  if (!value) return null
+  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-700">Viteka</span>
+}
+
+// Badge de satisfacción para vistas de solo lectura
+export function SatisfactionBadge({ value }) {
+  if (!value) return <span className="text-gray-400 text-xs">-</span>
+  const colors = ['','bg-red-100 text-red-600','bg-orange-100 text-orange-600','bg-yellow-100 text-yellow-700','bg-blue-100 text-blue-700','bg-green-100 text-green-700']
+  const labels = ['','Muy malo','Malo','Regular','Bueno','Excelente']
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${colors[value]}`}>
+      {value}/5 — {labels[value]}
+    </span>
   )
 }
