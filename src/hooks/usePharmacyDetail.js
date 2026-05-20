@@ -3,29 +3,26 @@ import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/activityLogs'
 
 export function usePharmacyDetail(pharmacyId) {
-  const [pharmacy, setPharmacy] = useState(null)
-  const [contacts, setContacts] = useState([])
-  const [equipment, setEquipment] = useState([])
+  const [pharmacy,  setPharmacy]  = useState(null)
+  const [contacts,  setContacts]  = useState([])
   const [documents, setDocuments] = useState([])
-  const [projects, setProjects] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [projects,  setProjects]  = useState([])
+  const [loading,   setLoading]   = useState(true)
+  const [error,     setError]     = useState(null)
 
   const fetchAll = useCallback(async () => {
     if (!pharmacyId) return
     setLoading(true); setError(null)
     try {
-      const [pRes, cRes, eRes, dRes, prRes] = await Promise.all([
+      const [pRes, cRes, dRes, prRes] = await Promise.all([
         supabase.from('pharmacies').select('*').eq('id', pharmacyId).single(),
         supabase.from('pharmacy_contacts').select('*').eq('pharmacy_id', pharmacyId).order('full_name'),
-        supabase.from('pharmacy_equipment').select('*').eq('pharmacy_id', pharmacyId).order('created_at', { ascending: false }),
         supabase.from('documents').select('*').eq('pharmacy_id', pharmacyId).order('created_at', { ascending: false }),
         supabase.from('projects').select('id, name, project_type, status, pipeline_stage, start_date, expected_close_date').eq('pharmacy_id', pharmacyId).order('created_at', { ascending: false }),
       ])
       if (pRes.error) throw pRes.error
       setPharmacy(pRes.data)
-      setContacts(cRes.data || [])
-      setEquipment(eRes.data || [])
+      setContacts(cRes.data  || [])
       setDocuments(dRes.data || [])
       setProjects(prRes.data || [])
     } catch (err) {
@@ -66,35 +63,6 @@ export function usePharmacyDetail(pharmacyId) {
     await fetchAll()
   }
 
-  // --- EQUIPMENT ---
-  async function createEquipment(payload) {
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user.id).single()
-    const { data, error } = await supabase.from('pharmacy_equipment')
-      .insert({ ...payload, pharmacy_id: pharmacyId, company_id: profile.company_id })
-      .select().single()
-    if (error) throw error
-    await logActivity({ entity_type: 'equipment', entity_id: data.id, entity_name: data.brand + ' ' + data.model, action: 'create', new_value: data })
-    await fetchAll()
-    return data
-  }
-
-  async function updateEquipment(id, payload) {
-    const { data, error } = await supabase.from('pharmacy_equipment').update(payload).eq('id', id).select().single()
-    if (error) throw error
-    await logActivity({ entity_type: 'equipment', entity_id: id, entity_name: data.brand + ' ' + data.model, action: 'update', new_value: data })
-    await fetchAll()
-    return data
-  }
-
-  async function deleteEquipment(id) {
-    const prev = equipment.find(e => e.id === id)
-    const { error } = await supabase.from('pharmacy_equipment').delete().eq('id', id)
-    if (error) throw error
-    await logActivity({ entity_type: 'equipment', entity_id: id, entity_name: prev?.brand, action: 'delete', old_value: prev })
-    await fetchAll()
-  }
-
   // --- DOCUMENTS ---
   async function uploadDocument({ file, name, docType }) {
     const { data: { user } } = await supabase.auth.getUser()
@@ -104,14 +72,14 @@ export function usePharmacyDetail(pharmacyId) {
     const { error: upErr } = await supabase.storage.from('task-evidence').upload(path, file)
     if (upErr) throw upErr
     const { data, error } = await supabase.from('documents').insert({
-      pharmacy_id: pharmacyId,
-      company_id: profile.company_id,
-      name: name || file.name,
-      file_path: path,
-      file_size: file.size,
-      file_type: file.type,
-      doc_type: docType || 'generic',
-      uploaded_by: user.id,
+      pharmacy_id:  pharmacyId,
+      company_id:   profile.company_id,
+      name:         name || file.name,
+      file_path:    path,
+      file_size:    file.size,
+      file_type:    file.type,
+      doc_type:     docType || 'generic',
+      uploaded_by:  user.id,
     }).select().single()
     if (error) throw error
     await fetchAll()
@@ -131,10 +99,9 @@ export function usePharmacyDetail(pharmacyId) {
   }
 
   return {
-    pharmacy, contacts, equipment, documents, projects,
+    pharmacy, contacts, documents, projects,
     loading, error, refetch: fetchAll,
     createContact, updateContact, deleteContact,
-    createEquipment, updateEquipment, deleteEquipment,
     uploadDocument, deleteDocument, getDocumentUrl,
   }
 }
