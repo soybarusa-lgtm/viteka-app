@@ -1,37 +1,45 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
-export function usePharmacy(pharmacyId) {
-  const [pharmacy, setPharmacy]   = useState(null)
-  const [loading, setLoading]     = useState(true)
-  const [error, setError]         = useState(null)
+export function usePharmacy(id) {
+  const [pharmacy,  setPharmacy]  = useState(null)
+  const [equipment, setEquipment] = useState(null)
+  const [loading,   setLoading]   = useState(true)
 
-  const load = useCallback(async () => {
-    if (!pharmacyId) return
-    setLoading(true)
-    const { data, error: err } = await supabase
-      .from('pharmacies')
-      .select('*')
-      .eq('id', pharmacyId)
-      .single()
-    if (err) setError(err.message)
-    else setPharmacy(data)
-    setLoading(false)
-  }, [pharmacyId])
+  useEffect(() => {
+    if (!id) return
+    let cancelled = false
 
-  useEffect(() => { load() }, [load])
+    async function load() {
+      setLoading(true)
+      try {
+        const { data: ph, error: phErr } = await supabase
+          .from('pharmacies')
+          .select('*')
+          .eq('id', id)
+          .single()
+        if (phErr) throw phErr
 
-  async function update(payload) {
-    const { data, error: err } = await supabase
-      .from('pharmacies')
-      .update(payload)
-      .eq('id', pharmacyId)
-      .select()
-      .single()
-    if (err) throw err
-    setPharmacy(data)
-    return data
-  }
+        const { data: eq } = await supabase
+          .from('pharmacy_equipment')
+          .select('*')
+          .eq('pharmacy_id', id)
+          .maybeSingle()
 
-  return { pharmacy, loading, error, update, reload: load }
+        if (!cancelled) {
+          setPharmacy(ph)
+          setEquipment(eq)
+        }
+      } catch (err) {
+        console.error('usePharmacy:', err.message)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [id])
+
+  return { pharmacy, equipment, loading }
 }
