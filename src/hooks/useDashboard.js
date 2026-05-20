@@ -46,9 +46,29 @@ export function useDashboard(companyId) {
         supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'pending').lt('due_date', today),
         supabase.from('incidents').select('*', { count: 'exact', head: true }).eq('company_id', companyId).in('status', ['open', 'in_progress']),
         supabase.from('checklists').select('*', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'in_progress'),
-        supabase.from('projects').select('id, name, status, priority, due_date, pharmacies(pharmacy_name)').eq('company_id', companyId).order('created_at', { ascending: false }).limit(5),
-        supabase.from('incidents').select('id, title, status, priority, created_at, pharmacies(pharmacy_name)').eq('company_id', companyId).in('status', ['open', 'in_progress']).order('created_at', { ascending: false }).limit(5),
+        supabase.from('projects').select('id, name, status, priority, due_date, pharmacy_id').eq('company_id', companyId).order('created_at', { ascending: false }).limit(5),
+        supabase.from('incidents').select('id, title, status, priority, created_at, pharmacy_id').eq('company_id', companyId).in('status', ['open', 'in_progress']).order('created_at', { ascending: false }).limit(5),
       ])
+
+      // Enriquecer con nombre de farmacia si hay pharmacy_id
+      const pharmacyIds = [
+        ...(recentProjects  || []).map(p => p.pharmacy_id),
+        ...(recentIncidents || []).map(i => i.pharmacy_id),
+      ].filter(Boolean)
+
+      let pharmacyNames = {}
+      if (pharmacyIds.length > 0) {
+        const { data: phData } = await supabase
+          .from('pharmacies')
+          .select('id, pharmacy_name')
+          .in('id', [...new Set(pharmacyIds)])
+        for (const ph of (phData || [])) pharmacyNames[ph.id] = ph.pharmacy_name
+      }
+
+      const enriched = (arr) => (arr || []).map(r => ({
+        ...r,
+        pharmacy_name: pharmacyNames[r.pharmacy_id] || null,
+      }))
 
       const { data: allProjects } = await supabase
         .from('projects')
@@ -75,8 +95,8 @@ export function useDashboard(companyId) {
         tasksOverdue:         tasksOverdue || 0,
         incidentsOpen:        incidentsOpen || 0,
         checklistsInProgress: checklistsInProgress || 0,
-        recentProjects:       recentProjects || [],
-        recentIncidents:      recentIncidents || [],
+        recentProjects:       enriched(recentProjects),
+        recentIncidents:      enriched(recentIncidents),
         projectsByStatus,
       })
     } catch (err) {
