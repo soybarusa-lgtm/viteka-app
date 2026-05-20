@@ -47,6 +47,10 @@ export default function PharmacyDetailPage({ pharmacyId, navigate }) {
 
   const p = pharmacy
 
+  function goToEquipment() {
+    navigate('pharmacy-equipment', { pharmacyId: p.id, pharmacyName: p.pharmacy_name })
+  }
+
   return (
     <div className="page-container pb-24 md:pb-6">
 
@@ -66,12 +70,21 @@ export default function PharmacyDetailPage({ pharmacyId, navigate }) {
               {p.province && <span className="text-sm text-gray-500">📍 {PROVINCE_LABELS[p.province] || p.province}{p.city ? `, ${p.city}` : ''}</span>}
             </div>
           </div>
-          <button
-            onClick={() => navigate('pharmacies', { openEdit: p.id })}
-            className="btn-secondary shrink-0"
-          >
-            Editar
-          </button>
+          {/* Acciones del header */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={goToEquipment}
+              className="btn-secondary flex items-center gap-1.5"
+            >
+              🔧 Equipamiento
+            </button>
+            <button
+              onClick={() => navigate('pharmacies', { openEdit: p.id })}
+              className="btn-secondary"
+            >
+              Editar
+            </button>
+          </div>
         </div>
       </div>
 
@@ -154,8 +167,26 @@ export default function PharmacyDetailPage({ pharmacyId, navigate }) {
       {/* Tab: Contactos */}
       {tab === 'contacts' && <ContactsTab detail={detail} />}
 
-      {/* Tab: Equipos */}
-      {tab === 'equipment' && <EquipmentTab detail={detail} />}
+      {/* Tab: Equipos — acceso directo a la ficha de equipamiento */}
+      {tab === 'equipment' && (
+        <div>
+          <div className="card p-5 mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <p className="font-semibold text-gray-800 mb-0.5">Ficha de equipamiento</p>
+              <p className="text-sm text-gray-500">
+                Gestiona ERP, caja de cobro, etiquetas electrónicas, robots, equipos informáticos y más.
+              </p>
+            </div>
+            <button
+              onClick={goToEquipment}
+              className="btn-primary shrink-0 flex items-center gap-2"
+            >
+              🔧 Ver / editar equipamiento
+            </button>
+          </div>
+          <EquipmentTab detail={detail} />
+        </div>
+      )}
 
       {/* Tab: Documentos */}
       {tab === 'documents' && <DocumentsTab detail={detail} />}
@@ -191,7 +222,7 @@ export default function PharmacyDetailPage({ pharmacyId, navigate }) {
                     </span>
                   </div>
                 </button>
-              ))}
+            ))}
             </div>
           )}
         </div>
