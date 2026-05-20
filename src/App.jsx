@@ -6,9 +6,10 @@ import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import PharmaciesPage from './pages/PharmaciesPage'
 import PharmacyDetailPage from './pages/PharmacyDetailPage'
+import NewPharmacyPage from './pages/NewPharmacyPage'
 
 function PrivateRoute({ session, children }) {
-  if (session === undefined) return null // cargando
+  if (session === undefined) return null
   return session ? children : <Navigate to="/login" replace />
 }
 
@@ -34,6 +35,7 @@ export default function App() {
         }>
           <Route index element={<DashboardPage />} />
           <Route path="farmacias" element={<PharmaciesPage />} />
+          <Route path="farmacias/nueva" element={<NewPharmacyPage />} />
           <Route path="farmacias/:id" element={<PharmacyDetailPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
