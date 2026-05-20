@@ -7,6 +7,7 @@ import DashboardPage from './pages/DashboardPage'
 import PharmaciesPage from './pages/PharmaciesPage'
 import PharmacyDetailPage from './pages/PharmacyDetailPage'
 import NewPharmacyPage from './pages/NewPharmacyPage'
+import PharmacyEditPage from './pages/PharmacyEditPage'
 
 function PrivateRoute({ session, children }) {
   if (session === undefined) return null
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="farmacias" element={<PharmaciesPage />} />
           <Route path="farmacias/nueva" element={<NewPharmacyPage />} />
           <Route path="farmacias/:id" element={<PharmacyDetailPage />} />
+          <Route path="farmacias/:id/editar" element={<PharmacyEditPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
