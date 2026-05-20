@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { usePharmacyDetail } from '../hooks/usePharmacyDetail'
 import ContactsTab from '../components/pharmacy/ContactsTab'
-import EquipmentTab from '../components/pharmacy/EquipmentTab'
 import DocumentsTab from '../components/pharmacy/DocumentsTab'
 
 const LEGAL_LABELS = {
@@ -15,11 +14,11 @@ const PROVINCE_LABELS = {
 }
 
 const TABS = [
-  { id: 'info',       label: '📋 Información' },
-  { id: 'contacts',   label: '👥 Contactos' },
-  { id: 'equipment',  label: '🖥️ Equipos' },
-  { id: 'documents',  label: '📁 Documentos' },
-  { id: 'projects',   label: '📂 Proyectos' },
+  { id: 'info',       label: 'Información' },
+  { id: 'contacts',   label: 'Contactos' },
+  { id: 'equipment',  label: 'Equipamiento' },
+  { id: 'documents',  label: 'Documentos' },
+  { id: 'projects',   label: 'Proyectos' },
 ]
 
 const PROJECT_STATUS_LABELS = {
@@ -70,21 +69,12 @@ export default function PharmacyDetailPage({ pharmacyId, navigate }) {
               {p.province && <span className="text-sm text-gray-500">📍 {PROVINCE_LABELS[p.province] || p.province}{p.city ? `, ${p.city}` : ''}</span>}
             </div>
           </div>
-          {/* Acciones del header */}
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={goToEquipment}
-              className="btn-secondary flex items-center gap-1.5"
-            >
-              🔧 Equipamiento
-            </button>
-            <button
-              onClick={() => navigate('pharmacies', { openEdit: p.id })}
-              className="btn-secondary"
-            >
-              Editar
-            </button>
-          </div>
+          <button
+            onClick={() => navigate('pharmacies', { openEdit: p.id })}
+            className="btn-secondary shrink-0"
+          >
+            Editar
+          </button>
         </div>
       </div>
 
@@ -94,7 +84,7 @@ export default function PharmacyDetailPage({ pharmacyId, navigate }) {
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`px-3 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition ${
+            className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition ${
               tab === t.id
                 ? 'border-teal-600 text-teal-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -108,36 +98,32 @@ export default function PharmacyDetailPage({ pharmacyId, navigate }) {
       {/* Tab: Información */}
       {tab === 'info' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-          {/* Datos principales */}
           <div className="card p-5">
             <h3 className="font-semibold text-gray-700 mb-3">Datos de la farmacia</h3>
             <dl className="space-y-2 text-sm">
-              {p.owner_name && <InfoRow label="Titular" value={p.owner_name} />}
-              {p.nif && <InfoRow label="NIF" value={p.nif} />}
-              {p.collegiate_number && <InfoRow label="Nº Colegiado" value={p.collegiate_number} />}
-              {p.soe_number && <InfoRow label="Nº SOE" value={p.soe_number} />}
-              {p.razon_social && <InfoRow label="Razón social" value={p.razon_social} />}
-              {p.cif && <InfoRow label="CIF" value={p.cif} />}
-              {p.schedule && <InfoRow label="Horario" value={p.schedule} />}
+              {p.owner_name          && <InfoRow label="Titular"       value={p.owner_name} />}
+              {p.nif                 && <InfoRow label="NIF"           value={p.nif} />}
+              {p.collegiate_number   && <InfoRow label="Nº Colegiado"  value={p.collegiate_number} />}
+              {p.soe_number          && <InfoRow label="Nº SOE"        value={p.soe_number} />}
+              {p.razon_social        && <InfoRow label="Razón social"  value={p.razon_social} />}
+              {p.cif                 && <InfoRow label="CIF"           value={p.cif} />}
+              {p.schedule            && <InfoRow label="Horario"       value={p.schedule} />}
               <InfoRow label="Guardias" value={p.has_guards ? 'Sí' : 'No'} />
             </dl>
           </div>
 
-          {/* Contacto y ubicación */}
           <div className="card p-5">
             <h3 className="font-semibold text-gray-700 mb-3">Contacto y ubicación</h3>
             <dl className="space-y-2 text-sm">
               {p.contact_phone && <InfoRow label="Teléfono" value={<a href={`tel:${p.contact_phone}`} className="text-teal-600 hover:underline">{p.contact_phone}</a>} />}
-              {p.contact_email && <InfoRow label="Email" value={<a href={`mailto:${p.contact_email}`} className="text-teal-600 hover:underline">{p.contact_email}</a>} />}
-              {p.address && <InfoRow label="Dirección" value={p.address} />}
-              {p.city && <InfoRow label="Municipio" value={p.city} />}
-              {p.province && <InfoRow label="Provincia" value={PROVINCE_LABELS[p.province] || p.province} />}
-              {p.postal_code && <InfoRow label="C.P." value={p.postal_code} />}
+              {p.contact_email && <InfoRow label="Email"    value={<a href={`mailto:${p.contact_email}`} className="text-teal-600 hover:underline">{p.contact_email}</a>} />}
+              {p.address       && <InfoRow label="Dirección" value={p.address} />}
+              {p.city          && <InfoRow label="Municipio" value={p.city} />}
+              {p.province      && <InfoRow label="Provincia" value={PROVINCE_LABELS[p.province] || p.province} />}
+              {p.postal_code   && <InfoRow label="C.P."      value={p.postal_code} />}
             </dl>
           </div>
 
-          {/* Socios CB */}
           {p.cb_owners?.length > 0 && (
             <div className="card p-5 md:col-span-2">
               <h3 className="font-semibold text-gray-700 mb-3">Socios CB</h3>
@@ -154,7 +140,6 @@ export default function PharmacyDetailPage({ pharmacyId, navigate }) {
             </div>
           )}
 
-          {/* Observaciones */}
           {p.observations && (
             <div className="card p-5 md:col-span-2">
               <h3 className="font-semibold text-gray-700 mb-2">Observaciones</h3>
@@ -167,25 +152,30 @@ export default function PharmacyDetailPage({ pharmacyId, navigate }) {
       {/* Tab: Contactos */}
       {tab === 'contacts' && <ContactsTab detail={detail} />}
 
-      {/* Tab: Equipos — acceso directo a la ficha de equipamiento */}
+      {/* Tab: Equipamiento — acceso directo limpio */}
       {tab === 'equipment' && (
-        <div>
-          <div className="card p-5 mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <p className="font-semibold text-gray-800 mb-0.5">Ficha de equipamiento</p>
-              <p className="text-sm text-gray-500">
-                Gestiona ERP, caja de cobro, etiquetas electrónicas, robots, equipos informáticos y más.
+        <button
+          onClick={goToEquipment}
+          className="w-full text-left group"
+        >
+          <div className="rounded-2xl border-2 border-dashed border-gray-200 hover:border-teal-400 bg-white hover:bg-teal-50 transition-all p-8 flex flex-col sm:flex-row items-center gap-6">
+            <div className="w-16 h-16 rounded-2xl bg-teal-100 group-hover:bg-teal-200 flex items-center justify-center text-3xl shrink-0 transition-colors">
+              🔧
+            </div>
+            <div className="text-center sm:text-left">
+              <p className="text-lg font-bold text-gray-900 mb-1">Ficha de equipamiento</p>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                ERP · Caja de cobro · Etiquetas electrónicas · Básculas · Antihurto · Consultoría
+                · Equipos informáticos · Robot · Cruz · Pantallas · Frigorífico
               </p>
             </div>
-            <button
-              onClick={goToEquipment}
-              className="btn-primary shrink-0 flex items-center gap-2"
-            >
-              🔧 Ver / editar equipamiento
-            </button>
+            <div className="sm:ml-auto shrink-0">
+              <span className="inline-flex items-center gap-1.5 bg-teal-600 group-hover:bg-teal-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors">
+                Abrir →
+              </span>
+            </div>
           </div>
-          <EquipmentTab detail={detail} />
-        </div>
+        </button>
       )}
 
       {/* Tab: Documentos */}
@@ -222,7 +212,7 @@ export default function PharmacyDetailPage({ pharmacyId, navigate }) {
                     </span>
                   </div>
                 </button>
-            ))}
+              ))}
             </div>
           )}
         </div>
