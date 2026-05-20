@@ -1,231 +1,85 @@
-import { useState } from 'react'
-import { usePharmacyDetail } from '../hooks/usePharmacyDetail'
-import ContactsTab from '../components/pharmacy/ContactsTab'
-import DocumentsTab from '../components/pharmacy/DocumentsTab'
+import { useParams, useNavigate } from 'react-router-dom'
+import { usePharmacy } from '../hooks/usePharmacy'
+import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 
-const LEGAL_LABELS = {
-  autonomo: 'Autónomo', cb: 'CB', sl: 'SL',
-  autonomo_sl: 'Autónomo + SL', cb_sl: 'CB + SL',
+const PROVINCE_LABEL = {
+  almeria: 'Almería', cadiz: 'Cádiz', cordoba: 'Córdoba', granada: 'Granada',
+  huelva: 'Huelva', jaen: 'Jaén', malaga: 'Málaga', sevilla: 'Sevilla',
+}
+const LEGAL_LABEL = { autonomo: 'Autónomo', cb: 'C.B.', sl: 'S.L.', autonomo_sl: 'Autónomo + S.L.', cb_sl: 'C.B. + S.L.' }
+
+function Field({ label, value }) {
+  if (!value) return null
+  return (
+    <div>
+      <dt className="text-xs text-gray-500">{label}</dt>
+      <dd className="text-sm font-medium text-gray-800 mt-0.5">{value}</dd>
+    </div>
+  )
 }
 
-const PROVINCE_LABELS = {
-  malaga: 'Málaga', granada: 'Granada', sevilla: 'Sevilla', cordoba: 'Córdoba',
-  cadiz: 'Cádiz', almeria: 'Almería', huelva: 'Huelva', jaen: 'Jaén',
-}
-
-const TABS = [
-  { id: 'info',       label: 'Información' },
-  { id: 'contacts',   label: 'Contactos' },
-  { id: 'equipment',  label: 'Equipamiento' },
-  { id: 'documents',  label: 'Documentos' },
-  { id: 'projects',   label: 'Proyectos' },
-]
-
-const PROJECT_STATUS_LABELS = {
-  active: 'Activo', completed: 'Completado', cancelled: 'Cancelado', paused: 'Pausado',
-}
-
-export default function PharmacyDetailPage({ pharmacyId, navigate }) {
-  const detail = usePharmacyDetail(pharmacyId)
-  const { pharmacy, projects, loading, error } = detail
-  const [tab, setTab] = useState('info')
+export default function PharmacyDetailPage() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const { pharmacy, loading } = usePharmacy(id)
 
   if (loading) return (
-    <div className="flex items-center justify-center py-32">
+    <div className="flex items-center justify-center h-64">
       <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
     </div>
   )
 
-  if (error || !pharmacy) return (
-    <div className="page-container">
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-        {error || 'Farmacia no encontrada'}
-      </div>
-    </div>
+  if (!pharmacy) return (
+    <div className="p-6 text-gray-500">Farmacia no encontrada.</div>
   )
 
-  const p = pharmacy
-
-  function goToEquipment() {
-    navigate('pharmacy-equipment', { pharmacyId: p.id, pharmacyName: p.pharmacy_name })
-  }
-
   return (
-    <div className="page-container pb-24 md:pb-6">
-
-      {/* Breadcrumb + header */}
-      <div className="mb-4">
-        <button onClick={() => navigate('pharmacies')} className="text-sm text-teal-600 hover:underline mb-2 inline-flex items-center gap-1">
-          ← Farmacias
+    <div className="p-6 space-y-6">
+      {/* Cabecera */}
+      <div className="flex items-center gap-4">
+        <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-gray-600">
+          <ArrowLeftIcon className="w-5 h-5" />
         </button>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="page-title">{p.pharmacy_name}</h1>
-            <div className="flex flex-wrap items-center gap-2 mt-1">
-              <span className="badge-gray">{LEGAL_LABELS[p.legal_type] || p.legal_type}</span>
-              <span className={p.is_active ? 'badge-green' : 'badge-gray'}>
-                {p.is_active ? 'Activa' : 'Inactiva'}
-              </span>
-              {p.province && <span className="text-sm text-gray-500">📍 {PROVINCE_LABELS[p.province] || p.province}{p.city ? `, ${p.city}` : ''}</span>}
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('pharmacies', { openEdit: p.id })}
-            className="btn-secondary shrink-0"
-          >
-            Editar
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200 mb-5 overflow-x-auto">
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition ${
-              tab === t.id
-                ? 'border-teal-600 text-teal-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab: Información */}
-      {tab === 'info' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="card p-5">
-            <h3 className="font-semibold text-gray-700 mb-3">Datos de la farmacia</h3>
-            <dl className="space-y-2 text-sm">
-              {p.owner_name          && <InfoRow label="Titular"       value={p.owner_name} />}
-              {p.nif                 && <InfoRow label="NIF"           value={p.nif} />}
-              {p.collegiate_number   && <InfoRow label="Nº Colegiado"  value={p.collegiate_number} />}
-              {p.soe_number          && <InfoRow label="Nº SOE"        value={p.soe_number} />}
-              {p.razon_social        && <InfoRow label="Razón social"  value={p.razon_social} />}
-              {p.cif                 && <InfoRow label="CIF"           value={p.cif} />}
-              {p.schedule            && <InfoRow label="Horario"       value={p.schedule} />}
-              <InfoRow label="Guardias" value={p.has_guards ? 'Sí' : 'No'} />
-            </dl>
-          </div>
-
-          <div className="card p-5">
-            <h3 className="font-semibold text-gray-700 mb-3">Contacto y ubicación</h3>
-            <dl className="space-y-2 text-sm">
-              {p.contact_phone && <InfoRow label="Teléfono" value={<a href={`tel:${p.contact_phone}`} className="text-teal-600 hover:underline">{p.contact_phone}</a>} />}
-              {p.contact_email && <InfoRow label="Email"    value={<a href={`mailto:${p.contact_email}`} className="text-teal-600 hover:underline">{p.contact_email}</a>} />}
-              {p.address       && <InfoRow label="Dirección" value={p.address} />}
-              {p.city          && <InfoRow label="Municipio" value={p.city} />}
-              {p.province      && <InfoRow label="Provincia" value={PROVINCE_LABELS[p.province] || p.province} />}
-              {p.postal_code   && <InfoRow label="C.P."      value={p.postal_code} />}
-            </dl>
-          </div>
-
-          {p.cb_owners?.length > 0 && (
-            <div className="card p-5 md:col-span-2">
-              <h3 className="font-semibold text-gray-700 mb-3">Socios CB</h3>
-              <div className="overflow-x-auto">
-                <table className="table">
-                  <thead><tr><th>Nombre</th><th>NIF</th><th>Nº Colegiado</th></tr></thead>
-                  <tbody>
-                    {p.cb_owners.map((o, i) => (
-                      <tr key={i}><td>{o.name}</td><td>{o.nif || '—'}</td><td>{o.collegiate_number || '—'}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {p.observations && (
-            <div className="card p-5 md:col-span-2">
-              <h3 className="font-semibold text-gray-700 mb-2">Observaciones</h3>
-              <p className="text-sm text-gray-600 whitespace-pre-line">{p.observations}</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Tab: Contactos */}
-      {tab === 'contacts' && <ContactsTab detail={detail} />}
-
-      {/* Tab: Equipamiento — acceso directo limpio */}
-      {tab === 'equipment' && (
-        <button
-          onClick={goToEquipment}
-          className="w-full text-left group"
-        >
-          <div className="rounded-2xl border-2 border-dashed border-gray-200 hover:border-teal-400 bg-white hover:bg-teal-50 transition-all p-8 flex flex-col sm:flex-row items-center gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-teal-100 group-hover:bg-teal-200 flex items-center justify-center text-3xl shrink-0 transition-colors">
-              🔧
-            </div>
-            <div className="text-center sm:text-left">
-              <p className="text-lg font-bold text-gray-900 mb-1">Ficha de equipamiento</p>
-              <p className="text-sm text-gray-500 leading-relaxed">
-                ERP · Caja de cobro · Etiquetas electrónicas · Básculas · Antihurto · Consultoría
-                · Equipos informáticos · Robot · Cruz · Pantallas · Frigorífico
-              </p>
-            </div>
-            <div className="sm:ml-auto shrink-0">
-              <span className="inline-flex items-center gap-1.5 bg-teal-600 group-hover:bg-teal-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors">
-                Abrir →
-              </span>
-            </div>
-          </div>
-        </button>
-      )}
-
-      {/* Tab: Documentos */}
-      {tab === 'documents' && <DocumentsTab detail={detail} />}
-
-      {/* Tab: Proyectos */}
-      {tab === 'projects' && (
         <div>
-          {projects.length === 0 ? (
-            <div className="empty-state">
-              <span className="text-4xl mb-3">📂</span>
-              <p className="font-medium text-gray-500">Sin proyectos asociados</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {projects.map(pr => (
-                <button
-                  key={pr.id}
-                  onClick={() => navigate('project-detail', { projectId: pr.id })}
-                  className="card-hover p-4 w-full text-left"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-gray-900">{pr.name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {pr.project_type === 'commercial' ? '💼 Comercial' : '🔧 Soporte'}
-                        {pr.pipeline_stage && ` · ${pr.pipeline_stage}`}
-                      </p>
-                    </div>
-                    <span className={`badge-${
-                      pr.status === 'active' ? 'green' : pr.status === 'completed' ? 'blue' : 'gray'
-                    }`}>
-                      {PROJECT_STATUS_LABELS[pr.status] || pr.status}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+          <h1 className="text-2xl font-bold text-gray-900">{pharmacy.pharmacy_name}</h1>
+          <p className="text-sm text-gray-500">
+            {LEGAL_LABEL[pharmacy.legal_type] || pharmacy.legal_type}
+            {pharmacy.province ? ` · ${PROVINCE_LABEL[pharmacy.province] || pharmacy.province}` : ''}
+          </p>
         </div>
-      )}
-    </div>
-  )
-}
+        <span className={`ml-auto inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+          pharmacy.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+        }`}>
+          {pharmacy.is_active ? 'Activa' : 'Inactiva'}
+        </span>
+      </div>
 
-function InfoRow({ label, value }) {
-  return (
-    <div className="flex gap-2">
-      <dt className="text-gray-400 w-32 shrink-0">{label}</dt>
-      <dd className="text-gray-700 font-medium">{value}</dd>
+      {/* Datos generales */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <h2 className="text-sm font-semibold text-gray-700 mb-4">Datos generales</h2>
+        <dl className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <Field label="Tipo jurídico"     value={LEGAL_LABEL[pharmacy.legal_type]} />
+          <Field label="NIF / CIF"         value={pharmacy.nif || pharmacy.cif} />
+          <Field label="Titular"           value={pharmacy.owner_name} />
+          <Field label="Razón social"      value={pharmacy.razon_social} />
+          <Field label="Nº Colegiado"      value={pharmacy.collegiate_number} />
+          <Field label="SOE"               value={pharmacy.soe_number} />
+          <Field label="Teléfono"          value={pharmacy.contact_phone} />
+          <Field label="Email"             value={pharmacy.contact_email} />
+          <Field label="Dirección"         value={pharmacy.address} />
+          <Field label="Población"         value={pharmacy.city} />
+          <Field label="Provincia"         value={PROVINCE_LABEL[pharmacy.province] || pharmacy.province} />
+          <Field label="C.P."              value={pharmacy.postal_code} />
+          <Field label="Horario"           value={pharmacy.schedule} />
+          <Field label="Guardias"          value={pharmacy.has_guards ? 'Sí' : 'No'} />
+          <Field label="Observaciones"     value={pharmacy.observations} />
+        </dl>
+      </div>
+
+      {/* Próximas secciones — tabs */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 text-sm text-gray-400 text-center">
+        Próximamente: Equipamiento · Personas · Proyectos · Incidencias · Documentos
+      </div>
     </div>
   )
 }

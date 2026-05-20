@@ -2,76 +2,57 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState(null)
 
-  async function handleLogin(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     setLoading(true)
-    setError('')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) setError('Email o contraseña incorrectos')
+    setError(null)
+    const { error: err } = await supabase.auth.signInWithPassword({ email, password })
+    if (err) setError(err.message)
     setLoading(false)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-gray-100 flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-teal-600 rounded-2xl mb-3">
-            <span className="text-white font-bold text-2xl">V</span>
+          <h1 className="text-3xl font-bold text-teal-600">Viteka</h1>
+          <p className="text-gray-500 mt-1 text-sm">Portal interno</p>
+        </div>
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Viteka App</h1>
-          <p className="text-sm text-gray-500 mt-1">Portal de gestión interno</p>
-        </div>
-
-        {/* Formulario */}
-        <div className="card p-6">
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="label">Email</label>
-              <input
-                type="email"
-                className="input"
-                placeholder="tu@email.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                autoFocus
-              />
-            </div>
-            <div>
-              <label className="label">Contraseña</label>
-              <input
-                type="password"
-                className="input"
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            {error && (
-              <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
-            )}
-
-            <button
-              type="submit"
-              className="btn-primary w-full"
-              disabled={loading}
-            >
-              {loading ? 'Entrando...' : 'Entrar'}
-            </button>
-          </form>
-        </div>
-
-        <p className="text-center text-xs text-gray-400 mt-6">
-          © {new Date().getFullYear()} Viteka · Todos los derechos reservados
-        </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-teal-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-teal-700 disabled:opacity-50 transition-colors"
+          >
+            {loading ? 'Accediendo...' : 'Acceder'}
+          </button>
+        </form>
       </div>
     </div>
   )

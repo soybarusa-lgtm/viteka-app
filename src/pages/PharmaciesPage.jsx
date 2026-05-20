@@ -1,164 +1,117 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 import { usePharmacies } from '../hooks/usePharmacies'
-import PharmacyCreateModal from '../components/pharmacy/PharmacyCreateModal'
-import PharmacyKpiBlock from '../components/dashboard/PharmacyKpiBlock'
+import { MagnifyingGlassIcon, PlusIcon, BuildingStorefrontIcon } from '@heroicons/react/24/outline'
 
-function IcSearch() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> }
-function IcPlus()  { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> }
-function IcChevron() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg> }
-
-const TYPE_FILTERS = [
-  { id: 'all',      label: 'Todas'    },
-  { id: 'autonomo', label: 'Autónomo' },
-  { id: 'cb',       label: 'C.B.'     },
-  { id: 'sl',       label: 'S.L.'     },
-]
-
-function normalizeType(value) {
-  const v = String(value || '').toLowerCase()
-  if (v.includes('aut')) return 'autonomo'
-  if (v.includes('cb') || v.includes('c.b')) return 'cb'
-  if (v.includes('sl') || v.includes('s.l')) return 'sl'
-  return 'other'
+const PROVINCE_LABEL = {
+  almeria: 'Almería', cadiz: 'Cádiz', cordoba: 'Córdoba', granada: 'Granada',
+  huelva: 'Huelva', jaen: 'Jaén', malaga: 'Málaga', sevilla: 'Sevilla',
 }
 
-function getName(p)    { return p.name || p.pharmacy_name || p.farmacia_name || '—' }
-function getCity(p)    { return p.city || p.poblacion || p.municipality || '—' }
-function getContact(p) { return p.contact_name || p.manager_name || p.full_name || '—' }
+const LEGAL_LABEL = { autonomo: 'Autónomo', cb: 'C.B.', sl: 'S.L.', autonomo_sl: 'Autónomo + S.L.', cb_sl: 'C.B. + S.L.' }
 
-function PharmacyRow({ pharmacy, navigate }) {
-  return (
-    <tr className="cursor-pointer" onClick={() => navigate('pharmacy-detail', { pharmacyId: pharmacy.id })}>
-      <td className="font-medium text-gray-900">{getName(pharmacy)}</td>
-      <td className="text-gray-500">{pharmacy.province || '—'}</td>
-      <td className="text-gray-500">{getCity(pharmacy)}</td>
-      <td className="text-gray-500">{pharmacy.legal_type || '—'}</td>
-      <td className="text-gray-500 truncate max-w-[140px]">{getContact(pharmacy)}</td>
-      <td className="text-gray-300"><IcChevron /></td>
-    </tr>
-  )
-}
+export default function PharmaciesPage() {
+  const { profile } = useAuth()
+  const { pharmacies, loading } = usePharmacies(profile?.company_id)
+  const [search, setSearch] = useState('')
+  const [filterProvince, setFilterProvince] = useState('')
 
-function PharmacyCard({ pharmacy, navigate }) {
-  return (
-    <button onClick={() => navigate('pharmacy-detail', { pharmacyId: pharmacy.id })}
-      className="card-hover w-full p-4 text-left">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-gray-900 truncate">{getName(pharmacy)}</p>
-          <p className="mt-0.5 text-xs text-gray-400 truncate">{pharmacy.province || '—'} · {getCity(pharmacy)}</p>
-        </div>
-        <span className="badge-gray text-xs">{pharmacy.legal_type || '—'}</span>
-      </div>
-      <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
-        <div><p className="text-gray-400">Tipo</p><p className="mt-1 font-medium text-gray-700">{pharmacy.legal_type || '—'}</p></div>
-        <div><p className="text-gray-400">Contacto</p><p className="mt-1 font-medium text-gray-700 truncate">{getContact(pharmacy)}</p></div>
-      </div>
-    </button>
-  )
-}
+  const filtered = pharmacies.filter(p => {
+    const matchSearch = p.pharmacy_name.toLowerCase().includes(search.toLowerCase())
+    const matchProv   = !filterProvince || p.province === filterProvince
+    return matchSearch && matchProv
+  })
 
-export default function PharmaciesPage({ navigate, profile }) {
-  const { pharmacies = [], loading, error, refetch } = usePharmacies()
-
-  const [search,     setSearch]     = useState('')
-  const [typeFilter, setTypeFilter] = useState('all')
-  const [showCreate, setShowCreate] = useState(false)
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return pharmacies.filter(p => {
-      const hay = `${getName(p)} ${p.province || ''} ${getCity(p)} ${getContact(p)}`.toLowerCase()
-      const matchesSearch = !q || hay.includes(q)
-      const matchesType   = typeFilter === 'all' || normalizeType(p.legal_type) === typeFilter
-      return matchesSearch && matchesType
-    })
-  }, [pharmacies, search, typeFilter])
-
-  const hasFilters = search || typeFilter !== 'all'
-
-  function handleCreated(newId) {
-    refetch?.()
-    navigate('pharmacy-detail', { pharmacyId: newId })
-  }
+  const provinces = [...new Set(pharmacies.map(p => p.province).filter(Boolean))].sort()
 
   return (
-    <div className="page-container">
-      <div className="page-header">
+    <div className="p-6 space-y-5">
+      {/* Cabecera */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="page-title">Farmacias</h1>
-          <p className="page-subtitle">Gestión de fichas, contacto y distribución</p>
+          <h1 className="text-2xl font-bold text-gray-900">Farmacias</h1>
+          <p className="text-sm text-gray-500">{pharmacies.length} farmacias registradas</p>
         </div>
-        <button onClick={() => setShowCreate(true)} className="btn-primary">
-          <IcPlus /> Nueva farmacia
-        </button>
-      </div>
-
-      {/* KPI por provincia */}
-      <div className="mb-6">
-        <PharmacyKpiBlock companyId={profile?.company_id} />
+        <Link
+          to="/farmacias/nueva"
+          className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors"
+        >
+          <PlusIcon className="w-4 h-4" />
+          Nueva farmacia
+        </Link>
       </div>
 
       {/* Filtros */}
-      <div className="card p-4 mb-6 space-y-4">
-        <div className="relative max-w-xl">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><IcSearch /></span>
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar por farmacia, provincia, ciudad o contacto"
-            className="input pl-9" />
+      <div className="flex gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Buscar farmacia..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {TYPE_FILTERS.map(f => (
-            <button key={f.id} onClick={() => setTypeFilter(f.id)}
-              className={`px-3 py-1.5 text-xs rounded-full border transition ${
-                typeFilter === f.id ? 'bg-[#1c473c] text-white border-[#1c473c]' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
-              }`}>{f.label}</button>
+        <select
+          value={filterProvince}
+          onChange={e => setFilterProvince(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+        >
+          <option value="">Todas las provincias</option>
+          {provinces.map(p => (
+            <option key={p} value={p}>{PROVINCE_LABEL[p] || p}</option>
           ))}
-          {hasFilters && (
-            <button className="btn-ghost text-xs" onClick={() => { setSearch(''); setTypeFilter('all') }}>
-              Limpiar
-            </button>
-          )}
-        </div>
+        </select>
       </div>
 
-      {loading && (
-        <div className="flex items-center justify-center py-20">
-          <div className="h-6 w-6 rounded-full border-2 border-[#1c473c] border-t-transparent animate-spin" />
+      {/* Tabla */}
+      {loading ? (
+        <div className="flex items-center justify-center h-32">
+          <div className="w-7 h-7 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-16 text-gray-400">
+          <BuildingStorefrontIcon className="w-12 h-12 mx-auto mb-3 opacity-40" />
+          <p className="text-sm">No hay farmacias que coincidan</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Nombre</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Tipo</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Provincia</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Población</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Estado</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filtered.map(ph => (
+                <tr key={ph.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3">
+                    <Link to={`/farmacias/${ph.id}`} className="font-medium text-teal-700 hover:underline">
+                      {ph.pharmacy_name}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-gray-500">{LEGAL_LABEL[ph.legal_type] || ph.legal_type}</td>
+                  <td className="px-4 py-3 text-gray-500">{PROVINCE_LABEL[ph.province] || ph.province || '-'}</td>
+                  <td className="px-4 py-3 text-gray-500">{ph.city || '-'}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                      ph.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      {ph.is_active ? 'Activa' : 'Inactiva'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
-      {error && (
-        <div className="rounded-2xl bg-red-50 border border-red-100 px-5 py-4 text-sm text-red-600">{error}</div>
-      )}
-
-      {!loading && !error && (
-        filtered.length === 0 ? (
-          <div className="empty-state card border-dashed p-12">
-            <p className="text-sm font-medium text-gray-500">
-              {pharmacies.length === 0 ? 'Aún no hay farmacias registradas' : 'No hay resultados con esos filtros'}
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="hidden md:block table-container">
-              <table className="table">
-                <thead><tr><th>Farmacia</th><th>Provincia</th><th>Población</th><th>Tipo</th><th>Contacto</th><th /></tr></thead>
-                <tbody>{filtered.map(p => <PharmacyRow key={p.id} pharmacy={p} navigate={navigate} />)}</tbody>
-              </table>
-            </div>
-            <div className="md:hidden space-y-2">
-              {filtered.map(p => <PharmacyCard key={p.id} pharmacy={p} navigate={navigate} />)}
-            </div>
-          </>
-        )
-      )}
-
-      <PharmacyCreateModal
-        open={showCreate}
-        onClose={() => setShowCreate(false)}
-        onCreated={handleCreated}
-        profile={profile}
-      />
     </div>
   )
 }
