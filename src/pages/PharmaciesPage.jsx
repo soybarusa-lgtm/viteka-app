@@ -2,16 +2,42 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { usePharmacies } from '../hooks/usePharmacies'
-import { MagnifyingGlassIcon, PlusIcon, BuildingStorefrontIcon, MapPinIcon } from '@heroicons/react/24/outline'
+import {
+  MagnifyingGlassIcon, PlusIcon, BuildingStorefrontIcon, MapPinIcon
+} from '@heroicons/react/24/outline'
 
 const PROVINCE_LABEL = {
   almeria: 'Almería', cadiz: 'Cádiz', cordoba: 'Córdoba', granada: 'Granada',
   huelva: 'Huelva', jaen: 'Jaén', malaga: 'Málaga', sevilla: 'Sevilla',
 }
-
 const LEGAL_LABEL = {
   autonomo: 'Autónomo', cb: 'C.B.', sl: 'S.L.',
   autonomo_sl: 'Autónomo + S.L.', cb_sl: 'C.B. + S.L.',
+}
+
+// ── Skeleton row ────────────────────────────────────────────
+function SkeletonCard() {
+  return (
+    <div className="flex items-start gap-3 bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
+      <div className="w-9 h-9 rounded-lg bg-gray-200 shrink-0" />
+      <div className="flex-1 space-y-2">
+        <div className="h-3.5 bg-gray-200 rounded w-3/5" />
+        <div className="h-3 bg-gray-100 rounded w-2/5" />
+      </div>
+      <div className="h-5 w-14 bg-gray-100 rounded-full" />
+    </div>
+  )
+}
+function SkeletonRow() {
+  return (
+    <tr className="animate-pulse">
+      {[...Array(5)].map((_, i) => (
+        <td key={i} className="px-4 py-3">
+          <div className="h-3.5 bg-gray-100 rounded w-4/5" />
+        </td>
+      ))}
+    </tr>
+  )
 }
 
 export default function PharmaciesPage() {
@@ -35,7 +61,9 @@ export default function PharmaciesPage() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-gray-900">Farmacias</h1>
-          <p className="text-xs md:text-sm text-gray-500">{pharmacies.length} registradas</p>
+          <p className="text-xs md:text-sm text-gray-500">
+            {loading ? '…' : `${pharmacies.length} registradas`}
+          </p>
         </div>
         <Link
           to="/farmacias/nueva"
@@ -73,13 +101,52 @@ export default function PharmaciesPage() {
 
       {/* Contenido */}
       {loading ? (
-        <div className="flex items-center justify-center h-32">
-          <div className="w-7 h-7 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
-        </div>
+        <>
+          {/* Skeleton móvil */}
+          <div className="md:hidden space-y-2">
+            {[...Array(5)].map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+          {/* Skeleton desktop */}
+          <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  {['Nombre','Tipo','Provincia','Población','Estado'].map(h => (
+                    <th key={h} className="text-left px-4 py-3 font-medium text-gray-600">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {[...Array(5)].map((_, i) => <SkeletonRow key={i} />)}
+              </tbody>
+            </table>
+          </div>
+        </>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <BuildingStorefrontIcon className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p className="text-sm">No hay farmacias que coincidan</p>
+        /* Empty state accionable */
+        <div className="text-center py-16 space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto">
+            <BuildingStorefrontIcon className="w-8 h-8 text-teal-400" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-700">
+              {search || filterProvince ? 'No hay resultados para tu búsqueda' : 'Aún no hay farmacias'}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              {search || filterProvince
+                ? 'Prueba con otros términos o limpia los filtros'
+                : 'Empieza añadiendo la primera farmacia'}
+            </p>
+          </div>
+          {!search && !filterProvince && (
+            <Link
+              to="/farmacias/nueva"
+              className="inline-flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors"
+            >
+              <PlusIcon className="w-4 h-4" />
+              Nueva farmacia
+            </Link>
+          )}
         </div>
       ) : (
         <>
@@ -116,11 +183,9 @@ export default function PharmaciesPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Nombre</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Tipo</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Provincia</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Población</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Estado</th>
+                  {['Nombre','Tipo','Provincia','Población','Estado'].map(h => (
+                    <th key={h} className="text-left px-4 py-3 font-medium text-gray-600">{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">

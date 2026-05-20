@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
+import { ToastProvider } from './context/ToastContext'
 import AppLayout from './layouts/AppLayout'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
@@ -24,24 +25,26 @@ export default function App() {
   }, [])
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={
-          session ? <Navigate to="/" replace /> : <LoginPage />
-        } />
-        <Route path="/" element={
-          <PrivateRoute session={session}>
-            <AppLayout session={session} />
-          </PrivateRoute>
-        }>
-          <Route index element={<DashboardPage />} />
-          <Route path="farmacias" element={<PharmaciesPage />} />
-          <Route path="farmacias/nueva" element={<NewPharmacyPage />} />
-          <Route path="farmacias/:id" element={<PharmacyDetailPage />} />
-          <Route path="farmacias/:id/editar" element={<PharmacyEditPage />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <ToastProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={
+            session ? <Navigate to="/" replace /> : <LoginPage />
+          } />
+          <Route path="/" element={
+            <PrivateRoute session={session}>
+              <AppLayout session={session} />
+            </PrivateRoute>
+          }>
+            <Route index element={<DashboardPage />} />
+            <Route path="farmacias" element={<PharmaciesPage />} />
+            <Route path="farmacias/nueva" element={<NewPharmacyPage />} />
+            <Route path="farmacias/:id" element={<PharmacyDetailPage />} />
+            <Route path="farmacias/:id/editar" element={<PharmacyEditPage />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ToastProvider>
   )
 }
