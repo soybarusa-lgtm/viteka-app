@@ -12,10 +12,15 @@ const PROVINCES_LABEL = {
   sevilla: 'Sevilla',
 }
 
+// Valores que indican "tiene este software/equipo"
+const ERP_NIXFARMA  = ['Nixfarma']
+const CAJA_CASHLOGY = ['Cashlogy 1000','Cashlogy 1500','Cashlogy 2023','Maximate Safe','MaxiSafe']
+const ESL_HANSHOW   = ['Hanshow']
+
 /**
- * Devuelve por provincia:
- *  - total de farmacias
- *  - cuántas tienen equipos de marca Nixfarma, Cashlogy, Hanshow
+ * KPIs por provincia:
+ *  - total farmacias
+ *  - cuántas tienen ERP Nixfarma, Caja Cashlogy, ESL Hanshow
  */
 export function usePharmacyKpis(companyId) {
   const [rows,    setRows]    = useState([])
@@ -27,38 +32,31 @@ export function usePharmacyKpis(companyId) {
     if (!companyId) return
     setLoading(true); setError(null)
     try {
-      // Todas las farmacias de la empresa
-      const { data: pharmacies, error: pErr } = await supabase
-        .from('pharmacies')
-        .select('id, province')
-        .eq('company_id', companyId)
+      const [{ data: pharmacies, error: pErr }, { data: equipment, error: eErr }] = await Promise.all([
+        supabase.from('pharmacies').select('id, province').eq('company_id', companyId),
+        supabase.from('pharmacy_equipment').select('pharmacy_id, erp, caja, esl').eq('company_id', companyId),
+      ])
       if (pErr) throw pErr
-
-      // Equipos con brand relevante (una fila por farmacia+marca única)
-      const { data: equipment, error: eErr } = await supabase
-        .from('pharmacy_equipment')
-        .select('pharmacy_id, brand')
-        .eq('company_id', companyId)
-        .in('brand', ['Nixfarma', 'Cashlogy', 'Hanshow'])
       if (eErr) throw eErr
 
-      // Índice: pharmacy_id → Set de marcas presentes
-      const brandsByPharmacy = {}
-      for (const eq of equipment) {
-        if (!brandsByPharmacy[eq.pharmacy_id]) brandsByPharmacy[eq.pharmacy_id] = new Set()
-        brandsByPharmacy[eq.pharmacy_id].add(eq.brand)
+      // Índice pharmacy_id → fila de equipamiento
+      const eqByPharmacy = {}
+      for (const eq of (equipment || [])) {
+        eqByPharmacy[eq.pharmacy_id] = eq
       }
 
       // Agrupación por provincia
       const byProvince = {}
-      for (const ph of pharmacies) {
+      for (const ph of (pharmacies || [])) {
         const prov = ph.province || 'sin_provincia'
         if (!byProvince[prov]) byProvince[prov] = { total: 0, nixfarma: 0, cashlogy: 0, hanshow: 0 }
         byProvince[prov].total++
-        const brands = brandsByPharmacy[ph.id] || new Set()
-        if (brands.has('Nixfarma')) byProvince[prov].nixfarma++
-        if (brands.has('Cashlogy')) byProvince[prov].cashlogy++
-        if (brands.has('Hanshow'))  byProvince[prov].hanshow++
+        const eq = eqByPharmacy[ph.id]
+        if (eq) {
+          if (ERP_NIXFARMA.includes(eq.erp))   byProvince[prov].nixfarma++
+          if (CAJA_CASHLOGY.some(v => eq.caja?.startsWith(v.split(' ')[0]))) byProvince[prov].cashlogy++
+          if (ESL_HANSHOW.includes(eq.esl))    byProvince[prov].hanshow++
+        }
       }
 
       const sorted = Object.entries(byProvince)
@@ -71,7 +69,7 @@ export function usePharmacyKpis(companyId) {
 
       setRows(sorted)
       setTotals({
-        pharmacies: pharmacies.length,
+        pharmacies: (pharmacies || []).length,
         nixfarma:   sorted.reduce((s, r) => s + r.nixfarma, 0),
         cashlogy:   sorted.reduce((s, r) => s + r.cashlogy, 0),
         hanshow:    sorted.reduce((s, r) => s + r.hanshow,  0),
