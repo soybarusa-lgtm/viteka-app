@@ -1,19 +1,31 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-// Convierte strings vacíos a null para columnas date/text opcionales
+const DATE_FIELDS = ['install_date', 'warranty_end']
+
+/**
+ * Convierte de forma recursiva cualquier string vacío a null.
+ * Además, si is_viteka=false fuerza a null los campos de fecha top-level.
+ */
 function sanitize(payload) {
-  const DATE_FIELDS = ['install_date', 'warranty_end']
-  const out = { ...payload }
-  DATE_FIELDS.forEach(f => {
-    if (out[f] === '' || out[f] === undefined) out[f] = null
-  })
-  // Si no es equipo Viteka, limpiamos también serial_number
-  if (!out.is_viteka) {
-    out.serial_number = out.serial_number || null
-    out.install_date  = null
-    out.warranty_end  = null
+  function clean(val) {
+    if (val === '' || val === undefined) return null
+    if (Array.isArray(val)) return val.map(clean)
+    if (val !== null && typeof val === 'object') {
+      return Object.fromEntries(
+        Object.entries(val).map(([k, v]) => [k, clean(v)])
+      )
+    }
+    return val
   }
+
+  const out = clean(payload)
+
+  // Garantizar null en fechas top-level si no es equipo Viteka
+  if (!out.is_viteka) {
+    DATE_FIELDS.forEach(f => { out[f] = null })
+  }
+
   return out
 }
 
