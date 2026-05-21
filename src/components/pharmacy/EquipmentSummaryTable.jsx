@@ -34,197 +34,113 @@ function buildRows(eq) {
   const d = (key) => eq[key] || {}
   const rows = []
 
-  // ERP
   rows.push({
-    key: 'erp',
-    producto: 'ERP',
-    icon: '💊',
-    marca: eq.erp || '—',
-    modelo: eq.erp_detail?.licencia ? `Lic: ${eq.erp_detail.licencia}` : '',
+    key: 'erp', producto: 'ERP',
+    marca: eq.erp || '—', modelo: eq.erp_detail?.licencia ? `Lic: ${eq.erp_detail.licencia}` : '',
     anio: eq.erp_detail?.year || '',
-    distribuidor: d('erp_detail').distribuidor || '',
-    val_distribuidor: d('erp_detail').val_distribuidor || '',
-    soporte: d('erp_detail').soporte || '',
-    val_soporte: d('erp_detail').val_soporte || '',
-    estado: eq.erp && eq.erp !== 'NO' ? 'SI' : 'NO',
-    is_viteka: !!eq.erp_viteka,
+    distribuidor: d('erp_detail').distribuidor || '', val_distribuidor: d('erp_detail').val_distribuidor || '',
+    soporte: d('erp_detail').soporte || '', val_soporte: d('erp_detail').val_soporte || '',
+    estado: eq.erp && eq.erp !== 'NO' ? 'SI' : 'NO', is_viteka: !!eq.erp_viteka,
   })
 
-  // Caja de cobro
   rows.push({
-    key: 'caja',
-    producto: 'Caja de cobro',
-    icon: '💰',
-    marca: eq.caja || '—',
-    modelo: eq.caja_modelo || '',
+    key: 'caja', producto: 'Caja de cobro',
+    marca: eq.caja || '—', modelo: eq.caja_modelo || '',
     anio: eq.caja_year || '',
-    distribuidor: d('cash_detail').distribuidor || '',
-    val_distribuidor: d('cash_detail').val_distribuidor || '',
-    soporte: d('cash_detail').soporte || '',
-    val_soporte: d('cash_detail').val_soporte || '',
-    estado: eq.caja && eq.caja !== 'NO' ? 'SI' : 'NO',
-    is_viteka: !!eq.caja_viteka,
+    distribuidor: d('cash_detail').distribuidor || '', val_distribuidor: d('cash_detail').val_distribuidor || '',
+    soporte: d('cash_detail').soporte || '', val_soporte: d('cash_detail').val_soporte || '',
+    estado: eq.caja && eq.caja !== 'NO' ? 'SI' : 'NO', is_viteka: !!eq.caja_viteka,
   })
 
-  // ESL
   rows.push({
-    key: 'esl',
-    producto: 'Etiquetas ESL',
-    icon: '🏷️',
-    marca: eq.esl || '—',
-    modelo: '',
+    key: 'esl', producto: 'Etiquetas ESL',
+    marca: eq.esl || '—', modelo: '',
     anio: eq.esl_year || '',
-    distribuidor: d('esl_detail').distribuidor || '',
-    val_distribuidor: d('esl_detail').val_distribuidor || '',
-    soporte: d('esl_detail').soporte || '',
-    val_soporte: d('esl_detail').val_soporte || '',
-    estado: eq.esl && eq.esl !== 'NO' ? 'SI' : 'NO',
-    is_viteka: !!eq.esl_viteka,
+    distribuidor: d('esl_detail').distribuidor || '', val_distribuidor: d('esl_detail').val_distribuidor || '',
+    soporte: d('esl_detail').soporte || '', val_soporte: d('esl_detail').val_soporte || '',
+    estado: eq.esl && eq.esl !== 'NO' ? 'SI' : 'NO', is_viteka: !!eq.esl_viteka,
   })
 
-  // Báscula
   rows.push({
-    key: 'bascula',
-    producto: 'Báscula',
-    icon: '⚖️',
-    marca: eq.bascula || '—',
-    modelo: '',
+    key: 'bascula', producto: 'Báscula',
+    marca: eq.bascula || '—', modelo: '',
     anio: eq.bascula_year || '',
-    distribuidor: d('scale_detail').distribuidor || '',
-    val_distribuidor: d('scale_detail').val_distribuidor || '',
-    soporte: d('scale_detail').soporte || '',
-    val_soporte: d('scale_detail').val_soporte || '',
-    estado: eq.bascula && eq.bascula !== 'NO' ? 'SI' : 'NO',
-    is_viteka: !!eq.bascula_viteka,
+    distribuidor: d('scale_detail').distribuidor || '', val_distribuidor: d('scale_detail').val_distribuidor || '',
+    soporte: d('scale_detail').soporte || '', val_soporte: d('scale_detail').val_soporte || '',
+    estado: eq.bascula && eq.bascula !== 'NO' ? 'SI' : 'NO', is_viteka: !!eq.bascula_viteka,
   })
 
-  // Antihurto
   rows.push({
-    key: 'antihurto',
-    producto: 'Arco antihurto',
-    icon: '🔒',
-    marca: eq.antihurto || '—',
-    modelo: '',
+    key: 'antihurto', producto: 'Arco antihurto',
+    marca: eq.antihurto || '—', modelo: '',
     anio: eq.antihurto_year || '',
-    distribuidor: d('antitheft_detail').distribuidor || '',
-    val_distribuidor: d('antitheft_detail').val_distribuidor || '',
-    soporte: d('antitheft_detail').soporte || '',
-    val_soporte: d('antitheft_detail').val_soporte || '',
-    estado: eq.antihurto && eq.antihurto !== 'NO' ? 'SI' : 'NO',
-    is_viteka: false,
+    distribuidor: d('antitheft_detail').distribuidor || '', val_distribuidor: d('antitheft_detail').val_distribuidor || '',
+    soporte: d('antitheft_detail').soporte || '', val_soporte: d('antitheft_detail').val_soporte || '',
+    estado: eq.antihurto && eq.antihurto !== 'NO' ? 'SI' : 'NO', is_viteka: false,
   })
 
-  // Consultoría
   rows.push({
-    key: 'consultoria',
-    producto: 'Consultoría',
-    icon: '📋',
-    marca: eq.consultoria || '—',
-    modelo: eq.consultoria_detail?.otro || '',
+    key: 'consultoria', producto: 'Consultoría',
+    marca: eq.consultoria || '—', modelo: eq.consultoria_detail?.otro || '',
     anio: eq.consultoria_detail?.year || '',
-    distribuidor: d('consulting_detail').distribuidor || '',
-    val_distribuidor: d('consulting_detail').val_distribuidor || '',
-    soporte: d('consulting_detail').soporte || '',
-    val_soporte: d('consulting_detail').val_soporte || '',
-    estado: eq.consultoria && eq.consultoria !== 'NO' ? 'SI' : 'NO',
-    is_viteka: !!eq.consultoria_viteka,
+    distribuidor: d('consulting_detail').distribuidor || '', val_distribuidor: d('consulting_detail').val_distribuidor || '',
+    soporte: d('consulting_detail').soporte || '', val_soporte: d('consulting_detail').val_soporte || '',
+    estado: eq.consultoria && eq.consultoria !== 'NO' ? 'SI' : 'NO', is_viteka: !!eq.consultoria_viteka,
   })
 
-  // Robot
   rows.push({
-    key: 'robot',
-    producto: 'Robot dispensador',
-    icon: '🤖',
-    marca: eq.robot || '—',
-    modelo: '',
+    key: 'robot', producto: 'Robot dispensador',
+    marca: eq.robot || '—', modelo: '',
     anio: eq.robot_year || '',
-    distribuidor: d('robot_detail').distribuidor || '',
-    val_distribuidor: d('robot_detail').val_distribuidor || '',
-    soporte: d('robot_detail').soporte || '',
-    val_soporte: d('robot_detail').val_soporte || '',
-    estado: eq.robot && eq.robot !== 'NO' ? 'SI' : 'NO',
-    is_viteka: false,
+    distribuidor: d('robot_detail').distribuidor || '', val_distribuidor: d('robot_detail').val_distribuidor || '',
+    soporte: d('robot_detail').soporte || '', val_soporte: d('robot_detail').val_soporte || '',
+    estado: eq.robot && eq.robot !== 'NO' ? 'SI' : 'NO', is_viteka: false,
   })
 
-  // Cruz luminosa
   rows.push({
-    key: 'cruz',
-    producto: 'Cruz luminosa',
-    icon: '✚',
+    key: 'cruz', producto: 'Cruz luminosa',
     marca: eq.cruz && eq.cruz !== 'NO' ? `${eq.cruz_cantidad ?? 1} unidad(es)` : '—',
     modelo: eq.cruz_ampliacion ? `Ampliación: ${eq.cruz_ampliacion}` : '',
-    anio: '',
-    distribuidor: '',
-    val_distribuidor: '',
-    soporte: '',
-    val_soporte: '',
-    estado: eq.cruz && eq.cruz !== 'NO' ? 'SI' : 'NO',
-    is_viteka: false,
+    anio: '', distribuidor: '', val_distribuidor: '', soporte: '', val_soporte: '',
+    estado: eq.cruz && eq.cruz !== 'NO' ? 'SI' : 'NO', is_viteka: false,
   })
 
-  // Gestor turnos
   rows.push({
-    key: 'gestor_turnos',
-    producto: 'Gestor de turnos',
-    icon: '🔢',
-    marca: eq.gestor_turnos_marca || (eq.gestor_turnos === 'SI' ? 'Sí' : '—'),
-    modelo: '',
+    key: 'gestor_turnos', producto: 'Gestor de turnos',
+    marca: eq.gestor_turnos_marca || (eq.gestor_turnos === 'SI' ? 'Sí' : '—'), modelo: '',
     anio: eq.gestor_turnos_year || '',
-    distribuidor: d('queue_detail').distribuidor || '',
-    val_distribuidor: d('queue_detail').val_distribuidor || '',
-    soporte: d('queue_detail').soporte || '',
-    val_soporte: d('queue_detail').val_soporte || '',
-    estado: eq.gestor_turnos === 'SI' ? 'SI' : 'NO',
-    is_viteka: false,
+    distribuidor: d('queue_detail').distribuidor || '', val_distribuidor: d('queue_detail').val_distribuidor || '',
+    soporte: d('queue_detail').soporte || '', val_soporte: d('queue_detail').val_soporte || '',
+    estado: eq.gestor_turnos === 'SI' ? 'SI' : 'NO', is_viteka: false,
   })
 
-  // SPD
   rows.push({
-    key: 'spd',
-    producto: 'SPD',
-    icon: '💊',
-    marca: eq.spd_marca || (eq.spd === 'SI' ? 'Sí' : '—'),
-    modelo: '',
+    key: 'spd', producto: 'SPD',
+    marca: eq.spd_marca || (eq.spd === 'SI' ? 'Sí' : '—'), modelo: '',
     anio: eq.spd_year || '',
-    distribuidor: d('spd_detail').distribuidor || '',
-    val_distribuidor: d('spd_detail').val_distribuidor || '',
-    soporte: d('spd_detail').soporte || '',
-    val_soporte: d('spd_detail').val_soporte || '',
-    estado: eq.spd === 'SI' ? 'SI' : 'NO',
-    is_viteka: false,
+    distribuidor: d('spd_detail').distribuidor || '', val_distribuidor: d('spd_detail').val_distribuidor || '',
+    soporte: d('spd_detail').soporte || '', val_soporte: d('spd_detail').val_soporte || '',
+    estado: eq.spd === 'SI' ? 'SI' : 'NO', is_viteka: false,
   })
 
-  // Pantallas
   const pant_d = eq.pantallas_detail || {}
   rows.push({
-    key: 'pantallas',
-    producto: 'Pantallas',
-    icon: '🖥️',
+    key: 'pantallas', producto: 'Pantallas',
     marca: pant_d.marca || (eq.pantallas === 'SI' ? 'Sí' : '—'),
     modelo: Array.isArray(pant_d.ubicaciones) && pant_d.ubicaciones.length ? pant_d.ubicaciones.join(', ') : '',
     anio: pant_d.year || '',
-    distribuidor: d('screens_detail').distribuidor || '',
-    val_distribuidor: d('screens_detail').val_distribuidor || '',
-    soporte: d('screens_detail').soporte || '',
-    val_soporte: d('screens_detail').val_soporte || '',
-    estado: eq.pantallas === 'SI' ? 'SI' : 'NO',
-    is_viteka: false,
+    distribuidor: d('screens_detail').distribuidor || '', val_distribuidor: d('screens_detail').val_distribuidor || '',
+    soporte: d('screens_detail').soporte || '', val_soporte: d('screens_detail').val_soporte || '',
+    estado: eq.pantallas === 'SI' ? 'SI' : 'NO', is_viteka: false,
   })
 
-  // Frigorífico
   rows.push({
-    key: 'frigorifico',
-    producto: 'Frigorífico',
-    icon: '❄️',
-    marca: eq.frigorifico_marca || '—',
-    modelo: '',
+    key: 'frigorifico', producto: 'Frigorífico',
+    marca: eq.frigorifico_marca || '—', modelo: '',
     anio: eq.frigorifico_year || '',
-    distribuidor: d('fridge_detail').distribuidor || '',
-    val_distribuidor: d('fridge_detail').val_distribuidor || '',
-    soporte: d('fridge_detail').soporte || '',
-    val_soporte: d('fridge_detail').val_soporte || '',
-    estado: eq.frigorifico_marca ? 'SI' : 'NO',
-    is_viteka: !!eq.frigorifico_viteka,
+    distribuidor: d('fridge_detail').distribuidor || '', val_distribuidor: d('fridge_detail').val_distribuidor || '',
+    soporte: d('fridge_detail').soporte || '', val_soporte: d('fridge_detail').val_soporte || '',
+    estado: eq.frigorifico_marca ? 'SI' : 'NO', is_viteka: !!eq.frigorifico_viteka,
   })
 
   return rows
@@ -232,21 +148,21 @@ function buildRows(eq) {
 
 // ── Columnas ─────────────────────────────────────────────────────────────────
 const COLS = [
-  { key: 'producto',         label: 'Producto',               sortable: true  },
-  { key: 'marca',            label: 'Marca / Modelo',         sortable: true  },
-  { key: 'anio',             label: 'Año',                    sortable: true  },
-  { key: 'distribuidor',     label: 'Distribuidor',           sortable: true  },
-  { key: 'val_distribuidor', label: 'Val. distribuidor',      sortable: true  },
-  { key: 'soporte',          label: 'Soporte',                sortable: true  },
-  { key: 'val_soporte',      label: 'Val. soporte',           sortable: true  },
-  { key: 'estado',           label: 'Estado',                 sortable: true  },
+  { key: 'producto',         label: 'Producto',          sortable: true  },
+  { key: 'marca',            label: 'Marca / Modelo',    sortable: true  },
+  { key: 'anio',             label: 'Año',               sortable: true  },
+  { key: 'distribuidor',     label: 'Distribuidor',      sortable: true  },
+  { key: 'val_distribuidor', label: 'Val. dist.',        sortable: true  },
+  { key: 'soporte',          label: 'Soporte',           sortable: true  },
+  { key: 'val_soporte',      label: 'Val. sop.',         sortable: true  },
+  { key: 'estado',           label: 'Estado',            sortable: true  },
 ]
 
 // ── Component ────────────────────────────────────────────────────────────────
 export default function EquipmentSummaryTable({ equipment }) {
   const [sortCol, setSortCol] = useState('producto')
   const [sortDir, setSortDir] = useState('asc')
-  const [filter,  setFilter]  = useState('all') // all | viteka | active
+  const [filter,  setFilter]  = useState('all')
 
   function handleSort(col) {
     if (!COLS.find(c => c.key === col)?.sortable) return
@@ -256,10 +172,8 @@ export default function EquipmentSummaryTable({ equipment }) {
 
   const rows = useMemo(() => {
     let base = buildRows(equipment)
-
     if (filter === 'viteka') base = base.filter(r => r.is_viteka)
     if (filter === 'active') base = base.filter(r => r.estado === 'SI')
-
     return [...base].sort((a, b) => {
       const av = String(a[sortCol] ?? '').toLowerCase()
       const bv = String(b[sortCol] ?? '').toLowerCase()
@@ -287,9 +201,7 @@ export default function EquipmentSummaryTable({ equipment }) {
           {[['all','Todos'],['active','Activos'],['viteka','Viteka']].map(([val,label]) => (
             <button key={val} onClick={() => setFilter(val)}
               className={`px-3 py-1 rounded-full text-xs font-medium transition ${
-                filter === val
-                  ? 'bg-teal-600 text-white'
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                filter === val ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               }`}>
               {label}
             </button>
@@ -307,6 +219,8 @@ export default function EquipmentSummaryTable({ equipment }) {
                   onClick={() => col.sortable && handleSort(col.key)}
                   className={`px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap select-none ${
                     col.sortable ? 'cursor-pointer hover:text-teal-600' : ''
+                  } ${
+                    col.key === 'val_distribuidor' || col.key === 'val_soporte' ? 'w-24' : ''
                   }`}>
                   {col.label}
                   {col.sortable && <SortIcon col={col.key} sortCol={sortCol} sortDir={sortDir} />}
@@ -327,7 +241,6 @@ export default function EquipmentSummaryTable({ equipment }) {
 
                 {/* Producto */}
                 <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
-                  <span className="mr-1.5">{row.icon}</span>
                   {row.producto}
                   <VitekaBadge is_viteka={row.is_viteka} />
                 </td>
@@ -349,7 +262,7 @@ export default function EquipmentSummaryTable({ equipment }) {
                 </td>
 
                 {/* Val. distribuidor */}
-                <td className="px-4 py-3">
+                <td className="px-2 py-3 whitespace-nowrap">
                   {stars(row.val_distribuidor)}
                 </td>
 
@@ -359,7 +272,7 @@ export default function EquipmentSummaryTable({ equipment }) {
                 </td>
 
                 {/* Val. soporte */}
-                <td className="px-4 py-3">
+                <td className="px-2 py-3 whitespace-nowrap">
                   {stars(row.val_soporte)}
                 </td>
 
