@@ -16,11 +16,10 @@ const NAV = [
 
 export default function AppLayout({ session }) {
   const navigate = useNavigate()
-  const [pinned,     setPinned]     = useState(false)  // anclada manualmente
-  const [hovered,    setHovered]    = useState(false)  // hover del ratón
+  const [pinned,     setPinned]     = useState(false)
+  const [hovered,    setHovered]    = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  // La barra está "abierta" si está anclada O si el ratón está encima
   const isOpen = pinned || hovered
 
   async function handleLogout() {
@@ -80,16 +79,17 @@ export default function AppLayout({ session }) {
           ${isOpen ? 'w-56' : 'w-14'}`}
       >
         {/* ─ Cabecera logo + pin ─ */}
-        <div className="flex items-center justify-between px-3 py-3 border-b border-gray-200 min-h-[4rem]">
+        <div className="flex items-center px-3 py-3 border-b border-gray-200 min-h-[4rem]">
 
-          {/* Icono siempre visible — logo full solo cuando está abierta */}
-          <div className="flex items-center gap-2 overflow-hidden">
+          {/* Logo centrado cuando cerrada, con flex-1 cuando abierta para empujar chevron a la derecha */}
+          <div className={`flex items-center ${
+            isOpen ? 'flex-1' : 'w-full justify-center'
+          }`}>
             {isOpen ? (
               <img
                 src="/brand/logo-full-color.svg"
                 alt="Viteka"
-                className="h-12 w-auto max-w-[148px] object-contain
-                  transition-opacity duration-200 opacity-100"
+                className="h-12 w-auto max-w-[148px] object-contain transition-opacity duration-200 opacity-100"
               />
             ) : (
               <img
@@ -100,7 +100,7 @@ export default function AppLayout({ session }) {
             )}
           </div>
 
-          {/* Chevron solo visible cuando está abierta — ancla/desancla */}
+          {/* Chevron — solo visible cuando abierta */}
           {isOpen && (
             <button
               onClick={() => setPinned(p => !p)}
