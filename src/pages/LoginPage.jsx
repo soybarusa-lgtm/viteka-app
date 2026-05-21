@@ -19,9 +19,13 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-teal-600">Viteka</h1>
-          <p className="text-gray-500 mt-1 text-sm">Portal interno</p>
+        <div className="flex flex-col items-center mb-8 gap-2">
+          <img
+            src="/brand/logo-full-color.svg"
+            alt="Viteka"
+            className="h-14 w-auto"
+          />
+          <p className="text-gray-500 text-sm">Portal interno</p>
         </div>
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 space-y-5">
           <div>
