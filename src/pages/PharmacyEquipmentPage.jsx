@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useEquipamiento } from '../hooks/useEquipamiento'
+import { supabase } from '../lib/supabase'
 
-// ─── Constantes de opciones ───────────────────────────────────────────────────
+// ── Constantes ──────────────────────────────────────────────────────────────────
 const ERP_OPTIONS = [
   'Nixfarma','Farmatic','Unycop Next','Farmanager','Unicop Win','vGaleno','Compufarma','Otro'
 ]
@@ -37,13 +38,30 @@ const IT_TYPES = [
   'Servidor','Estación','Impresora documentos','Impresora tickets',
   'Impresora etiquetas adhesivas','SAI','Router','Switch',
 ]
+const IT_ICONS = {
+  'Servidor': '🖥️',
+  'Estación': '💻',
+  'Impresora documentos': '🖨️',
+  'Impresora tickets': '🧾',
+  'Impresora etiquetas adhesivas': '🏷️',
+  'SAI': '🔋',
+  'Router': '🌐',
+  'Switch': '🔀',
+}
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const DISK_TYPES = ['SSD','HDD','NVMe']
 const CONN_TYPES = ['Ethernet','USB','Serie','Bluetooth','WiFi','Otro']
 const MONITOR_CONN = ['HDMI','VGA','DVI','DisplayPort','Otro']
 const CAPA_OPTIONS = ['1ª','2ª','3ª','4ª','5ª']
 
-// ─── Sub-componentes atómicos ─────────────────────────────────────────────────
+// ── Utils ────────────────────────────────────────────────────────────────────
+function fmtDate(d) {
+  if (!d) return null
+  return new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+function isExpired(d) { return d && new Date(d) < new Date() }
+
+// ── Sub-componentes atómicos ─────────────────────────────────────────────────────────
 function Field({ label, children, className = '' }) {
   return (
     <div className={className}>
@@ -130,7 +148,7 @@ function VitekaDistrib({ data, onChange }) {
   )
 }
 
-// ─── Sección ERP ─────────────────────────────────────────────────────────────
+// ── Secciones ──────────────────────────────────────────────────────────────────
 function SeccionERP({ data, onChange }) {
   const erp = data.erp || ''
   const nixData = data.nixfarma_detail || {}
@@ -154,19 +172,16 @@ function SeccionERP({ data, onChange }) {
   )
 }
 
-// ─── Sección Caja de cobro ────────────────────────────────────────────────────
 function SeccionCaja({ data, onChange }) {
   const caja = data.caja || 'no'
   const set = (k, v) => onChange({ ...data, [k]: v })
   const cajaData = data.caja_detail || {}
   const needsSatisfaction = caja !== 'no' && caja !== 'cashlogy'
   const models = CAJA_MODELS[caja] || null
-
   return (
     <div className="card">
       <h2><span className="section-icon">🏧</span> Caja de cobro</h2>
       <RadioPills name="caja" options={CAJA_OPTIONS} value={caja} onChange={v => { set('caja', v); set('caja_detail', {}) }} />
-
       <Conditional show={caja !== 'no' && models}>
         <div className="flex flex-wrap gap-3">
           <Field label="Modelo">
@@ -178,15 +193,12 @@ function SeccionCaja({ data, onChange }) {
           <YearInput value={cajaData.anio} onChange={v => set('caja_detail', { ...cajaData, anio: v })} />
         </div>
       </Conditional>
-
       <Conditional show={caja === 'otro'}>
         <Field label="Modelo (texto libre)"><input className="input" value={cajaData.modelo_otro || ''} onChange={e => set('caja_detail', { ...cajaData, modelo_otro: e.target.value })} /></Field>
       </Conditional>
-
       <Conditional show={caja === 'cashlogy'}>
         <VitekaDistrib data={cajaData} onChange={v => set('caja_detail', v)} />
       </Conditional>
-
       {needsSatisfaction && (
         <SatisfactionStars value={data.caja_satisfaction} onChange={v => set('caja_satisfaction', v)} />
       )}
@@ -194,7 +206,6 @@ function SeccionCaja({ data, onChange }) {
   )
 }
 
-// ─── Sección Etiquetas Electrónicas ──────────────────────────────────────────
 function SeccionESL({ data, onChange }) {
   const esl = data.esl || 'no'
   const set = (k, v) => onChange({ ...data, [k]: v })
@@ -202,7 +213,6 @@ function SeccionESL({ data, onChange }) {
   const hasViteka = ['hanshow','pricer'].includes(esl)
   const needsYear = esl !== 'no'
   const needsSatisfaction = esl !== 'no' && esl !== 'hanshow'
-
   return (
     <div className="card">
       <h2><span className="section-icon">🏷️</span> Etiquetas electrónicas</h2>
@@ -223,7 +233,6 @@ function SeccionESL({ data, onChange }) {
   )
 }
 
-// ─── Sección Báscula ──────────────────────────────────────────────────────────
 function SeccionBascula({ data, onChange }) {
   const val = data.bascula || 'no'
   const det = data.bascula_detail || {}
@@ -243,7 +252,6 @@ function SeccionBascula({ data, onChange }) {
   )
 }
 
-// ─── Sección Antihurto ────────────────────────────────────────────────────────
 function SeccionAntihurto({ data, onChange }) {
   const val = data.antihurto || 'no'
   const det = data.antihurto_detail || {}
@@ -262,7 +270,6 @@ function SeccionAntihurto({ data, onChange }) {
   )
 }
 
-// ─── Sección Consultoría ──────────────────────────────────────────────────────
 function SeccionConsultoria({ data, onChange }) {
   const val = data.consultoria || 'no'
   const det = data.consultoria_detail || {}
@@ -287,7 +294,6 @@ function SeccionConsultoria({ data, onChange }) {
   )
 }
 
-// ─── Sección Robot ────────────────────────────────────────────────────────────
 function SeccionRobot({ data, onChange }) {
   const val = data.robot || 'NO'
   const det = data.robot_detail || {}
@@ -306,7 +312,6 @@ function SeccionRobot({ data, onChange }) {
   )
 }
 
-// ─── Sección Cruz ─────────────────────────────────────────────────────────────
 function SeccionCruz({ data, onChange }) {
   const val = data.cruz || 'NO'
   const set = (k, v) => onChange({ ...data, [k]: v })
@@ -324,7 +329,6 @@ function SeccionCruz({ data, onChange }) {
   )
 }
 
-// ─── Sección simple SI/NO con marca y año ────────────────────────────────────
 function SeccionSiNo({ field, label, icon, data, onChange }) {
   const val = data[field] || 'NO'
   const det = data[`${field}_detail`] || {}
@@ -343,7 +347,6 @@ function SeccionSiNo({ field, label, icon, data, onChange }) {
   )
 }
 
-// ─── Sección Pantallas ────────────────────────────────────────────────────────
 function SeccionPantallas({ data, onChange }) {
   const val = data.pantallas || 'NO'
   const det = data.pantallas_detail || {}
@@ -376,7 +379,6 @@ function SeccionPantallas({ data, onChange }) {
   )
 }
 
-// ─── Sección Frigorífico ──────────────────────────────────────────────────────
 function SeccionFrigorifico({ data, onChange }) {
   const det = data.frigorifico || {}
   const set = v => onChange({ ...data, frigorifico: v })
@@ -391,7 +393,7 @@ function SeccionFrigorifico({ data, onChange }) {
   )
 }
 
-// ─── Equipos Informáticos ─────────────────────────────────────────────────────
+// ── Campos detallados equipos IT ──────────────────────────────────────────────────
 function DiskList({ disks = [], onChange }) {
   function addDisk() { onChange([...disks, { tipo: 'SSD', capacidad: '' }]) }
   function removeDisk(i) { onChange(disks.filter((_, idx) => idx !== i)) }
@@ -449,7 +451,6 @@ function ComputerFields({ device, onChange }) {
       </div>
       <IpList ips={device.ips || []} onChange={v => s('ips', v)} />
       <DiskList disks={device.disks || []} onChange={v => s('disks', v)} />
-      {/* Monitor */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Field label="Monitor">
           <select className="input" value={device.monitor || 'NO'} onChange={e => s('monitor', e.target.value)}>
@@ -467,7 +468,6 @@ function ComputerFields({ device, onChange }) {
           </Field>
         </>}
       </div>
-      {/* Periféricos */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Field label="Teclado">
           <select className="input" value={device.teclado || 'NO'} onChange={e => s('teclado', e.target.value)}>
@@ -631,10 +631,12 @@ function SwitchList({ items = [], onChange }) {
   )
 }
 
-function DeviceCard({ device, index, allDevices, onChange, onDelete }) {
+// ── DeviceCard (formulario expandido) ─────────────────────────────────────────────
+function DeviceCard({ device, allDevices, onChange, onDelete, onDuplicate }) {
   const [expanded, setExpanded] = useState(true)
   const s = (f, v) => onChange({ ...device, [f]: v })
   const isViteka = device.is_viteka || false
+  const exp = isExpired(device.fin_garantia)
 
   function renderTypeFields() {
     if (['Servidor','Estación'].includes(device.tipo)) return <ComputerFields device={device} onChange={onChange} />
@@ -652,6 +654,7 @@ function DeviceCard({ device, index, allDevices, onChange, onDelete }) {
         <button type="button" onClick={() => setExpanded(e => !e)} className="text-gray-400 hover:text-gray-600 text-lg w-5 text-center">
           {expanded ? '▾' : '▸'}
         </button>
+        <span className="text-lg shrink-0">{IT_ICONS[device.tipo] || '📦'}</span>
         <Field label="" className="flex-1">
           <select className="input font-medium" value={device.tipo || ''} onChange={e => s('tipo', e.target.value)}>
             <option value="">Tipo de equipo…</option>
@@ -666,6 +669,13 @@ function DeviceCard({ device, index, allDevices, onChange, onDelete }) {
             checked={isViteka} onChange={e => s('is_viteka', e.target.checked)} />
           <span className="text-xs font-semibold text-teal-700">VITEKA</span>
         </label>
+        {/* Garantía badge en header */}
+        {device.fin_garantia && (
+          <span className={`text-xs font-medium shrink-0 ${ exp ? 'text-red-500' : 'text-green-600' }`}>
+            {exp ? '⚠️ Gtía vencida' : `Gtía: ${fmtDate(device.fin_garantia)}`}
+          </span>
+        )}
+        <button type="button" onClick={onDuplicate} title="Duplicar" className="text-gray-400 hover:text-teal-600 text-base px-1">⧉</button>
         <button type="button" onClick={onDelete} className="text-red-400 hover:text-red-600 text-lg">×</button>
       </div>
 
@@ -681,7 +691,6 @@ function DeviceCard({ device, index, allDevices, onChange, onDelete }) {
         </div>
       )}
 
-      {/* Campos específicos por tipo */}
       {expanded && (
         <div className="px-4 py-3">
           {renderTypeFields()}
@@ -694,10 +703,122 @@ function DeviceCard({ device, index, allDevices, onChange, onDelete }) {
   )
 }
 
-function SeccionEquiposIT({ devices, onChange }) {
+// ── Modal selector de farmacia origen ─────────────────────────────────────────────
+function CopyFromPharmacyModal({ currentPharmacyId, onConfirm, onClose }) {
+  const [pharmacies, setPharmacies] = useState([])
+  const [selected, setSelected]     = useState('')
+  const [loading, setLoading]       = useState(true)
+  const [search, setSearch]         = useState('')
+
+  useEffect(() => {
+    supabase
+      .from('pharmacies')
+      .select('id, name')
+      .neq('id', currentPharmacyId)
+      .order('name')
+      .then(({ data }) => { setPharmacies(data || []); setLoading(false) })
+  }, [currentPharmacyId])
+
+  const filtered = pharmacies.filter(p =>
+    p.name?.toLowerCase().includes(search.toLowerCase())
+  )
+
+  return (
+    <div className="modal-backdrop">
+      <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl">
+        <h3 className="font-bold text-gray-900 mb-1">Copiar equipos de otra farmacia</h3>
+        <p className="text-xs text-gray-500 mb-3">Se añadirán todos los equipos IT de la farmacia seleccionada.</p>
+        <input
+          className="input mb-3"
+          placeholder="Buscar farmacia…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        {loading ? (
+          <p className="text-sm text-gray-400 text-center py-4">Cargando…</p>
+        ) : (
+          <div className="max-h-52 overflow-y-auto space-y-1 mb-4">
+            {filtered.map(p => (
+              <label key={p.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition ${
+                selected === p.id ? 'bg-teal-50 border border-teal-300' : 'hover:bg-gray-50 border border-transparent'
+              }`}>
+                <input type="radio" className="sr-only" checked={selected === p.id} onChange={() => setSelected(p.id)} />
+                <span className="text-sm text-gray-800">{p.name}</span>
+              </label>
+            ))}
+            {filtered.length === 0 && <p className="text-sm text-gray-400 text-center py-2">Sin resultados</p>}
+          </div>
+        )}
+        <div className="flex gap-2 justify-end">
+          <button className="btn-secondary" onClick={onClose}>Cancelar</button>
+          <button
+            className="btn-primary"
+            disabled={!selected}
+            onClick={() => onConfirm(selected)}
+          >Copiar equipos</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── SeccionEquiposIT ────────────────────────────────────────────────────────────────
+function SeccionEquiposIT({ devices, onChange, onDuplicate, pharmacyId, copyDevicesFromPharmacy }) {
+  const [groupByType,  setGroupByType]  = useState(true)
+  const [showCopyModal, setShowCopyModal] = useState(false)
+  const [copyError,    setCopyError]    = useState('')
+
   function addDevice() { onChange([...devices, { tipo: '', nombre: '', is_viteka: false }]) }
   function updateDevice(i, v) { onChange(devices.map((d, idx) => idx === i ? v : d)) }
   function deleteDevice(i) { onChange(devices.filter((_, idx) => idx !== i)) }
+
+  async function handleCopyConfirm(sourceId) {
+    try {
+      setCopyError('')
+      await copyDevicesFromPharmacy(sourceId)
+      setShowCopyModal(false)
+    } catch (err) {
+      setCopyError(err.message)
+    }
+  }
+
+  // — Render lista según modo —
+  const renderList = () => {
+    if (!groupByType) {
+      return devices.map((d, i) => (
+        <DeviceCard key={i} device={d} allDevices={devices}
+          onChange={v => updateDevice(i, v)}
+          onDelete={() => deleteDevice(i)}
+          onDuplicate={() => onDuplicate(i)}
+        />
+      ))
+    }
+
+    // Agrupar por tipo según orden de IT_TYPES
+    return IT_TYPES.map(tipo => {
+      const group = devices
+        .map((d, idx) => ({ d, idx }))
+        .filter(({ d }) => d.tipo === tipo)
+      if (group.length === 0) return null
+      return (
+        <div key={tipo} className="mb-5">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-sm">{IT_ICONS[tipo] || '📦'}</span>
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{tipo}</h4>
+            <span className="text-[10px] bg-gray-100 text-gray-400 rounded-full px-2 py-0.5 font-medium">{group.length}</span>
+            <div className="flex-1 border-t border-gray-100" />
+          </div>
+          {group.map(({ d, idx }) => (
+            <DeviceCard key={idx} device={d} allDevices={devices}
+              onChange={v => updateDevice(idx, v)}
+              onDelete={() => deleteDevice(idx)}
+              onDuplicate={() => onDuplicate(idx)}
+            />
+          ))}
+        </div>
+      )
+    })
+  }
 
   return (
     <div className="card">
@@ -705,39 +826,87 @@ function SeccionEquiposIT({ devices, onChange }) {
       <p className="text-xs text-gray-500 mb-4">
         Cada equipo VITEKA lleva control de garantías. Los no-VITEKA permiten conocer la infraestructura para sustitución y seguimiento.
       </p>
-      {devices.map((d, i) => (
-        <DeviceCard key={i} device={d} index={i} allDevices={devices}
-          onChange={v => updateDevice(i, v)} onDelete={() => deleteDevice(i)} />
-      ))}
-      <button type="button" onClick={addDevice} className="btn-add w-full justify-center py-3">➕ Añadir equipo</button>
+
+      {/* Barra de acciones */}
+      <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+        <p className="text-sm text-gray-500">{devices.length} equipo{devices.length !== 1 ? 's' : ''}</p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => { setCopyError(''); setShowCopyModal(true) }}
+            className="btn-secondary text-xs"
+          >
+            📋 Copiar de farmacia
+          </button>
+          <button
+            type="button"
+            onClick={() => setGroupByType(p => !p)}
+            className={`text-xs px-3 py-1.5 rounded-lg border transition font-medium ${
+              groupByType
+                ? 'bg-teal-50 border-teal-300 text-teal-700'
+                : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+            }`}
+          >
+            ↕ {groupByType ? 'Agrupado por tipo' : 'Ordenar por tipo'}
+          </button>
+          <button type="button" onClick={addDevice} className="btn-primary text-xs">+ Añadir equipo</button>
+        </div>
+      </div>
+
+      {copyError && <p className="text-xs text-red-500 mb-3">{copyError}</p>}
+
+      {devices.length === 0 && (
+        <div className="empty-state">
+          <span className="text-3xl mb-2">💻</span>
+          <p className="text-gray-500 text-sm">Sin equipos registrados</p>
+        </div>
+      )}
+
+      {renderList()}
+
+      {showCopyModal && (
+        <CopyFromPharmacyModal
+          currentPharmacyId={pharmacyId}
+          onConfirm={handleCopyConfirm}
+          onClose={() => setShowCopyModal(false)}
+        />
+      )}
     </div>
   )
 }
 
-// ─── Página principal ─────────────────────────────────────────────────────────
+// ── Página principal ────────────────────────────────────────────────────────────
 export default function PharmacyEquipmentPage({ pharmacyId, pharmacyName, navigate }) {
-  const { equipment, devices, loading, saving, error, load, saveEquipment } = useEquipamiento(pharmacyId)
-  const [form, setForm]         = useState({})
+  const {
+    equipment, devices, loading, saving, error,
+    load, saveEquipment, duplicateDevice, copyDevicesFromPharmacy,
+  } = useEquipamiento(pharmacyId)
+  const [form, setForm]               = useState({})
   const [localDevices, setLocalDevices] = useState([])
-  const [saved, setSaved]       = useState(false)
+  const [saved, setSaved]             = useState(false)
 
   useEffect(() => { load() }, [load])
-
-  useEffect(() => {
-    if (equipment) setForm(equipment)
-  }, [equipment])
-
-  useEffect(() => {
-    if (devices.length) setLocalDevices(devices)
-  }, [devices])
+  useEffect(() => { if (equipment) setForm(equipment) }, [equipment])
+  useEffect(() => { if (devices.length) setLocalDevices(devices) }, [devices])
 
   async function handleSave() {
     try {
-      // Guardamos equipamiento general + dispositivos IT embebidos en el JSON del equip
       await saveEquipment({ ...form, it_devices: localDevices })
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     } catch {}
+  }
+
+  async function handleDuplicate(idx) {
+    const d = localDevices[idx]
+    if (d?.id) {
+      // Dispositivo ya guardado en BD → duplicar desde hook
+      await duplicateDevice(d.id)
+    } else {
+      // Dispositivo nuevo aún no guardado → duplicar localmente
+      const copy = { ...d, nombre: `${d.nombre || d.tipo || 'Equipo'} (copia)` }
+      setLocalDevices(prev => [...prev, copy])
+    }
   }
 
   if (loading) {
@@ -750,7 +919,6 @@ export default function PharmacyEquipmentPage({ pharmacyId, pharmacyName, naviga
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', paddingBottom: 80 }}>
-      {/* Cabecera */}
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => navigate('pharmacy-detail', { pharmacyId })} className="text-gray-400 hover:text-gray-600 text-xl">←</button>
         <div>
@@ -761,14 +929,19 @@ export default function PharmacyEquipmentPage({ pharmacyId, pharmacyName, naviga
 
       {error && <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{error}</p>}
 
-      {/* Secciones */}
       <SeccionERP          data={form} onChange={setForm} />
       <SeccionCaja         data={form} onChange={setForm} />
       <SeccionESL          data={form} onChange={setForm} />
       <SeccionBascula      data={form} onChange={setForm} />
       <SeccionAntihurto    data={form} onChange={setForm} />
       <SeccionConsultoria  data={form} onChange={setForm} />
-      <SeccionEquiposIT    devices={localDevices} onChange={setLocalDevices} />
+      <SeccionEquiposIT
+        devices={localDevices}
+        onChange={setLocalDevices}
+        onDuplicate={handleDuplicate}
+        pharmacyId={pharmacyId}
+        copyDevicesFromPharmacy={copyDevicesFromPharmacy}
+      />
       <SeccionRobot        data={form} onChange={setForm} />
       <SeccionCruz         data={form} onChange={setForm} />
       <SeccionSiNo field="gestor_turnos" label="Gestor de turnos"  icon="🔢" data={form} onChange={setForm} />
@@ -776,7 +949,6 @@ export default function PharmacyEquipmentPage({ pharmacyId, pharmacyName, naviga
       <SeccionPantallas    data={form} onChange={setForm} />
       <SeccionFrigorifico  data={form} onChange={setForm} />
 
-      {/* Footer sticky */}
       <div className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 px-4 py-3 flex justify-end gap-3">
         <button type="button" className="btn-secondary" onClick={() => navigate('pharmacy-detail', { pharmacyId })}>Cancelar</button>
         <button type="button" className="btn-primary flex items-center gap-2" onClick={handleSave} disabled={saving}>

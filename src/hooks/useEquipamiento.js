@@ -75,5 +75,67 @@ export function useEquipamiento(pharmacyId) {
     setDevices(prev => prev.filter(d => d.id !== deviceId))
   }, [])
 
-  return { equipment, devices, loading, saving, error, load, saveEquipment, saveDevice, deleteDevice }
+  /**
+   * Copia todos los dispositivos IT de otra farmacia a esta.
+   * Omite los campos id, pharmacy_id y created_at del origen.
+   */
+  const copyDevicesFromPharmacy = useCallback(async (sourcePharmacyId) => {
+    setSaving(true)
+    setError(null)
+    try {
+      const { data: sourceDevs, error: fetchErr } = await supabase
+        .from('pharmacy_it_devices')
+        .select('*')
+        .eq('pharmacy_id', sourcePharmacyId)
+        .order('created_at')
+      if (fetchErr) throw fetchErr
+      if (!sourceDevs?.length) return
+
+      const payload = sourceDevs.map(({ id, pharmacy_id, created_at, ...rest }) => ({
+        ...rest,
+        pharmacy_id: pharmacyId,
+      }))
+      const { error: insertErr } = await supabase.from('pharmacy_it_devices').insert(payload)
+      if (insertErr) throw insertErr
+      await load()
+    } catch (err) {
+      setError(err.message)
+      throw err
+    } finally {
+      setSaving(false)
+    }
+  }, [pharmacyId, load])
+
+  /**
+   * Duplica un dispositivo existente en la misma farmacia.
+   */
+  const duplicateDevice = useCallback(async (deviceId) => {
+    setSaving(true)
+    setError(null)
+    try {
+      const { data: orig, error: fetchErr } = await supabase
+        .from('pharmacy_it_devices')
+        .select('*')
+        .eq('id', deviceId)
+        .single()
+      if (fetchErr) throw fetchErr
+
+      const { id, created_at, ...rest } = orig
+      const payload = { ...rest, nombre: `${rest.nombre || rest.tipo || 'Equipo'} (copia)` }
+      const { error: insertErr } = await supabase.from('pharmacy_it_devices').insert(payload)
+      if (insertErr) throw insertErr
+      await load()
+    } catch (err) {
+      setError(err.message)
+      throw err
+    } finally {
+      setSaving(false)
+    }
+  }, [load])
+
+  return {
+    equipment, devices, loading, saving, error,
+    load, saveEquipment, saveDevice, deleteDevice,
+    copyDevicesFromPharmacy, duplicateDevice,
+  }
 }
