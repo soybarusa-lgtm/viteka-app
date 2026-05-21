@@ -1,6 +1,22 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
+// Convierte strings vacíos a null para columnas date/text opcionales
+function sanitize(payload) {
+  const DATE_FIELDS = ['install_date', 'warranty_end']
+  const out = { ...payload }
+  DATE_FIELDS.forEach(f => {
+    if (out[f] === '' || out[f] === undefined) out[f] = null
+  })
+  // Si no es equipo Viteka, limpiamos también serial_number
+  if (!out.is_viteka) {
+    out.serial_number = out.serial_number || null
+    out.install_date  = null
+    out.warranty_end  = null
+  }
+  return out
+}
+
 export function usePharmacyIT(pharmacyId) {
   const [devices,  setDevices]  = useState([])
   const [loading,  setLoading]  = useState(true)
@@ -24,7 +40,7 @@ export function usePharmacyIT(pharmacyId) {
   const createDevice = useCallback(async (payload) => {
     const { data, error } = await supabase
       .from('pharmacy_it_devices')
-      .insert(payload)
+      .insert(sanitize(payload))
       .select()
       .single()
     if (error) throw error
@@ -35,7 +51,7 @@ export function usePharmacyIT(pharmacyId) {
   const updateDevice = useCallback(async (id, payload) => {
     const { data, error } = await supabase
       .from('pharmacy_it_devices')
-      .update(payload)
+      .update(sanitize(payload))
       .eq('id', id)
       .select()
       .single()
