@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 const ERP_OPTIONS        = ['Nixfarma', 'Farmatic', 'Unycop Next', 'Farmanager', 'Unicop Win', 'vGaleno', 'Compufarma', 'Otro']
 const CASHLOGY_MODELS    = ['Cashlogy 1000', 'Cashlogy 1500', 'Cashlogy 2023', 'Maximate Safe', 'MaxiSafe', 'Cashinfinity CI-5', 'Cashinfinity CI-10X', 'Cashinfinity CI-100X', 'Cashkeeper Compacto', 'Cashkeeper Modular', 'CashDro S', 'CashDro 4', 'CashDro 5', 'CashDro 7', 'CashProtect 400 AS', 'CashProtect Pro AS', 'CashProtect PJ', 'CashProtect POS', 'CashProtect 1000', 'Otro']
@@ -46,14 +46,170 @@ function labelForItem(eq) {
   return [eq.brand, eq.model].filter(Boolean).join(' ')
 }
 
+function fmtDate(d) {
+  if (!d) return null
+  return new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function isExpired(d) {
+  return d && new Date(d) < new Date()
+}
+
+// ── Popover ──────────────────────────────────────────────────────────────────
+function Popover({ eq, anchorRef }) {
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const popRef = useRef(null)
+
+  useEffect(() => {
+    if (!anchorRef.current || !popRef.current) return
+    const rect = anchorRef.current.getBoundingClientRect()
+    const pop  = popRef.current.getBoundingClientRect()
+    const scrollY = window.scrollY
+    setPos({
+      top:  rect.top + scrollY - pop.height - 8,
+      left: Math.min(rect.left, window.innerWidth - pop.width - 16),
+    })
+  }, [])
+
+  const exp = isExpired(eq.warranty_end)
+
+  return (
+    <div
+      ref={popRef}
+      style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 50 }}
+      className="w-64 bg-white rounded-xl shadow-xl border border-gray-200 p-4 text-xs pointer-events-none"
+    >
+      <p className="font-semibold text-gray-900 text-sm mb-2">{labelForItem(eq)}</p>
+      <div className="space-y-1 text-gray-600">
+        {eq.serial_number && (
+          <div className="flex justify-between">
+            <span className="text-gray-400">S/N</span>
+            <span className="font-mono">{eq.serial_number}</span>
+          </div>
+        )}
+        {eq.install_date && (
+          <div className="flex justify-between">
+            <span className="text-gray-400">Instalación</span>
+            <span>{fmtDate(eq.install_date)}</span>
+          </div>
+        )}
+        {eq.warranty_end && (
+          <div className="flex justify-between">
+            <span className="text-gray-400">Garantía</span>
+            <span className={exp ? 'text-red-500 font-medium' : 'text-green-600'}>
+              {fmtDate(eq.warranty_end)}{exp ? ' ⚠️' : ''}
+            </span>
+          </div>
+        )}
+        {eq.observations && (
+          <div className="pt-1 border-t border-gray-100 mt-1">
+            <span className="text-gray-400 block mb-0.5">Observaciones</span>
+            <span className="text-gray-700">{eq.observations}</span>
+          </div>
+        )}
+        {!eq.serial_number && !eq.install_date && !eq.warranty_end && !eq.observations && (
+          <p className="text-gray-400 italic">Sin detalles adicionales</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── EquipmentRow ─────────────────────────────────────────────────────────────
+function EquipmentRow({ eq, onEdit, onDelete }) {
+  const [hovered, setHovered] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const rowRef = useRef(null)
+  const cat = CATEGORY_LIST.find(c => c.id === eq.equipment_type)
+  const exp = isExpired(eq.warranty_end)
+
+  return (
+    <>
+      <div
+        ref={rowRef}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onClick={() => setExpanded(p => !p)}
+        className={`relative flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors rounded-lg ${
+          hovered || expanded ? 'bg-gray-50' : 'bg-white'
+        } border border-gray-100`}
+      >
+        {/* Acento izquierdo Viteka */}
+        {eq.is_viteka && <div className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-green-400" />}
+
+        {/* Icono categoría */}
+        <span className="text-lg shrink-0">{cat?.icon ?? '📦'}</span>
+
+        {/* Nombre + badges */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="font-medium text-gray-900 text-sm truncate">{labelForItem(eq)}</span>
+            {eq.is_viteka && (
+              <img src="/brand/favicon.svg" alt="Viteka" title="Producto Viteka" className="w-3.5 h-3.5 shrink-0" />
+            )}
+            {cat && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-500 whitespace-nowrap">
+                {cat.label}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Garantía */}
+        <div className="shrink-0 text-xs">
+          {eq.warranty_end ? (
+            <span className={exp ? 'text-red-500 font-semibold' : 'text-green-600'}>
+              {exp ? '⚠️ Gtía vencida' : `Gtía: ${fmtDate(eq.warranty_end)}`}
+            </span>
+          ) : (
+            <span className="text-gray-300">—</span>
+          )}
+        </div>
+
+        {/* Acciones */}
+        <div
+          className="flex gap-1 shrink-0"
+          onClick={e => e.stopPropagation()}
+        >
+          <button onClick={() => onEdit(eq)} className="btn-ghost text-xs px-2 py-1">Editar</button>
+          <button onClick={() => onDelete(eq)} className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 transition">🗑️</button>
+        </div>
+
+        {/* Popover hover (solo desktop) */}
+        {hovered && <Popover eq={eq} anchorRef={rowRef} />}
+      </div>
+
+      {/* Expansión click (mobile-friendly) */}
+      {expanded && (
+        <div className="mx-4 mb-1 px-4 py-3 bg-gray-50 rounded-b-lg border border-t-0 border-gray-100 text-xs text-gray-600 grid grid-cols-2 gap-x-4 gap-y-1">
+          {eq.serial_number  && <><span className="text-gray-400">S/N</span><span className="font-mono">{eq.serial_number}</span></>}
+          {eq.install_date   && <><span className="text-gray-400">Instalación</span><span>{fmtDate(eq.install_date)}</span></>}
+          {eq.warranty_end   && (
+            <><span className="text-gray-400">Garantía</span>
+            <span className={exp ? 'text-red-500 font-medium' : 'text-green-600'}>
+              {fmtDate(eq.warranty_end)}{exp ? ' ⚠️' : ''}
+            </span></>
+          )}
+          {eq.observations   && <><span className="text-gray-400 col-span-2">Obs.</span><span className="col-span-2">{eq.observations}</span></>}
+          {!eq.serial_number && !eq.install_date && !eq.warranty_end && !eq.observations && (
+            <span className="col-span-2 text-gray-400 italic">Sin detalles adicionales</span>
+          )}
+        </div>
+      )}
+    </>
+  )
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 export default function EquipmentTab({ detail }) {
-  const { equipment, createEquipment, updateEquipment, deleteEquipment } = detail
+  const { equipment, createEquipment, updateEquipment, deleteEquipment, copyFromPharmacy, duplicateEquipment } = detail
   const [showForm,      setShowForm]      = useState(false)
   const [editing,       setEditing]       = useState(null)
   const [form,          setForm]          = useState(EMPTY)
   const [saving,        setSaving]        = useState(false)
   const [formError,     setFormError]     = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [groupByType,   setGroupByType]   = useState(false)
 
   function openCreate() { setForm(EMPTY); setEditing(null); setFormError(''); setShowForm(true) }
   function openEdit(e) {
@@ -108,15 +264,90 @@ export default function EquipmentTab({ detail }) {
     }
   }
 
-  const vitekaEq = equipment.filter(e => e.is_viteka)
-  const otherEq  = equipment.filter(e => !e.is_viteka)
   const brandOptions = brandsForCategory(form.category)
+
+  // ── Agrupación ──
+  const renderList = () => {
+    if (!groupByType) {
+      // Vista original: Viteka primero, luego otros
+      const vitekaEq = equipment.filter(e => e.is_viteka)
+      const otherEq  = equipment.filter(e => !e.is_viteka)
+      return (
+        <>
+          {vitekaEq.length > 0 && (
+            <div className="mb-5">
+              <h4 className="text-xs font-semibold text-teal-700 uppercase tracking-wide mb-2">Equipos Viteka</h4>
+              <div className="space-y-1">
+                {vitekaEq.map(e => <EquipmentRow key={e.id} eq={e} onEdit={openEdit} onDelete={setDeleteConfirm} />)}
+              </div>
+            </div>
+          )}
+          {otherEq.length > 0 && (
+            <div className="mb-5">
+              <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Otros equipos</h4>
+              <div className="space-y-1">
+                {otherEq.map(e => <EquipmentRow key={e.id} eq={e} onEdit={openEdit} onDelete={setDeleteConfirm} />)}
+              </div>
+            </div>
+          )}
+        </>
+      )
+    }
+
+    // Vista agrupada por tipo de producto
+    const groups = {}
+    equipment.forEach(e => {
+      const key = e.equipment_type || 'other'
+      if (!groups[key]) groups[key] = []
+      groups[key].push(e)
+    })
+
+    return Object.entries(groups).map(([catId, items]) => {
+      const cat = CATEGORY_LIST.find(c => c.id === catId)
+      return (
+        <div key={catId} className="mb-5">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-sm">{cat?.icon ?? '📦'}</span>
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{cat?.label ?? 'Otros'}</h4>
+            <span className="text-[10px] bg-gray-100 text-gray-400 rounded-full px-2 py-0.5 font-medium">{items.length}</span>
+            <div className="flex-1 border-t border-gray-100" />
+          </div>
+          <div className="space-y-1">
+            {items.map(e => <EquipmentRow key={e.id} eq={e} onEdit={openEdit} onDelete={setDeleteConfirm} />)}
+          </div>
+        </div>
+      )
+    })
+  }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      {/* Barra superior */}
+      <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
         <p className="text-sm text-gray-500">{equipment.length} equipo{equipment.length !== 1 ? 's' : ''}</p>
-        <button onClick={openCreate} className="btn-primary text-sm">+ Añadir equipo</button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {copyFromPharmacy && (
+            <button onClick={copyFromPharmacy} className="btn-secondary text-xs">
+              📋 Copiar de farmacia
+            </button>
+          )}
+          {duplicateEquipment && (
+            <button onClick={duplicateEquipment} className="btn-secondary text-xs">
+              ⧉ Duplicar
+            </button>
+          )}
+          <button
+            onClick={() => setGroupByType(p => !p)}
+            className={`text-xs px-3 py-1.5 rounded-lg border transition font-medium ${
+              groupByType
+                ? 'bg-teal-50 border-teal-300 text-teal-700'
+                : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+            }`}
+          >
+            ↕ {groupByType ? 'Agrupado por tipo' : 'Ordenar por tipo'}
+          </button>
+          <button onClick={openCreate} className="btn-primary text-sm">+ Añadir equipo</button>
+        </div>
       </div>
 
       {equipment.length === 0 && !showForm && (
@@ -126,20 +357,9 @@ export default function EquipmentTab({ detail }) {
         </div>
       )}
 
-      {vitekaEq.length > 0 && (
-        <div className="mb-5">
-          <h4 className="text-xs font-semibold text-teal-700 uppercase tracking-wide mb-2">Equipos Viteka</h4>
-          <EquipmentList items={vitekaEq} onEdit={openEdit} onDelete={setDeleteConfirm} />
-        </div>
-      )}
+      {renderList()}
 
-      {otherEq.length > 0 && (
-        <div className="mb-5">
-          <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Otros equipos</h4>
-          <EquipmentList items={otherEq} onEdit={openEdit} onDelete={setDeleteConfirm} />
-        </div>
-      )}
-
+      {/* Formulario */}
       {showForm && (
         <div className="card p-5 border-2 border-teal-200 mt-4">
           <h4 className="font-semibold text-gray-800 mb-4">{editing ? 'Editar equipo' : 'Nuevo equipo'}</h4>
@@ -234,6 +454,7 @@ export default function EquipmentTab({ detail }) {
         </div>
       )}
 
+      {/* Modal eliminar */}
       {deleteConfirm && (
         <div className="modal-backdrop">
           <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl">
@@ -246,45 +467,6 @@ export default function EquipmentTab({ detail }) {
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-function EquipmentList({ items, onEdit, onDelete }) {
-  return (
-    <div className="space-y-2">
-      {items.map(e => {
-        const warrantyExpired = e.warranty_end && new Date(e.warranty_end) < new Date()
-        const cat = CATEGORY_LIST.find(c => c.id === e.equipment_type)
-        return (
-          <div key={e.id} className="card p-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {cat && <span className="text-base">{cat.icon}</span>}
-                  <p className="font-semibold text-gray-900">{labelForItem(e)}</p>
-                  {cat && <span className="badge-gray text-xs">{cat.label}</span>}
-                </div>
-                <div className="flex flex-wrap gap-3 mt-1 text-xs text-gray-500">
-                  {e.serial_number && <span>S/N: {e.serial_number}</span>}
-                  {e.install_date  && <span>Instalación: {new Date(e.install_date).toLocaleDateString('es-ES')}</span>}
-                  {e.warranty_end  && (
-                    <span className={warrantyExpired ? 'text-red-500 font-medium' : ''}>
-                      Garantía: {new Date(e.warranty_end).toLocaleDateString('es-ES')}
-                      {warrantyExpired ? ' ⚠️ Vencida' : ''}
-                    </span>
-                  )}
-                </div>
-                {e.observations && <p className="text-xs text-gray-400 mt-1">{e.observations}</p>}
-              </div>
-              <div className="flex gap-1 shrink-0">
-                <button onClick={() => onEdit(e)} className="btn-ghost text-xs px-2 py-1">Editar</button>
-                <button onClick={() => onDelete(e)} className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 transition">🗑️</button>
-              </div>
-            </div>
-          </div>
-        )
-      })}
     </div>
   )
 }
