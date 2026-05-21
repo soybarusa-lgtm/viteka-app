@@ -12,6 +12,7 @@ import {
   UsersIcon, FolderOpenIcon, ExclamationTriangleIcon,
   DocumentTextIcon, ComputerDesktopIcon,
   PlusIcon, TrashIcon, XMarkIcon, ArrowsRightLeftIcon,
+  DocumentDuplicateIcon,
 } from '@heroicons/react/24/outline'
 import { useToast } from '../context/ToastContext'
 import ConfirmDialog from '../components/pharmacy/ConfirmDialog'
@@ -251,7 +252,7 @@ function TabEquipment({ equipment }) {
 // ── Tab: Equipamiento Informático ─────────────────────────────────────────────
 const IT_LABEL = Object.fromEntries(IT_TYPES.map(t => [t.value, t.label]))
 
-function ITDeviceCard({ device, onEdit, onDelete }) {
+function ITDeviceCard({ device, onEdit, onDelete, onDuplicate }) {
   const specs = device.specs || {}
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
@@ -262,6 +263,14 @@ function ITDeviceCard({ device, onEdit, onDelete }) {
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {device.is_viteka && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-700">Viteka</span>}
+          <button
+            type="button"
+            onClick={() => onDuplicate(device)}
+            title="Duplicar equipo"
+            className="p-1.5 text-gray-400 hover:text-indigo-500 rounded-lg hover:bg-gray-50"
+          >
+            <DocumentDuplicateIcon className="w-4 h-4" />
+          </button>
           <button type="button" onClick={() => onEdit(device)} className="p-1.5 text-gray-400 hover:text-teal-600 rounded-lg hover:bg-gray-50">
             <PencilSquareIcon className="w-4 h-4" />
           </button>
@@ -508,7 +517,6 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
   const [loadingDev, setLoadingDev]     = useState(false)
   const [copying, setCopying]           = useState(false)
 
-  // Cargar farmacias de la misma empresa (excluye la actual)
   useEffect(() => {
     async function fetchPharmacies() {
       const { data } = await supabase
@@ -523,7 +531,6 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
     fetchPharmacies()
   }, [companyId, currentPharmacyId])
 
-  // Cargar equipos de la farmacia origen seleccionada
   useEffect(() => {
     if (!sourceId) { setSourceDevices([]); return }
     setLoadingDev(true)
@@ -553,7 +560,6 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           <h2 className="text-base font-semibold text-gray-900">Copiar equipos de otra farmacia</h2>
           <button type="button" onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
@@ -562,7 +568,6 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {/* Selector de farmacia origen */}
           <div>
             <Label required>Farmacia origen</Label>
             {loadingPharm ? (
@@ -577,7 +582,6 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
             )}
           </div>
 
-          {/* Lista de equipos */}
           {sourceId && (
             <div className="space-y-2">
               {loadingDev ? (
@@ -615,7 +619,6 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
           )}
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-gray-200">
           <span className="text-xs text-gray-400">
             {selected.length > 0 ? `${selected.length} equipo${selected.length !== 1 ? 's' : ''} seleccionado${selected.length !== 1 ? 's' : ''}` : 'Ninguno seleccionado'}
@@ -660,9 +663,27 @@ function TabIT({ pharmacyId, companyId }) {
     finally { setConfirmDel(null) }
   }
 
-  async function handleCopyDevices(devices) {
+  async function handleDuplicate(device) {
+    try {
+      await createDevice({
+        pharmacy_id:   pharmacyId,
+        company_id:    companyId,
+        device_type:   device.device_type,
+        label:         device.label ? `${device.label} (copia)` : '',
+        specs:         device.specs,
+        observations:  device.observations,
+        is_viteka:     false,
+        serial_number: null,
+        install_date:  null,
+        warranty_end:  null,
+      })
+      toast('Equipo duplicado correctamente', 'success')
+    } catch (err) { toast(err.message, 'error', 5500) }
+  }
+
+  async function handleCopyDevices(deviceList) {
     let ok = 0
-    for (const d of devices) {
+    for (const d of deviceList) {
       try {
         await createDevice({
           pharmacy_id:   pharmacyId,
@@ -707,7 +728,7 @@ function TabIT({ pharmacyId, companyId }) {
       {devices.map(d => (
         editing?.id === d.id
           ? <ITDeviceForm key={d.id} initial={editing} pharmacyId={pharmacyId} companyId={companyId} onSave={handleSave} onCancel={() => setEditing(null)} />
-          : <ITDeviceCard key={d.id} device={d} onEdit={setEditing} onDelete={setConfirmDel} />
+          : <ITDeviceCard key={d.id} device={d} onEdit={setEditing} onDelete={setConfirmDel} onDuplicate={handleDuplicate} />
       ))}
 
       <ConfirmDialog
