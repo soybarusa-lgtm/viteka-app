@@ -117,7 +117,7 @@ function Popover({ eq, anchorRef }) {
 
 // ── EquipmentRow ─────────────────────────────────────────────────────────────
 function EquipmentRow({ eq, onEdit, onDelete }) {
-  const [hovered, setHovered] = useState(false)
+  const [hovered,  setHovered]  = useState(false)
   const [expanded, setExpanded] = useState(false)
   const rowRef = useRef(null)
   const cat = CATEGORY_LIST.find(c => c.id === eq.equipment_type)
@@ -137,7 +137,7 @@ function EquipmentRow({ eq, onEdit, onDelete }) {
         {/* Acento izquierdo Viteka */}
         {eq.is_viteka && <div className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-green-400" />}
 
-        {/* Icono categoría */}
+        {/* Icono */}
         <span className="text-lg shrink-0">{cat?.icon ?? '📦'}</span>
 
         {/* Nombre + badges */}
@@ -167,30 +167,27 @@ function EquipmentRow({ eq, onEdit, onDelete }) {
         </div>
 
         {/* Acciones */}
-        <div
-          className="flex gap-1 shrink-0"
-          onClick={e => e.stopPropagation()}
-        >
+        <div className="flex gap-1 shrink-0" onClick={e => e.stopPropagation()}>
           <button onClick={() => onEdit(eq)} className="btn-ghost text-xs px-2 py-1">Editar</button>
           <button onClick={() => onDelete(eq)} className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 transition">🗑️</button>
         </div>
 
-        {/* Popover hover (solo desktop) */}
+        {/* Popover hover */}
         {hovered && <Popover eq={eq} anchorRef={rowRef} />}
       </div>
 
-      {/* Expansión click (mobile-friendly) */}
+      {/* Expansión click (mobile) */}
       {expanded && (
         <div className="mx-4 mb-1 px-4 py-3 bg-gray-50 rounded-b-lg border border-t-0 border-gray-100 text-xs text-gray-600 grid grid-cols-2 gap-x-4 gap-y-1">
-          {eq.serial_number  && <><span className="text-gray-400">S/N</span><span className="font-mono">{eq.serial_number}</span></>}
-          {eq.install_date   && <><span className="text-gray-400">Instalación</span><span>{fmtDate(eq.install_date)}</span></>}
-          {eq.warranty_end   && (
+          {eq.serial_number && <><span className="text-gray-400">S/N</span><span className="font-mono">{eq.serial_number}</span></>}
+          {eq.install_date  && <><span className="text-gray-400">Instalación</span><span>{fmtDate(eq.install_date)}</span></>}
+          {eq.warranty_end  && (
             <><span className="text-gray-400">Garantía</span>
             <span className={exp ? 'text-red-500 font-medium' : 'text-green-600'}>
               {fmtDate(eq.warranty_end)}{exp ? ' ⚠️' : ''}
             </span></>
           )}
-          {eq.observations   && <><span className="text-gray-400 col-span-2">Obs.</span><span className="col-span-2">{eq.observations}</span></>}
+          {eq.observations  && <><span className="text-gray-400 col-span-2">Obs.</span><span className="col-span-2">{eq.observations}</span></>}
           {!eq.serial_number && !eq.install_date && !eq.warranty_end && !eq.observations && (
             <span className="col-span-2 text-gray-400 italic">Sin detalles adicionales</span>
           )}
@@ -209,7 +206,7 @@ export default function EquipmentTab({ detail }) {
   const [saving,        setSaving]        = useState(false)
   const [formError,     setFormError]     = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState(null)
-  const [groupByType,   setGroupByType]   = useState(false)
+  const [groupByType,   setGroupByType]   = useState(true)  // agrupado por tipo por defecto
 
   function openCreate() { setForm(EMPTY); setEditing(null); setFormError(''); setShowForm(true) }
   function openEdit(e) {
@@ -266,10 +263,8 @@ export default function EquipmentTab({ detail }) {
 
   const brandOptions = brandsForCategory(form.category)
 
-  // ── Agrupación ──
   const renderList = () => {
     if (!groupByType) {
-      // Vista original: Viteka primero, luego otros
       const vitekaEq = equipment.filter(e => e.is_viteka)
       const otherEq  = equipment.filter(e => !e.is_viteka)
       return (
@@ -294,21 +289,15 @@ export default function EquipmentTab({ detail }) {
       )
     }
 
-    // Vista agrupada por tipo de producto
-    const groups = {}
-    equipment.forEach(e => {
-      const key = e.equipment_type || 'other'
-      if (!groups[key]) groups[key] = []
-      groups[key].push(e)
-    })
-
-    return Object.entries(groups).map(([catId, items]) => {
-      const cat = CATEGORY_LIST.find(c => c.id === catId)
+    // Vista agrupada por tipo — orden según CATEGORY_LIST
+    return CATEGORY_LIST.map(cat => {
+      const items = equipment.filter(e => e.equipment_type === cat.id)
+      if (items.length === 0) return null
       return (
-        <div key={catId} className="mb-5">
+        <div key={cat.id} className="mb-5">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-sm">{cat?.icon ?? '📦'}</span>
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{cat?.label ?? 'Otros'}</h4>
+            <span className="text-sm">{cat.icon}</span>
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{cat.label}</h4>
             <span className="text-[10px] bg-gray-100 text-gray-400 rounded-full px-2 py-0.5 font-medium">{items.length}</span>
             <div className="flex-1 border-t border-gray-100" />
           </div>
