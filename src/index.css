@@ -9,3 +9,22 @@ body {
   background-color: #f9fafb; /* gray-50 */
   color: #111827;            /* gray-900 */
 }
+
+/* ── Login background animation ───────────────────────── */
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.login-bg {
+  background: linear-gradient(
+    -45deg,
+    #bbf7d0,  /* green-200  */
+    #6ee7b7,  /* emerald-300 */
+    #a7f3d0,  /* emerald-200 */
+    #86efac   /* green-300  */
+  );
+  background-size: 400% 400%;
+  animation: gradientShift 8s ease infinite;
+}
