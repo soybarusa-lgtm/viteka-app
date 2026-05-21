@@ -21,14 +21,16 @@ function StatusBadge({ value }) {
   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200">Activo</span>
 }
 
-/** Recuadro verde con favicon + "Viteka" */
+/** Solo el favicon a color, sin texto ni recuadro */
 function VitekaBadge({ is_viteka }) {
   if (!is_viteka) return null
   return (
-    <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-green-400 bg-green-50 text-green-700 text-[10px] font-semibold whitespace-nowrap">
-      <img src="/favicon.svg" alt="" className="w-3 h-3 shrink-0" />
-      Viteka
-    </span>
+    <img
+      src="/favicon.svg"
+      alt="Viteka"
+      title="Producto Viteka"
+      className="ml-2 w-4 h-4 shrink-0 inline-block"
+    />
   )
 }
 
