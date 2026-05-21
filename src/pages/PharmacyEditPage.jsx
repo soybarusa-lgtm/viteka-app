@@ -9,10 +9,19 @@ import {
 } from '../components/pharmacy/PharmacyFormAtoms'
 import ContactBlock from '../components/pharmacy/ContactBlock'
 import CbOwners from '../components/pharmacy/CbOwners'
+import DistribuidorBlock from '../components/pharmacy/DistribuidorBlock'
 import {
   ERP_OPTIONS, CAJA_OPTIONS, ESL_OPTIONS, BASCULA_OPTIONS, ANTIHURTO_OPTIONS,
   CONSULTORIA_OPTIONS, MONTHS, mkContact,
 } from '../components/pharmacy/PHARMACY_CONSTANTS'
+
+// ── helpers de detail ─────────────────────────────────────────────────────────
+function mkDetail(base = {}) {
+  return {
+    distribuidor: '', val_distribuidor: '', soporte: '', val_soporte: '', anotaciones: '',
+    ...base,
+  }
+}
 
 function pharmacyToForm(ph, eq) {
   const lType    = ph.legal_type || 'autonomo'
@@ -42,22 +51,65 @@ function pharmacyToForm(ph, eq) {
     cb_contact: mkContact('cb', hasCb ? mainData : {}),
     sl: { razon_social: sl.razon_social || '', cif: sl.cif || '' },
     sl_contact: mkContact('sl', sl),
-    erp: eq?.erp || 'Nixfarma', erp_viteka: eq?.erp_viteka || false, erp_satisfaction: eq?.erp_satisfaction || '',
-    erp_detail: eq?.erp_detail || { licencia: '', puestos: '', year: '' },
+
+    // ERP
+    erp: eq?.erp || 'Nixfarma',
+    erp_viteka: eq?.erp_viteka || false,
+    erp_satisfaction: eq?.erp_satisfaction || '',
+    erp_detail: mkDetail(eq?.erp_detail || { licencia: '', puestos: '', year: '' }),
+
+    // Caja
     caja: eq?.caja || 'NO', caja_modelo: eq?.caja_modelo || '', caja_year: eq?.caja_year || '',
     caja_viteka: eq?.caja_viteka || false, caja_satisfaction: eq?.caja_satisfaction || '', caja_otro: '',
-    esl: eq?.esl || 'NO', esl_year: eq?.esl_year || '', esl_viteka: eq?.esl_viteka || false, esl_satisfaction: eq?.esl_satisfaction || '',
-    bascula: eq?.bascula || 'NO', bascula_year: eq?.bascula_year || '', bascula_viteka: eq?.bascula_viteka || false, bascula_otro: '',
+    caja_detail: mkDetail(eq?.caja_detail || {}),
+
+    // ESL
+    esl: eq?.esl || 'NO', esl_year: eq?.esl_year || '',
+    esl_viteka: eq?.esl_viteka || false, esl_satisfaction: eq?.esl_satisfaction || '',
+    esl_detail: mkDetail(eq?.esl_detail || {}),
+
+    // Básculas
+    bascula: eq?.bascula || 'NO', bascula_year: eq?.bascula_year || '',
+    bascula_viteka: eq?.bascula_viteka || false, bascula_otro: '',
+    bascula_detail: mkDetail(eq?.bascula_detail || {}),
+
+    // Antihurto
     antihurto: eq?.antihurto || 'NO', antihurto_year: eq?.antihurto_year || '', antihurto_otro: '',
-    consultoria: eq?.consultoria || 'NO', consultoria_month: eq?.consultoria_detail?.month || '',
-    consultoria_year: eq?.consultoria_detail?.year || '', consultoria_otro: eq?.consultoria_detail?.otro || '',
+    antihurto_detail: mkDetail(eq?.antihurto_detail || {}),
+
+    // Consultoría
+    consultoria: eq?.consultoria || 'NO',
+    consultoria_month: eq?.consultoria_detail?.month || '',
+    consultoria_year: eq?.consultoria_detail?.year || '',
+    consultoria_otro: eq?.consultoria_detail?.otro || '',
+    consultoria_viteka: eq?.consultoria_viteka || false,
+    consultoria_detail: mkDetail(eq?.consultoria_detail || {}),
+
+    // Robot
     robot: eq?.robot || 'NO', robot_year: eq?.robot_year || '', robot_otro: '',
+    robot_detail: mkDetail(eq?.robot_detail || {}),
+
+    // Cruz
     cruz: eq?.cruz || 'NO', cruz_cantidad: eq?.cruz_cantidad || '', cruz_ampliacion: eq?.cruz_ampliacion || '',
-    gestor_turnos: eq?.gestor_turnos || 'NO', gestor_turnos_marca: eq?.gestor_turnos_marca || '', gestor_turnos_year: eq?.gestor_turnos_year || '',
+
+    // Gestor turnos
+    gestor_turnos: eq?.gestor_turnos || 'NO', gestor_turnos_marca: eq?.gestor_turnos_marca || '',
+    gestor_turnos_year: eq?.gestor_turnos_year || '',
+    gestor_turnos_detail: mkDetail(eq?.gestor_turnos_detail || {}),
+
+    // SPD
     spd: eq?.spd || 'NO', spd_marca: eq?.spd_marca || '', spd_year: eq?.spd_year || '',
+    spd_detail: mkDetail(eq?.spd_detail || {}),
+
+    // Pantallas
     pantallas: eq?.pantallas || 'NO', pantallas_marca: pantallas_d.marca || '', pantallas_year: pantallas_d.year || '',
     pantallas_interior: ubs.includes('Interior'), pantallas_escaparate: ubs.includes('Escaparate'), pantallas_exterior: ubs.includes('Exterior'),
+    pantallas_detail: mkDetail(pantallas_d),
+
+    // Frigorífico
     frigorifico_marca: eq?.frigorifico_marca || '', frigorifico_year: eq?.frigorifico_year || '',
+    frigorifico_viteka: eq?.frigorifico_viteka || false, frigorifico_satisfaction: eq?.frigorifico_satisfaction || '',
+    frigorifico_detail: mkDetail(eq?.frigorifico_detail || {}),
   }
 }
 
@@ -71,10 +123,13 @@ export default function PharmacyEditPage() {
   const [loading, setLoading] = useState(true)
   const [saving,  setSaving]  = useState(false)
 
-  // ✔ Todos los hooks ANTES de cualquier return condicional
-  const set        = useCallback((k, v)    => setForm(p => ({ ...p, [k]: v })), [])
-  const setNested  = useCallback((s, k, v) => setForm(p => ({ ...p, [s]: { ...p[s], [k]: v } })), [])
-  const setContact = useCallback((s, k, v) => setForm(p => ({ ...p, [s]: { ...p[s], [k]: v } })), [])
+  const set       = useCallback((k, v)    => setForm(p => ({ ...p, [k]: v })), [])
+  const setNested = useCallback((s, k, v) => setForm(p => ({ ...p, [s]: { ...p[s], [k]: v } })), [])
+  const setContact= useCallback((s, k, v) => setForm(p => ({ ...p, [s]: { ...p[s], [k]: v } })), [])
+  // helper para los *_detail con DistribuidorBlock
+  const setDetail = useCallback((section, key, val) =>
+    setForm(p => ({ ...p, [section]: { ...p[section], [key]: val } })), [])
+
   const toggleType = useCallback(type => {
     setForm(p => {
       const has = p.types.includes(type)
@@ -107,7 +162,6 @@ export default function PharmacyEditPage() {
     return () => { cancelled = true }
   }, [id, toast])
 
-  // Returns condicionales DESPUÉS de todos los hooks
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
@@ -128,24 +182,18 @@ export default function PharmacyEditPage() {
       const mainContact = hasAuto ? form.auto_contact : hasCb ? form.cb_contact : form.sl_contact
 
       const pharmacyPayload = {
-        pharmacy_name:     form.pharmacy_name,
-        legal_type:        legalType,
-        owner_name:        hasAuto ? form.auto.owner_name : null,
-        nif:               hasAuto ? form.auto.nif : null,
+        pharmacy_name: form.pharmacy_name, legal_type: legalType,
+        owner_name: hasAuto ? form.auto.owner_name : null,
+        nif: hasAuto ? form.auto.nif : null,
         collegiate_number: hasAuto ? form.auto.collegiate_number : null,
-        razon_social:      hasCb ? form.cb.razon_social : (hasSl && !hasAuto && !hasCb ? form.sl.razon_social : null),
-        cif:               hasCb ? form.cb.cif : (hasSl && !hasAuto && !hasCb ? form.sl.cif : null),
-        cb_owners:         hasCb ? form.cb.owners : [],
-        soe_number:        mainContact.soe,
-        schedule:          mainContact.schedule,
-        has_guards:        mainContact.has_guards,
-        contact_phone:     mainContact.phone,
-        contact_email:     mainContact.email,
-        address:           mainContact.address,
-        province:          mainContact.province,
-        city:              mainContact.city,
-        postal_code:       mainContact.postal_code,
-        observations:      mainContact.observations,
+        razon_social: hasCb ? form.cb.razon_social : (hasSl && !hasAuto && !hasCb ? form.sl.razon_social : null),
+        cif: hasCb ? form.cb.cif : (hasSl && !hasAuto && !hasCb ? form.sl.cif : null),
+        cb_owners: hasCb ? form.cb.owners : [],
+        soe_number: mainContact.soe, schedule: mainContact.schedule,
+        has_guards: mainContact.has_guards, contact_phone: mainContact.phone,
+        contact_email: mainContact.email, address: mainContact.address,
+        province: mainContact.province, city: mainContact.city,
+        postal_code: mainContact.postal_code, observations: mainContact.observations,
         sl_data: hasSl ? {
           razon_social: form.sl.razon_social, cif: form.sl.cif,
           phone: form.sl_contact.phone, email: form.sl_contact.email,
@@ -158,28 +206,68 @@ export default function PharmacyEditPage() {
       const { error: phErr } = await supabase.from('pharmacies').update(pharmacyPayload).eq('id', id)
       if (phErr) throw phErr
 
+      // Fija distribuidor/soporte a "Viteka" cuando corresponde
+      function resolveDetail(detail, isViteka) {
+        if (!isViteka) return detail
+        return { ...detail, distribuidor: 'Viteka', soporte: 'Viteka' }
+      }
+
       const eqPayload = {
-        pharmacy_id:      id,
-        erp: form.erp, erp_viteka: form.erp_viteka, erp_satisfaction: form.erp_satisfaction || null, erp_detail: form.erp_detail,
-        caja: form.caja, caja_marca: form.caja, caja_modelo: form.caja_modelo, caja_year: form.caja_year || null,
-        caja_viteka: form.caja_viteka, caja_satisfaction: form.caja_satisfaction || null,
-        esl: form.esl, esl_year: form.esl_year || null, esl_viteka: form.esl_viteka, esl_satisfaction: form.esl_satisfaction || null,
-        bascula: form.bascula, bascula_year: form.bascula_year || null, bascula_viteka: form.bascula_viteka,
+        pharmacy_id: id,
+        erp: form.erp, erp_viteka: form.erp_viteka,
+        erp_satisfaction: form.erp_satisfaction || null,
+        erp_detail: resolveDetail({
+          ...form.erp_detail,
+          licencia: form.erp_detail.licencia, puestos: form.erp_detail.puestos, year: form.erp_detail.year,
+        }, form.erp_viteka),
+
+        caja: form.caja, caja_marca: form.caja, caja_modelo: form.caja_modelo,
+        caja_year: form.caja_year || null, caja_viteka: form.caja_viteka,
+        caja_satisfaction: form.caja_satisfaction || null,
+        caja_detail: resolveDetail(form.caja_detail, form.caja_viteka),
+
+        esl: form.esl, esl_year: form.esl_year || null,
+        esl_viteka: form.esl_viteka, esl_satisfaction: form.esl_satisfaction || null,
+        esl_detail: resolveDetail(form.esl_detail, form.esl_viteka),
+
+        bascula: form.bascula, bascula_year: form.bascula_year || null,
+        bascula_viteka: form.bascula_viteka,
+        bascula_detail: resolveDetail(form.bascula_detail, form.bascula_viteka),
+
         antihurto: form.antihurto, antihurto_year: form.antihurto_year || null,
+        antihurto_detail: form.antihurto_detail,
+
         consultoria: form.consultoria,
-        consultoria_detail: { month: form.consultoria_month, year: form.consultoria_year, otro: form.consultoria_otro },
+        consultoria_viteka: form.consultoria_viteka,
+        consultoria_detail: resolveDetail({
+          ...form.consultoria_detail,
+          month: form.consultoria_month, year: form.consultoria_year, otro: form.consultoria_otro,
+        }, form.consultoria_viteka),
+
         robot: form.robot, robot_year: form.robot_year || null,
+        robot_detail: form.robot_detail,
+
         cruz: form.cruz, cruz_cantidad: form.cruz_cantidad || null, cruz_ampliacion: form.cruz_ampliacion || null,
-        gestor_turnos: form.gestor_turnos, gestor_turnos_marca: form.gestor_turnos_marca, gestor_turnos_year: form.gestor_turnos_year || null,
+
+        gestor_turnos: form.gestor_turnos, gestor_turnos_marca: form.gestor_turnos_marca,
+        gestor_turnos_year: form.gestor_turnos_year || null,
+        gestor_turnos_detail: form.gestor_turnos_detail,
+
         spd: form.spd, spd_marca: form.spd_marca, spd_year: form.spd_year || null,
+        spd_detail: form.spd_detail,
+
         pantallas: form.pantallas,
         pantallas_detail: {
+          ...resolveDetail(form.pantallas_detail, false),
           marca: form.pantallas_marca, year: form.pantallas_year,
-          ubicaciones: ['Interior', 'Escaparate', 'Exterior'].filter(
+          ubicaciones: ['Interior','Escaparate','Exterior'].filter(
             (_, i) => [form.pantallas_interior, form.pantallas_escaparate, form.pantallas_exterior][i]
           ),
         },
+
         frigorifico_marca: form.frigorifico_marca, frigorifico_year: form.frigorifico_year || null,
+        frigorifico_viteka: form.frigorifico_viteka, frigorifico_satisfaction: form.frigorifico_satisfaction || null,
+        frigorifico_detail: resolveDetail(form.frigorifico_detail, form.frigorifico_viteka),
       }
 
       if (eqId) {
@@ -210,6 +298,7 @@ export default function PharmacyEditPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
 
+        {/* ── Datos básicos ── */}
         <Section title="Datos básicos">
           <div>
             <Label required>Nombre de la farmacia</Label>
@@ -229,218 +318,258 @@ export default function PharmacyEditPage() {
         {hasAuto && (
           <Section title="Autónomo">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="sm:col-span-2"><Label required>Nombre del titular</Label><Input required value={form.auto.owner_name} onChange={e => setNested('auto', 'owner_name', e.target.value)} /></div>
-              <div><Label>NIF</Label><Input value={form.auto.nif} onChange={e => setNested('auto', 'nif', e.target.value)} /></div>
-              <div><Label>Nº Colegiado</Label><Input value={form.auto.collegiate_number} onChange={e => setNested('auto', 'collegiate_number', e.target.value)} /></div>
+              <div className="sm:col-span-2"><Label required>Nombre del titular</Label><Input required value={form.auto.owner_name} onChange={e => setNested('auto','owner_name',e.target.value)} /></div>
+              <div><Label>NIF</Label><Input value={form.auto.nif} onChange={e => setNested('auto','nif',e.target.value)} /></div>
+              <div><Label>Nº Colegiado</Label><Input value={form.auto.collegiate_number} onChange={e => setNested('auto','collegiate_number',e.target.value)} /></div>
             </div>
             <hr className="border-gray-100" />
             <p className="text-xs font-medium text-gray-500 -mb-2">Contacto de la farmacia</p>
-            <ContactBlock data={form.auto_contact} onChange={(f, v) => setContact('auto_contact', f, v)} showGuardsAndSchedule showSoe />
+            <ContactBlock data={form.auto_contact} onChange={(f,v) => setContact('auto_contact',f,v)} showGuardsAndSchedule showSoe />
           </Section>
         )}
 
         {hasCb && (
           <Section title="Comunidad de Bienes (C.B.)">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div><Label>Razón social</Label><Input value={form.cb.razon_social} onChange={e => setNested('cb', 'razon_social', e.target.value)} /></div>
-              <div><Label>CIF</Label><Input value={form.cb.cif} onChange={e => setNested('cb', 'cif', e.target.value)} /></div>
+              <div><Label>Razón social</Label><Input value={form.cb.razon_social} onChange={e => setNested('cb','razon_social',e.target.value)} /></div>
+              <div><Label>CIF</Label><Input value={form.cb.cif} onChange={e => setNested('cb','cif',e.target.value)} /></div>
             </div>
-            <div><Label>Titulares</Label><CbOwners owners={form.cb.owners} onChange={val => setNested('cb', 'owners', val)} /></div>
+            <div><Label>Titulares</Label><CbOwners owners={form.cb.owners} onChange={val => setNested('cb','owners',val)} /></div>
             <hr className="border-gray-100" />
             <p className="text-xs font-medium text-gray-500 -mb-2">Contacto de la farmacia</p>
-            <ContactBlock data={form.cb_contact} onChange={(f, v) => setContact('cb_contact', f, v)} showGuardsAndSchedule showSoe />
+            <ContactBlock data={form.cb_contact} onChange={(f,v) => setContact('cb_contact',f,v)} showGuardsAndSchedule showSoe />
           </Section>
         )}
 
         {hasSl && (
           <Section title="Sociedad Limitada (S.L.)" subtitle={hasAuto || hasCb ? 'Datos propios de la S.L.' : 'Datos de la sociedad y contacto'}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div><Label>Razón social</Label><Input value={form.sl.razon_social} onChange={e => setNested('sl', 'razon_social', e.target.value)} /></div>
-              <div><Label>CIF</Label><Input value={form.sl.cif} onChange={e => setNested('sl', 'cif', e.target.value)} /></div>
+              <div><Label>Razón social</Label><Input value={form.sl.razon_social} onChange={e => setNested('sl','razon_social',e.target.value)} /></div>
+              <div><Label>CIF</Label><Input value={form.sl.cif} onChange={e => setNested('sl','cif',e.target.value)} /></div>
             </div>
             <hr className="border-gray-100" />
-            <ContactBlock data={form.sl_contact} onChange={(f, v) => setContact('sl_contact', f, v)} showGuardsAndSchedule={!hasAuto && !hasCb} showSoe={!hasAuto && !hasCb} />
+            <ContactBlock data={form.sl_contact} onChange={(f,v) => setContact('sl_contact',f,v)} showGuardsAndSchedule={!hasAuto && !hasCb} showSoe={!hasAuto && !hasCb} />
           </Section>
         )}
 
+        {/* ── ERP ── */}
         <Section title="ERP">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {ERP_OPTIONS.map(opt => <ChipBtn key={opt} active={form.erp === opt} onClick={() => set('erp', opt)}>{opt}</ChipBtn>)}
+            {ERP_OPTIONS.map(opt => <ChipBtn key={opt} active={form.erp===opt} onClick={() => set('erp',opt)}>{opt}</ChipBtn>)}
           </div>
           {form.erp === 'Nixfarma' && (
             <div className="grid grid-cols-3 gap-3">
-              <div><Label>Licencia</Label><Input value={form.erp_detail.licencia} onChange={e => setNested('erp_detail', 'licencia', e.target.value)} /></div>
-              <div><Label>Nº puestos</Label><Input type="number" min="1" value={form.erp_detail.puestos} onChange={e => setNested('erp_detail', 'puestos', e.target.value)} /></div>
-              <div><Label>Año inicio</Label><YearSelect value={form.erp_detail.year} onChange={e => setNested('erp_detail', 'year', e.target.value)} /></div>
+              <div><Label>Licencia</Label><Input value={form.erp_detail.licencia} onChange={e => setDetail('erp_detail','licencia',e.target.value)} /></div>
+              <div><Label>Nº puestos</Label><Input type="number" min="1" value={form.erp_detail.puestos} onChange={e => setDetail('erp_detail','puestos',e.target.value)} /></div>
+              <div><Label>Año inicio</Label><YearSelect value={form.erp_detail.year} onChange={e => setDetail('erp_detail','year',e.target.value)} /></div>
             </div>
           )}
-          <VitekaCheck value={form.erp_viteka} onChange={v => set('erp_viteka', v)} />
-          {!form.erp_viteka && <div><Label>Grado de satisfacción</Label><SatisfactionSelect value={form.erp_satisfaction} onChange={e => set('erp_satisfaction', e.target.value)} /></div>}
+          <VitekaCheck value={form.erp_viteka} onChange={v => set('erp_viteka',v)} />
+          {!form.erp_viteka && <div><Label>Grado de satisfacción</Label><SatisfactionSelect value={form.erp_satisfaction} onChange={e => set('erp_satisfaction',e.target.value)} /></div>}
+          <DistribuidorBlock viteka={form.erp_viteka} detail={form.erp_detail} onChange={(k,v) => setDetail('erp_detail',k,v)} />
         </Section>
 
+        {/* ── Caja de cobro ── */}
         <Section title="Caja de cobro">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {CAJA_OPTIONS.map(opt => <ChipBtn key={opt.value} active={form.caja === opt.value} onClick={() => { set('caja', opt.value); set('caja_modelo', '') }}>{opt.label}</ChipBtn>)}
+            {CAJA_OPTIONS.map(opt => <ChipBtn key={opt.value} active={form.caja===opt.value} onClick={() => { set('caja',opt.value); set('caja_modelo','') }}>{opt.label}</ChipBtn>)}
           </div>
           {form.caja !== 'NO' && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {cajaOpt?.modelos?.length > 0 && (
                 <div><Label>Modelo</Label>
-                  <Select value={form.caja_modelo} onChange={e => set('caja_modelo', e.target.value)}>
+                  <Select value={form.caja_modelo} onChange={e => set('caja_modelo',e.target.value)}>
                     <option value="">Seleccionar modelo</option>
                     {cajaOpt.modelos.map(m => <option key={m} value={m}>{m}</option>)}
                   </Select>
                 </div>
               )}
-              {form.caja === 'Otro' && <div><Label>Indicar marca</Label><Input value={form.caja_otro} onChange={e => set('caja_otro', e.target.value)} /></div>}
-              <div><Label>Año instalación</Label><YearSelect value={form.caja_year} onChange={e => set('caja_year', e.target.value)} /></div>
+              {form.caja === 'Otro' && <div><Label>Indicar marca</Label><Input value={form.caja_otro} onChange={e => set('caja_otro',e.target.value)} /></div>}
+              <div><Label>Año instalación</Label><YearSelect value={form.caja_year} onChange={e => set('caja_year',e.target.value)} /></div>
             </div>
           )}
           {form.caja !== 'NO' && (
             <>
-              <VitekaCheck value={form.caja_viteka} onChange={v => set('caja_viteka', v)} />
-              {!form.caja_viteka && <div><Label>Grado de satisfacción</Label><SatisfactionSelect value={form.caja_satisfaction} onChange={e => set('caja_satisfaction', e.target.value)} /></div>}
+              <VitekaCheck value={form.caja_viteka} onChange={v => set('caja_viteka',v)} />
+              {!form.caja_viteka && <div><Label>Grado de satisfacción</Label><SatisfactionSelect value={form.caja_satisfaction} onChange={e => set('caja_satisfaction',e.target.value)} /></div>}
+              <DistribuidorBlock viteka={form.caja_viteka} detail={form.caja_detail} onChange={(k,v) => setDetail('caja_detail',k,v)} />
             </>
           )}
         </Section>
 
+        {/* ── ESL ── */}
         <Section title="Etiquetas electrónicas (ESL)">
           <div className="flex flex-wrap gap-2">
-            {ESL_OPTIONS.map(opt => <ChipBtn key={opt.value} active={form.esl === opt.value} onClick={() => set('esl', opt.value)}>{opt.label}</ChipBtn>)}
+            {ESL_OPTIONS.map(opt => <ChipBtn key={opt.value} active={form.esl===opt.value} onClick={() => set('esl',opt.value)}>{opt.label}</ChipBtn>)}
           </div>
           {form.esl !== 'NO' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><Label>Año instalación</Label><YearSelect value={form.esl_year} onChange={e => set('esl_year', e.target.value)} /></div>
-              <VitekaCheck value={form.esl_viteka} onChange={v => set('esl_viteka', v)} />
-              {!form.esl_viteka && <div className="sm:col-span-2"><Label>Grado de satisfacción</Label><SatisfactionSelect value={form.esl_satisfaction} onChange={e => set('esl_satisfaction', e.target.value)} /></div>}
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>Año instalación</Label><YearSelect value={form.esl_year} onChange={e => set('esl_year',e.target.value)} /></div>
+                <VitekaCheck value={form.esl_viteka} onChange={v => set('esl_viteka',v)} />
+                {!form.esl_viteka && <div className="sm:col-span-2"><Label>Grado de satisfacción</Label><SatisfactionSelect value={form.esl_satisfaction} onChange={e => set('esl_satisfaction',e.target.value)} /></div>}
+              </div>
+              <DistribuidorBlock viteka={form.esl_viteka} detail={form.esl_detail} onChange={(k,v) => setDetail('esl_detail',k,v)} />
             </div>
           )}
         </Section>
 
+        {/* ── Básculas ── */}
         <Section title="Básculas">
           <div className="flex flex-wrap gap-2">
-            {BASCULA_OPTIONS.map(opt => <ChipBtn key={opt} active={form.bascula === opt} onClick={() => set('bascula', opt)}>{opt === 'NO' ? 'No tiene' : opt}</ChipBtn>)}
+            {BASCULA_OPTIONS.map(opt => <ChipBtn key={opt} active={form.bascula===opt} onClick={() => set('bascula',opt)}>{opt==='NO'?'No tiene':opt}</ChipBtn>)}
           </div>
           {form.bascula !== 'NO' && (
-            <div className="grid grid-cols-2 gap-3">
-              {form.bascula === 'Otro' && <div><Label>Indicar marca</Label><Input value={form.bascula_otro} onChange={e => set('bascula_otro', e.target.value)} /></div>}
-              <div><Label>Año instalación</Label><YearSelect value={form.bascula_year} onChange={e => set('bascula_year', e.target.value)} /></div>
-              <VitekaCheck value={form.bascula_viteka} onChange={v => set('bascula_viteka', v)} />
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                {form.bascula === 'Otro' && <div><Label>Indicar marca</Label><Input value={form.bascula_otro} onChange={e => set('bascula_otro',e.target.value)} /></div>}
+                <div><Label>Año instalación</Label><YearSelect value={form.bascula_year} onChange={e => set('bascula_year',e.target.value)} /></div>
+                <VitekaCheck value={form.bascula_viteka} onChange={v => set('bascula_viteka',v)} />
+              </div>
+              <DistribuidorBlock viteka={form.bascula_viteka} detail={form.bascula_detail} onChange={(k,v) => setDetail('bascula_detail',k,v)} />
             </div>
           )}
         </Section>
 
+        {/* ── Antihurto ── */}
         <Section title="Arcos antihurto">
           <div className="flex flex-wrap gap-2">
-            {ANTIHURTO_OPTIONS.map(opt => <ChipBtn key={opt} active={form.antihurto === opt} onClick={() => set('antihurto', opt)}>{opt === 'NO' ? 'No tiene' : opt}</ChipBtn>)}
+            {ANTIHURTO_OPTIONS.map(opt => <ChipBtn key={opt} active={form.antihurto===opt} onClick={() => set('antihurto',opt)}>{opt==='NO'?'No tiene':opt}</ChipBtn>)}
           </div>
           {form.antihurto !== 'NO' && (
-            <div className="grid grid-cols-2 gap-3">
-              {form.antihurto === 'Otro' && <div><Label>Indicar marca</Label><Input value={form.antihurto_otro} onChange={e => set('antihurto_otro', e.target.value)} /></div>}
-              <div><Label>Año instalación</Label><YearSelect value={form.antihurto_year} onChange={e => set('antihurto_year', e.target.value)} /></div>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                {form.antihurto === 'Otro' && <div><Label>Indicar marca</Label><Input value={form.antihurto_otro} onChange={e => set('antihurto_otro',e.target.value)} /></div>}
+                <div><Label>Año instalación</Label><YearSelect value={form.antihurto_year} onChange={e => set('antihurto_year',e.target.value)} /></div>
+              </div>
+              <DistribuidorBlock viteka={false} detail={form.antihurto_detail} onChange={(k,v) => setDetail('antihurto_detail',k,v)} />
             </div>
           )}
         </Section>
 
+        {/* ── Consultoría ── */}
         <Section title="Consultoría">
           <div className="flex flex-wrap gap-2">
-            {CONSULTORIA_OPTIONS.map(opt => <ChipBtn key={opt} active={form.consultoria === opt} onClick={() => set('consultoria', opt)}>{opt === 'NO' ? 'No tiene' : opt}</ChipBtn>)}
+            {CONSULTORIA_OPTIONS.map(opt => <ChipBtn key={opt} active={form.consultoria===opt} onClick={() => set('consultoria',opt)}>{opt==='NO'?'No tiene':opt}</ChipBtn>)}
           </div>
           {form.consultoria !== 'NO' && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {form.consultoria === 'Otro' && <div className="sm:col-span-3"><Label>Indicar servicio</Label><Input value={form.consultoria_otro} onChange={e => set('consultoria_otro', e.target.value)} /></div>}
-              <div><Label>Mes inicio</Label>
-                <Select value={form.consultoria_month} onChange={e => set('consultoria_month', e.target.value)}>
-                  <option value="">Mes</option>
-                  {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-                </Select>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {form.consultoria === 'Otro' && <div className="sm:col-span-3"><Label>Indicar servicio</Label><Input value={form.consultoria_otro} onChange={e => set('consultoria_otro',e.target.value)} /></div>}
+                <div><Label>Mes inicio</Label>
+                  <Select value={form.consultoria_month} onChange={e => set('consultoria_month',e.target.value)}>
+                    <option value="">Mes</option>
+                    {MONTHS.map((m,i) => <option key={i} value={i+1}>{m}</option>)}
+                  </Select>
+                </div>
+                <div><Label>Año inicio</Label><YearSelect value={form.consultoria_year} onChange={e => set('consultoria_year',e.target.value)} /></div>
+                <VitekaCheck value={form.consultoria_viteka} onChange={v => set('consultoria_viteka',v)} />
               </div>
-              <div><Label>Año inicio</Label><YearSelect value={form.consultoria_year} onChange={e => set('consultoria_year', e.target.value)} /></div>
+              <DistribuidorBlock viteka={form.consultoria_viteka} detail={form.consultoria_detail} onChange={(k,v) => setDetail('consultoria_detail',k,v)} />
             </div>
           )}
         </Section>
 
+        {/* ── Robot ── */}
         <Section title="Robot dispensador">
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             {['NO','BD Rowa','Gollmann','Meditech','Willach','Fablox','Luse','KLS','Tecnyfarma','Otro'].map(opt =>
-              <ChipBtn key={opt} active={form.robot === opt} onClick={() => set('robot', opt)}>{opt === 'NO' ? 'No tiene' : opt}</ChipBtn>
+              <ChipBtn key={opt} active={form.robot===opt} onClick={() => set('robot',opt)}>{opt==='NO'?'No tiene':opt}</ChipBtn>
             )}
           </div>
           {form.robot !== 'NO' && (
-            <div className="grid grid-cols-2 gap-3">
-              {form.robot === 'Otro' && <div><Label>Indicar marca</Label><Input value={form.robot_otro} onChange={e => set('robot_otro', e.target.value)} /></div>}
-              <div><Label>Año instalación</Label><YearSelect value={form.robot_year} onChange={e => set('robot_year', e.target.value)} /></div>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                {form.robot === 'Otro' && <div><Label>Indicar marca</Label><Input value={form.robot_otro} onChange={e => set('robot_otro',e.target.value)} /></div>}
+                <div><Label>Año instalación</Label><YearSelect value={form.robot_year} onChange={e => set('robot_year',e.target.value)} /></div>
+              </div>
+              <DistribuidorBlock viteka={false} detail={form.robot_detail} onChange={(k,v) => setDetail('robot_detail',k,v)} />
             </div>
           )}
         </Section>
 
+        {/* ── Cruz luminosa ── */}
         <Section title="Cruz luminosa">
           <div className="flex gap-2">
             {['NO','SI','Puede ampliar'].map(opt =>
-              <ChipBtn key={opt} active={form.cruz === opt} onClick={() => set('cruz', opt)}>{opt === 'NO' ? 'No tiene' : opt}</ChipBtn>
+              <ChipBtn key={opt} active={form.cruz===opt} onClick={() => set('cruz',opt)}>{opt==='NO'?'No tiene':opt}</ChipBtn>
             )}
           </div>
           {form.cruz !== 'NO' && (
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Nº cruces</Label><Input type="number" min="1" value={form.cruz_cantidad} onChange={e => set('cruz_cantidad', e.target.value)} /></div>
-              {form.cruz === 'Puede ampliar' && <div><Label>Nº ampliación prevista</Label><Input type="number" min="1" value={form.cruz_ampliacion} onChange={e => set('cruz_ampliacion', e.target.value)} /></div>}
+              <div><Label>Nº cruces</Label><Input type="number" min="1" value={form.cruz_cantidad} onChange={e => set('cruz_cantidad',e.target.value)} /></div>
+              {form.cruz === 'Puede ampliar' && <div><Label>Nº ampliación prevista</Label><Input type="number" min="1" value={form.cruz_ampliacion} onChange={e => set('cruz_ampliacion',e.target.value)} /></div>}
             </div>
           )}
         </Section>
 
+        {/* ── Gestor turnos ── */}
         <Section title="Gestor de turnos">
           <div className="flex gap-2">
-            {['NO','SI'].map(opt => <ChipBtn key={opt} active={form.gestor_turnos === opt} onClick={() => set('gestor_turnos', opt)}>{opt === 'NO' ? 'No tiene' : 'Sí tiene'}</ChipBtn>)}
+            {['NO','SI'].map(opt => <ChipBtn key={opt} active={form.gestor_turnos===opt} onClick={() => set('gestor_turnos',opt)}>{opt==='NO'?'No tiene':'Sí tiene'}</ChipBtn>)}
           </div>
           {form.gestor_turnos === 'SI' && (
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label>Marca</Label><Input value={form.gestor_turnos_marca} onChange={e => set('gestor_turnos_marca', e.target.value)} /></div>
-              <div><Label>Año</Label><YearSelect value={form.gestor_turnos_year} onChange={e => set('gestor_turnos_year', e.target.value)} /></div>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Marca</Label><Input value={form.gestor_turnos_marca} onChange={e => set('gestor_turnos_marca',e.target.value)} /></div>
+                <div><Label>Año</Label><YearSelect value={form.gestor_turnos_year} onChange={e => set('gestor_turnos_year',e.target.value)} /></div>
+              </div>
+              <DistribuidorBlock viteka={false} detail={form.gestor_turnos_detail} onChange={(k,v) => setDetail('gestor_turnos_detail',k,v)} />
             </div>
           )}
         </Section>
 
+        {/* ── SPD ── */}
         <Section title="SPD (Sistema Personalizado de Dosificación)">
           <div className="flex gap-2">
-            {['NO','SI'].map(opt => <ChipBtn key={opt} active={form.spd === opt} onClick={() => set('spd', opt)}>{opt === 'NO' ? 'No tiene' : 'Sí tiene'}</ChipBtn>)}
+            {['NO','SI'].map(opt => <ChipBtn key={opt} active={form.spd===opt} onClick={() => set('spd',opt)}>{opt==='NO'?'No tiene':'Sí tiene'}</ChipBtn>)}
           </div>
           {form.spd === 'SI' && (
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label>Marca</Label><Input value={form.spd_marca} onChange={e => set('spd_marca', e.target.value)} /></div>
-              <div><Label>Año</Label><YearSelect value={form.spd_year} onChange={e => set('spd_year', e.target.value)} /></div>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Marca</Label><Input value={form.spd_marca} onChange={e => set('spd_marca',e.target.value)} /></div>
+                <div><Label>Año</Label><YearSelect value={form.spd_year} onChange={e => set('spd_year',e.target.value)} /></div>
+              </div>
+              <DistribuidorBlock viteka={false} detail={form.spd_detail} onChange={(k,v) => setDetail('spd_detail',k,v)} />
             </div>
           )}
         </Section>
 
+        {/* ── Pantallas ── */}
         <Section title="Pantallas">
           <div className="flex gap-2">
-            {['NO','SI'].map(opt => <ChipBtn key={opt} active={form.pantallas === opt} onClick={() => set('pantallas', opt)}>{opt === 'NO' ? 'No tiene' : 'Sí tiene'}</ChipBtn>)}
+            {['NO','SI'].map(opt => <ChipBtn key={opt} active={form.pantallas===opt} onClick={() => set('pantallas',opt)}>{opt==='NO'?'No tiene':'Sí tiene'}</ChipBtn>)}
           </div>
           {form.pantallas === 'SI' && (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Marca</Label><Input value={form.pantallas_marca} onChange={e => set('pantallas_marca', e.target.value)} /></div>
-                <div><Label>Año</Label><YearSelect value={form.pantallas_year} onChange={e => set('pantallas_year', e.target.value)} /></div>
+                <div><Label>Marca</Label><Input value={form.pantallas_marca} onChange={e => set('pantallas_marca',e.target.value)} /></div>
+                <div><Label>Año</Label><YearSelect value={form.pantallas_year} onChange={e => set('pantallas_year',e.target.value)} /></div>
               </div>
               <div>
                 <Label>Ubicación</Label>
                 <div className="flex gap-5 mt-1">
-                  {[['pantallas_interior','Interior'],['pantallas_escaparate','Escaparate'],['pantallas_exterior','Exterior']].map(([field, label]) => (
+                  {[['pantallas_interior','Interior'],['pantallas_escaparate','Escaparate'],['pantallas_exterior','Exterior']].map(([field,label]) => (
                     <label key={field} className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
-                      <input type="checkbox" checked={form[field]} onChange={e => set(field, e.target.checked)} className="w-4 h-4 accent-teal-600" />{label}
+                      <input type="checkbox" checked={form[field]} onChange={e => set(field,e.target.checked)} className="w-4 h-4 accent-teal-600" />{label}
                     </label>
                   ))}
                 </div>
               </div>
+              <DistribuidorBlock viteka={false} detail={form.pantallas_detail} onChange={(k,v) => setDetail('pantallas_detail',k,v)} />
             </div>
           )}
         </Section>
 
+        {/* ── Frigorífico ── */}
         <Section title="Frigorífico">
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>Marca</Label><Input value={form.frigorifico_marca} onChange={e => set('frigorifico_marca', e.target.value)} /></div>
-            <div><Label>Año</Label><YearSelect value={form.frigorifico_year} onChange={e => set('frigorifico_year', e.target.value)} /></div>
+            <div><Label>Marca</Label><Input value={form.frigorifico_marca} onChange={e => set('frigorifico_marca',e.target.value)} /></div>
+            <div><Label>Año</Label><YearSelect value={form.frigorifico_year} onChange={e => set('frigorifico_year',e.target.value)} /></div>
           </div>
+          <VitekaCheck value={form.frigorifico_viteka} onChange={v => set('frigorifico_viteka',v)} />
+          {!form.frigorifico_viteka && <div><Label>Grado de satisfacción</Label><SatisfactionSelect value={form.frigorifico_satisfaction} onChange={e => set('frigorifico_satisfaction',e.target.value)} /></div>}
+          <DistribuidorBlock viteka={form.frigorifico_viteka} detail={form.frigorifico_detail} onChange={(k,v) => setDetail('frigorifico_detail',k,v)} />
         </Section>
 
         <div className="flex gap-3 justify-end pt-2">
