@@ -26,7 +26,7 @@ function VitekaBadge({ is_viteka }) {
   if (!is_viteka) return null
   return (
     <img
-      src="/favicon.svg"
+      src="/brand/favicon.svg"
       alt="Viteka"
       title="Producto Viteka"
       className="ml-2 w-4 h-4 shrink-0 inline-block"
