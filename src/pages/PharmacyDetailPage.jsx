@@ -176,8 +176,33 @@ function TabEquipment({ equipment }) {
 // ── Tab: Equipamiento Informático ───────────────────────────────────────────────────────────
 const IT_LABEL = Object.fromEntries(IT_TYPES.map(t => [t.value, t.label]))
 
+// Resuelve marca y modelo leyendo specs primero y columnas directas como fallback
+// Esto garantiza compatibilidad con registros guardados antes y después del fix de mapeo
+function resolveBrand(device) {
+  const specs = device.specs || {}
+  return {
+    marca:  specs.marca  || device.brand  || '',
+    modelo: specs.modelo || device.model  || '',
+  }
+}
+
 function ITDeviceCard({ device, onEdit, onDelete, onDuplicate }) {
   const specs = device.specs || {}
+  const { marca, modelo } = resolveBrand(device)
+
+  // Al editar, normalizar el dispositivo para que el form use siempre specs.marca/modelo
+  function handleEdit() {
+    const normalized = {
+      ...device,
+      specs: {
+        ...specs,
+        marca:  marca  || specs.marca  || '',
+        modelo: modelo || specs.modelo || '',
+      },
+    }
+    onEdit(normalized)
+  }
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
       <div className="flex items-start justify-between gap-2">
@@ -190,7 +215,7 @@ function ITDeviceCard({ device, onEdit, onDelete, onDuplicate }) {
           <button type="button" onClick={() => onDuplicate(device)} title="Duplicar equipo" className="p-1.5 text-gray-400 hover:text-indigo-500 rounded-lg hover:bg-gray-50">
             <DocumentDuplicateIcon className="w-4 h-4" />
           </button>
-          <button type="button" onClick={() => onEdit(device)} className="p-1.5 text-gray-400 hover:text-teal-600 rounded-lg hover:bg-gray-50">
+          <button type="button" onClick={handleEdit} className="p-1.5 text-gray-400 hover:text-teal-600 rounded-lg hover:bg-gray-50">
             <PencilSquareIcon className="w-4 h-4" />
           </button>
           <button type="button" onClick={() => onDelete(device)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-50">
@@ -205,8 +230,12 @@ function ITDeviceCard({ device, onEdit, onDelete, onDuplicate }) {
           {device.warranty_end  && <span><span className="font-medium">Fin garantía:</span> {device.warranty_end}</span>}
         </div>
       )}
-      {specs.marca && <p className="text-xs text-gray-500"><span className="font-medium">Marca:</span> {specs.marca} {specs.modelo || ''}</p>}
-      {specs.ip    && <p className="text-xs text-gray-500"><span className="font-medium">IP:</span> {Array.isArray(specs.ip) ? specs.ip.join(', ') : specs.ip}</p>}
+      {(marca || modelo) && (
+        <p className="text-xs text-gray-500">
+          <span className="font-medium">Marca:</span> {marca}{modelo ? ` ${modelo}` : ''}
+        </p>
+      )}
+      {specs.ip && <p className="text-xs text-gray-500"><span className="font-medium">IP:</span> {Array.isArray(specs.ip) ? specs.ip.join(', ') : specs.ip}</p>}
       {device.observations && <p className="text-xs text-gray-400 italic">{device.observations}</p>}
     </div>
   )
@@ -455,7 +484,7 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
     setLoadingDev(true)
     supabase
       .from('pharmacy_it_devices')
-      .select('id, device_type, label, specs, observations')
+      .select('id, device_type, label, brand, model, specs, observations')
       .eq('pharmacy_id', sourceId)
       .order('created_at')
       .then(({ data }) => { setSourceDevices(data ?? []); setSelected([]); setLoadingDev(false) })
@@ -515,18 +544,21 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
                       {selected.length === sourceDevices.length ? 'Deseleccionar todo' : 'Seleccionar todo'}
                     </button>
                   </div>
-                  {sourceDevices.map(d => (
-                    <label key={d.id} className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                      selected.includes(d.id) ? 'border-teal-400 bg-teal-50' : 'border-gray-200 hover:border-gray-300'
-                    }`}>
-                      <input type="checkbox" checked={selected.includes(d.id)} onChange={() => toggleSelect(d.id)} className="mt-0.5 w-4 h-4 accent-teal-600 shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold text-teal-600 uppercase tracking-wide">{IT_LABEL[d.device_type] || d.device_type}</p>
-                        {d.label && <p className="text-sm text-gray-800">{d.label}</p>}
-                        {d.specs?.marca && <p className="text-xs text-gray-400">{d.specs.marca}{d.specs.modelo ? ` — ${d.specs.modelo}` : ''}</p>}
-                      </div>
-                    </label>
-                  ))}
+                  {sourceDevices.map(d => {
+                    const { marca, modelo } = resolveBrand(d)
+                    return (
+                      <label key={d.id} className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                        selected.includes(d.id) ? 'border-teal-400 bg-teal-50' : 'border-gray-200 hover:border-gray-300'
+                      }`}>
+                        <input type="checkbox" checked={selected.includes(d.id)} onChange={() => toggleSelect(d.id)} className="mt-0.5 w-4 h-4 accent-teal-600 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-teal-600 uppercase tracking-wide">{IT_LABEL[d.device_type] || d.device_type}</p>
+                          {d.label && <p className="text-sm text-gray-800">{d.label}</p>}
+                          {(marca || modelo) && <p className="text-xs text-gray-400">{marca}{modelo ? ` — ${modelo}` : ''}</p>}
+                        </div>
+                      </label>
+                    )
+                  })}
                 </>
               )}
             </div>
@@ -560,7 +592,9 @@ function TabIT({ pharmacyId, companyId }) {
 
   async function handleSave(form) {
     try {
-      const payload = { ...form, pharmacy_id: pharmacyId, company_id: companyId }
+      // Limpiar columnas legacy brand/model para no duplicar datos
+      const { brand: _b, model: _m, ...rest } = form
+      const payload = { ...rest, pharmacy_id: pharmacyId, company_id: companyId }
       if (editing) { await updateDevice(editing.id, payload); toast('Equipo actualizado', 'success') }
       else { await createDevice(payload); toast('Equipo añadido', 'success') }
       setAdding(false); setEditing(null)
@@ -575,11 +609,13 @@ function TabIT({ pharmacyId, companyId }) {
 
   async function handleDuplicate(device) {
     try {
+      const { marca, modelo } = resolveBrand(device)
       await createDevice({
         pharmacy_id: pharmacyId, company_id: companyId,
         device_type: device.device_type,
         label: device.label ? `${device.label} (copia)` : '',
-        specs: device.specs, observations: device.observations,
+        specs: { ...device.specs, marca, modelo },
+        observations: device.observations,
         is_viteka: false, serial_number: null, install_date: null, warranty_end: null,
       })
       toast('Equipo duplicado correctamente', 'success')
@@ -590,10 +626,12 @@ function TabIT({ pharmacyId, companyId }) {
     let ok = 0
     for (const d of deviceList) {
       try {
+        const { marca, modelo } = resolveBrand(d)
         await createDevice({
           pharmacy_id: pharmacyId, company_id: companyId,
           device_type: d.device_type, label: d.label,
-          specs: d.specs, observations: d.observations,
+          specs: { ...d.specs, marca, modelo },
+          observations: d.observations,
           is_viteka: false, serial_number: null, install_date: null, warranty_end: null,
         })
         ok++
