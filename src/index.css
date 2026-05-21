@@ -10,19 +10,18 @@ body {
   color: #111827;
 }
 
-/* ── Login: acuarela diagonal animada ─────────────────── */
-@keyframes washShift {
+/* ── Login: luz editorial top-right ───────────────── */
+@keyframes editorialDrift {
   0%   { background-position: 0% 0%; }
   50%  { background-position: 100% 100%; }
   100% { background-position: 0% 0%; }
 }
 
-.login-wash-bg {
+.login-editorial-bg {
   background-color: #ffffff;
   background-image:
-    radial-gradient(ellipse 160% 80% at 110% -10%, rgba(187,247,208,0.45) 0%, transparent 60%),
-    radial-gradient(ellipse 120% 100% at -10% 110%, rgba(209,250,229,0.35) 0%, transparent 55%),
-    radial-gradient(ellipse 90% 60% at 50% 50%, rgba(240,253,244,0.25) 0%, transparent 70%);
-  background-size: 200% 200%;
-  animation: washShift 18s ease-in-out infinite;
+    radial-gradient(ellipse 80% 70% at 92% 4%, rgba(167, 243, 208, 0.38) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 40% at 8% 96%, rgba(209, 250, 229, 0.22) 0%, transparent 60%);
+  background-size: 180% 180%;
+  animation: editorialDrift 20s ease-in-out infinite;
 }
