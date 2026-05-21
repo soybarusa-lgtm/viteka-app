@@ -1,16 +1,17 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { usePharmacy } from '../hooks/usePharmacy'
 import { usePharmacyPersons } from '../hooks/usePharmacyPersons'
 import { usePharmacyDocuments } from '../hooks/usePharmacyDocuments'
 import { usePharmacyIT } from '../hooks/usePharmacyIT'
 import { useAuth } from '../hooks/useAuth'
+import { supabase } from '../lib/supabase'
 import {
   ArrowLeftIcon, PencilSquareIcon,
   BuildingStorefrontIcon, WrenchScrewdriverIcon,
   UsersIcon, FolderOpenIcon, ExclamationTriangleIcon,
   DocumentTextIcon, ComputerDesktopIcon,
-  PlusIcon, TrashIcon, XMarkIcon,
+  PlusIcon, TrashIcon, XMarkIcon, ArrowsRightLeftIcon,
 } from '@heroicons/react/24/outline'
 import { useToast } from '../context/ToastContext'
 import ConfirmDialog from '../components/pharmacy/ConfirmDialog'
@@ -497,12 +498,152 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
   )
 }
 
+// ── Modal: Copiar equipos de otra farmacia ────────────────────────────────────
+function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }) {
+  const [pharmacies, setPharmacies] = useState([])
+  const [sourceId, setSourceId]     = useState('')
+  const [sourceDevices, setSourceDevices] = useState([])
+  const [selected, setSelected]     = useState([])
+  const [loadingPharm, setLoadingPharm] = useState(true)
+  const [loadingDev, setLoadingDev]     = useState(false)
+  const [copying, setCopying]           = useState(false)
+
+  // Cargar farmacias de la misma empresa (excluye la actual)
+  useEffect(() => {
+    async function fetchPharmacies() {
+      const { data } = await supabase
+        .from('pharmacies')
+        .select('id, pharmacy_name, city')
+        .eq('company_id', companyId)
+        .neq('id', currentPharmacyId)
+        .order('pharmacy_name')
+      setPharmacies(data ?? [])
+      setLoadingPharm(false)
+    }
+    fetchPharmacies()
+  }, [companyId, currentPharmacyId])
+
+  // Cargar equipos de la farmacia origen seleccionada
+  useEffect(() => {
+    if (!sourceId) { setSourceDevices([]); return }
+    setLoadingDev(true)
+    supabase
+      .from('pharmacy_it_devices')
+      .select('id, device_type, label, specs, observations')
+      .eq('pharmacy_id', sourceId)
+      .order('created_at')
+      .then(({ data }) => { setSourceDevices(data ?? []); setSelected([]); setLoadingDev(false) })
+  }, [sourceId])
+
+  function toggleSelect(id) {
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+  function toggleAll() {
+    setSelected(selected.length === sourceDevices.length ? [] : sourceDevices.map(d => d.id))
+  }
+
+  async function handleCopy() {
+    const toCopy = sourceDevices.filter(d => selected.includes(d.id))
+    setCopying(true)
+    await onCopy(toCopy)
+    setCopying(false)
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+          <h2 className="text-base font-semibold text-gray-900">Copiar equipos de otra farmacia</h2>
+          <button type="button" onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+            <XMarkIcon className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {/* Selector de farmacia origen */}
+          <div>
+            <Label required>Farmacia origen</Label>
+            {loadingPharm ? (
+              <p className="text-sm text-gray-400">Cargando farmacias...</p>
+            ) : (
+              <Select value={sourceId} onChange={e => setSourceId(e.target.value)}>
+                <option value="">Selecciona una farmacia</option>
+                {pharmacies.map(p => (
+                  <option key={p.id} value={p.id}>{p.pharmacy_name}{p.city ? ` — ${p.city}` : ''}</option>
+                ))}
+              </Select>
+            )}
+          </div>
+
+          {/* Lista de equipos */}
+          {sourceId && (
+            <div className="space-y-2">
+              {loadingDev ? (
+                <div className="flex justify-center py-6"><div className="w-6 h-6 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
+              ) : sourceDevices.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-4">Esta farmacia no tiene equipos informáticos</p>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-500">{sourceDevices.length} equipo{sourceDevices.length !== 1 ? 's' : ''}</p>
+                    <button type="button" onClick={toggleAll} className="text-xs text-teal-600 hover:text-teal-800">
+                      {selected.length === sourceDevices.length ? 'Deseleccionar todo' : 'Seleccionar todo'}
+                    </button>
+                  </div>
+                  {sourceDevices.map(d => (
+                    <label key={d.id} className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                      selected.includes(d.id) ? 'border-teal-400 bg-teal-50' : 'border-gray-200 hover:border-gray-300'
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(d.id)}
+                        onChange={() => toggleSelect(d.id)}
+                        className="mt-0.5 w-4 h-4 accent-teal-600 shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-teal-600 uppercase tracking-wide">{IT_LABEL[d.device_type] || d.device_type}</p>
+                        {d.label && <p className="text-sm text-gray-800">{d.label}</p>}
+                        {d.specs?.marca && <p className="text-xs text-gray-400">{d.specs.marca}{d.specs.modelo ? ` — ${d.specs.modelo}` : ''}</p>}
+                      </div>
+                    </label>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-gray-200">
+          <span className="text-xs text-gray-400">
+            {selected.length > 0 ? `${selected.length} equipo${selected.length !== 1 ? 's' : ''} seleccionado${selected.length !== 1 ? 's' : ''}` : 'Ninguno seleccionado'}
+          </span>
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50">Cancelar</button>
+            <button
+              type="button"
+              onClick={handleCopy}
+              disabled={selected.length === 0 || copying}
+              className="px-5 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {copying ? 'Copiando...' : 'Copiar seleccionados'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function TabIT({ pharmacyId, companyId }) {
   const { devices, loading, createDevice, updateDevice, deleteDevice } = usePharmacyIT(pharmacyId)
   const toast = useToast()
-  const [adding, setAdding] = useState(false)
-  const [editing, setEditing] = useState(null)
+  const [adding, setAdding]       = useState(false)
+  const [editing, setEditing]     = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
+  const [showCopy, setShowCopy]   = useState(false)
 
   async function handleSave(form) {
     try {
@@ -512,21 +653,53 @@ function TabIT({ pharmacyId, companyId }) {
       setAdding(false); setEditing(null)
     } catch (err) { toast(err.message, 'error', 5500) }
   }
+
   async function handleDelete() {
     try { await deleteDevice(confirmDel.id); toast('Equipo eliminado', 'success') }
     catch (err) { toast(err.message, 'error', 5500) }
     finally { setConfirmDel(null) }
   }
 
+  async function handleCopyDevices(devices) {
+    let ok = 0
+    for (const d of devices) {
+      try {
+        await createDevice({
+          pharmacy_id:   pharmacyId,
+          company_id:    companyId,
+          device_type:   d.device_type,
+          label:         d.label,
+          specs:         d.specs,
+          observations:  d.observations,
+          is_viteka:     false,
+          serial_number: null,
+          install_date:  null,
+          warranty_end:  null,
+        })
+        ok++
+      } catch (err) { toast(err.message, 'error', 5500) }
+    }
+    if (ok > 0) toast(`${ok} equipo${ok !== 1 ? 's' : ''} copiado${ok !== 1 ? 's' : ''} correctamente`, 'success')
+  }
+
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => setShowCopy(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50"
+        >
+          <ArrowsRightLeftIcon className="w-4 h-4" />
+          <span className="hidden sm:inline">Copiar de otra farmacia</span>
+        </button>
         <button type="button" onClick={() => { setAdding(true); setEditing(null) }} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700">
           <PlusIcon className="w-4 h-4" /> Añadir equipo
         </button>
       </div>
+
       {(adding && !editing) && (
         <ITDeviceForm pharmacyId={pharmacyId} companyId={companyId} onSave={handleSave} onCancel={() => setAdding(false)} />
       )}
@@ -536,6 +709,7 @@ function TabIT({ pharmacyId, companyId }) {
           ? <ITDeviceForm key={d.id} initial={editing} pharmacyId={pharmacyId} companyId={companyId} onSave={handleSave} onCancel={() => setEditing(null)} />
           : <ITDeviceCard key={d.id} device={d} onEdit={setEditing} onDelete={setConfirmDel} />
       ))}
+
       <ConfirmDialog
         open={!!confirmDel}
         title="Eliminar equipo"
@@ -543,6 +717,15 @@ function TabIT({ pharmacyId, companyId }) {
         onConfirm={handleDelete}
         onCancel={() => setConfirmDel(null)}
       />
+
+      {showCopy && (
+        <CopyFromPharmacyModal
+          currentPharmacyId={pharmacyId}
+          companyId={companyId}
+          onCopy={handleCopyDevices}
+          onClose={() => setShowCopy(false)}
+        />
+      )}
     </div>
   )
 }
@@ -820,7 +1003,7 @@ export default function PharmacyDetailPage() {
   return (
     <div className="p-4 md:p-6 space-y-4">
 
-      {/* Cabecera — mismo patrón que PharmaciesPage */}
+      {/* Cabecera */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <button
