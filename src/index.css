@@ -20,8 +20,9 @@ body {
 .login-editorial-bg {
   background-color: #ffffff;
   background-image:
-    radial-gradient(ellipse 80% 70% at 92% 4%, rgba(167, 243, 208, 0.38) 0%, transparent 65%),
-    radial-gradient(ellipse 50% 40% at 8% 96%, rgba(209, 250, 229, 0.22) 0%, transparent 60%);
-  background-size: 180% 180%;
-  animation: editorialDrift 20s ease-in-out infinite;
+    radial-gradient(ellipse 100% 90% at 95% 0%,  rgba(110, 231, 183, 0.55) 0%, transparent 60%),
+    radial-gradient(ellipse  70% 60% at 5% 100%, rgba(167, 243, 208, 0.45) 0%, transparent 55%),
+    radial-gradient(ellipse  60% 50% at 50% 50%, rgba(209, 250, 229, 0.20) 0%, transparent 70%);
+  background-size: 200% 200%;
+  animation: editorialDrift 18s ease-in-out infinite;
 }
