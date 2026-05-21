@@ -30,7 +30,6 @@ const LEGAL_LABEL = {
   autonomo_sl:'Autónomo + S.L.',cb_sl:'C.B. + S.L.',
 }
 
-// Field SIEMPRE visible: muestra 'Sin informar' si el valor está vacío
 function Field({ label, value, wide, emptyText = 'Sin informar' }) {
   const isEmpty = value === null || value === undefined || value === ''
   return (
@@ -81,13 +80,13 @@ function SatisfactionBadge({ value }) {
 
 // ── Pestañas ──────────────────────────────────────────────────────────────────
 const TABS = [
-  { key: 'general',   label: 'Datos generales',  icon: BuildingStorefrontIcon },
-  { key: 'equipment', label: 'Equipamiento',      icon: WrenchScrewdriverIcon  },
-  { key: 'it',        label: 'Equip. Informático',icon: ComputerDesktopIcon    },
-  { key: 'people',    label: 'Personas',          icon: UsersIcon              },
-  { key: 'incidents', label: 'Incidencias',       icon: ExclamationTriangleIcon},
-  { key: 'projects',  label: 'Proyectos',         icon: FolderOpenIcon         },
-  { key: 'documents', label: 'Documentos',        icon: DocumentTextIcon       },
+  { key: 'general',   label: 'Datos generales',   icon: BuildingStorefrontIcon },
+  { key: 'equipment', label: 'Equipamiento',       icon: WrenchScrewdriverIcon  },
+  { key: 'it',        label: 'Equip. Informático', icon: ComputerDesktopIcon    },
+  { key: 'people',    label: 'Personas',           icon: UsersIcon              },
+  { key: 'incidents', label: 'Incidencias',        icon: ExclamationTriangleIcon},
+  { key: 'projects',  label: 'Proyectos',          icon: FolderOpenIcon         },
+  { key: 'documents', label: 'Documentos',         icon: DocumentTextIcon       },
 ]
 
 // ── Tab: Datos generales ──────────────────────────────────────────────────────
@@ -99,7 +98,6 @@ function TabGeneral({ pharmacy }) {
   const sl = pharmacy.sl_data || {}
   const cbOwners = Array.isArray(pharmacy.cb_owners) ? pharmacy.cb_owners : []
 
-  // Helper booleano explícito
   const boolField = (label, val, wide) => (
     <Field
       label={label}
@@ -820,28 +818,46 @@ export default function PharmacyDetailPage() {
   const companyId = profile?.company_id
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-5">
-      <div className="flex items-start gap-4">
-        <button type="button" onClick={() => navigate(-1)} className="mt-1 text-gray-400 hover:text-gray-600">
-          <ArrowLeftIcon className="w-5 h-5" />
-        </button>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-bold text-gray-900 truncate">{pharmacy.pharmacy_name}</h1>
-            <Badge active={pharmacy.is_active} />
+    <div className="p-4 md:p-6 space-y-4">
+
+      {/* Cabecera — mismo patrón que PharmaciesPage */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="text-gray-400 hover:text-gray-600 shrink-0"
+          >
+            <ArrowLeftIcon className="w-5 h-5" />
+          </button>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900 truncate">
+                {pharmacy.pharmacy_name}
+              </h1>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium shrink-0 ${
+                pharmacy.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+              }`}>
+                {pharmacy.is_active ? 'Activa' : 'Inactiva'}
+              </span>
+            </div>
+            <p className="text-xs md:text-sm text-gray-500 mt-0.5">
+              {LEGAL_LABEL[pharmacy.legal_type] || pharmacy.legal_type}
+              {pharmacy.city     ? ` · ${pharmacy.city}` : ''}
+              {pharmacy.province ? `, ${PROVINCE_LABEL[pharmacy.province] || pharmacy.province}` : ''}
+            </p>
           </div>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {LEGAL_LABEL[pharmacy.legal_type] || pharmacy.legal_type}
-            {pharmacy.city     ? ` · ${pharmacy.city}` : ''}
-            {pharmacy.province ? `, ${PROVINCE_LABEL[pharmacy.province] || pharmacy.province}` : ''}
-          </p>
         </div>
-        <Link to={`/farmacias/${id}/editar`}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-teal-600 border border-gray-200 hover:border-teal-300 px-3 py-1.5 rounded-lg transition-colors">
-          <PencilSquareIcon className="w-4 h-4" /> Editar
+        <Link
+          to={`/farmacias/${id}/editar`}
+          className="flex items-center gap-1.5 bg-teal-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors shrink-0"
+        >
+          <PencilSquareIcon className="w-4 h-4" />
+          <span className="hidden sm:inline">Editar</span>
         </Link>
       </div>
 
+      {/* Pestañas */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex gap-1 overflow-x-auto">
           {TABS.map(tab => {
@@ -858,6 +874,7 @@ export default function PharmacyDetailPage() {
         </nav>
       </div>
 
+      {/* Contenido de la pestaña activa */}
       <div>
         {activeTab === 'general'   && <TabGeneral pharmacy={pharmacy} />}
         {activeTab === 'equipment' && <TabEquipment equipment={equipment} />}
@@ -867,6 +884,7 @@ export default function PharmacyDetailPage() {
         {activeTab === 'projects'  && <EmptyTab icon={FolderOpenIcon} message="Sin proyectos registrados" />}
         {activeTab === 'documents' && <TabDocuments pharmacyId={id} companyId={companyId} />}
       </div>
+
     </div>
   )
 }
