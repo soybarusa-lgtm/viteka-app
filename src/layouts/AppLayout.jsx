@@ -34,7 +34,6 @@ export default function AppLayout({ session }) {
 
       {/* ── MOBILE TOPBAR ────────────────────────────── */}
       <header className="md:hidden flex items-center justify-between h-14 px-4 bg-white border-b border-gray-200 shrink-0 z-20">
-        {/* Logo icono en mobile */}
         <img
           src="/brand/logo-icon-colr.svg"
           alt="Viteka"
@@ -82,24 +81,32 @@ export default function AppLayout({ session }) {
           sideOpen ? 'w-56' : 'w-14'
         }`}
       >
-        <div className="h-16 flex items-center justify-between px-3 border-b border-gray-200 overflow-hidden">
-          {/* Logo full-color cuando está expandida, icono cuando está colapsada */}
+        {/* Cabecera de la sidebar: logo + botón toggle debajo */}
+        <div className={`flex flex-col border-b border-gray-200 py-3 px-2 gap-2 ${
+          sideOpen ? 'items-start' : 'items-center'
+        }`}>
+
+          {/* Logo */}
           {sideOpen ? (
             <img
               src="/brand/logo-full-color.svg"
               alt="Viteka"
-              className="h-8 w-auto max-w-[140px] object-contain"
+              className="h-12 w-auto max-w-[176px] object-contain pl-1"
             />
           ) : (
             <img
               src="/brand/logo-icon-colr.svg"
               alt="Viteka"
-              className="h-7 w-7 object-contain mx-auto"
+              className="h-8 w-8 object-contain"
             />
           )}
+
+          {/* Botón abrir/cerrar — siempre debajo del logo */}
           <button
             onClick={() => setSideOpen(o => !o)}
-            className="ml-auto shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors"
+            className={`p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors ${
+              sideOpen ? 'self-start ml-1' : 'self-center'
+            }`}
             title={sideOpen ? 'Cerrar menú' : 'Abrir menú'}
           >
             {sideOpen
