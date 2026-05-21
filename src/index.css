@@ -10,19 +10,51 @@ body {
   color: #111827;
 }
 
-/* ── Login: luz editorial top-right ───────────────── */
-@keyframes editorialDrift {
-  0%   { background-position: 0% 0%; }
-  50%  { background-position: 100% 100%; }
-  100% { background-position: 0% 0%; }
+/* ── Login: halos flotantes ──────────────────────── */
+@keyframes haloA {
+  0%   { transform: translate(0px,   0px)  scale(1);    }
+  50%  { transform: translate(-50px, 40px) scale(1.1);  }
+  100% { transform: translate(0px,   0px)  scale(1);    }
+}
+@keyframes haloB {
+  0%   { transform: translate(0px,  0px)   scale(1.05); }
+  50%  { transform: translate(45px, -35px) scale(1);    }
+  100% { transform: translate(0px,  0px)   scale(1.05); }
+}
+@keyframes haloC {
+  0%   { transform: translate(0px,  0px)  scale(1);    }
+  50%  { transform: translate(25px, 30px) scale(1.07); }
+  100% { transform: translate(0px,  0px)  scale(1);    }
 }
 
-.login-editorial-bg {
-  background-color: #ffffff;
-  background-image:
-    radial-gradient(ellipse 100% 90% at 95% 0%,  rgba(110, 231, 183, 0.55) 0%, transparent 60%),
-    radial-gradient(ellipse  70% 60% at 5% 100%, rgba(167, 243, 208, 0.45) 0%, transparent 55%),
-    radial-gradient(ellipse  60% 50% at 50% 50%, rgba(209, 250, 229, 0.20) 0%, transparent 70%);
-  background-size: 200% 200%;
-  animation: editorialDrift 18s ease-in-out infinite;
+.login-halo {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  pointer-events: none;
+}
+.login-halo-1 {
+  width: 560px;
+  height: 560px;
+  top: -160px;
+  right: -160px;
+  background: rgba(52, 211, 153, 0.45);
+  animation: haloA 16s ease-in-out infinite;
+}
+.login-halo-2 {
+  width: 480px;
+  height: 480px;
+  bottom: -130px;
+  left: -130px;
+  background: rgba(110, 231, 183, 0.38);
+  animation: haloB 20s ease-in-out infinite;
+}
+.login-halo-3 {
+  width: 380px;
+  height: 380px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(167, 243, 208, 0.28);
+  animation: haloC 24s ease-in-out infinite;
 }

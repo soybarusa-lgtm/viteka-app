@@ -17,9 +17,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-editorial-bg min-h-screen flex items-center justify-center">
-      <div className="w-full max-w-sm">
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow border border-gray-100 overflow-hidden">
+    <div className="login-editorial-bg relative min-h-screen flex items-center justify-center overflow-hidden bg-white">
+
+      {/* Halos animados */}
+      <div className="login-halo login-halo-1" />
+      <div className="login-halo login-halo-2" />
+      <div className="login-halo login-halo-3" />
+
+      {/* Card sobre los halos */}
+      <div className="relative z-10 w-full max-w-sm">
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
 
           {/* Cabecera con logo */}
           <div className="flex justify-center items-center py-8 px-8 border-b border-gray-100">
@@ -30,7 +37,7 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Campos del formulario */}
+          {/* Campos */}
           <div className="p-8 space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
