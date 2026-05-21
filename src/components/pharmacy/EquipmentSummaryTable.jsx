@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-/** Muestra "Nombre ★n" o solo el nombre si no hay valoración */
 function NameWithRating({ name, rating }) {
   if (!name) return <span className="text-gray-200">—</span>
   return (
@@ -22,9 +21,15 @@ function StatusBadge({ value }) {
   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200">Activo</span>
 }
 
+/** Recuadro verde con favicon + "Viteka" */
 function VitekaBadge({ is_viteka }) {
   if (!is_viteka) return null
-  return <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-600 text-white">V</span>
+  return (
+    <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-green-400 bg-green-50 text-green-700 text-[10px] font-semibold whitespace-nowrap">
+      <img src="/favicon.svg" alt="" className="w-3 h-3 shrink-0" />
+      Viteka
+    </span>
+  )
 }
 
 const SORT_DIRS = { asc: 'desc', desc: 'asc' }
@@ -34,7 +39,7 @@ function SortIcon({ col, sortCol, sortDir }) {
   return <span className="ml-1 text-teal-600">{sortDir === 'asc' ? '↑' : '↓'}</span>
 }
 
-// ── Row builder ─────────────────────────────────────────────────────────────────
+// ── Row builder ──────────────────────────────────────────────────────────────
 function buildRows(eq) {
   if (!eq) return []
   const d = (key) => eq[key] || {}
@@ -142,7 +147,7 @@ function buildRows(eq) {
   ]
 }
 
-// ── Columnas (6) ──────────────────────────────────────────────────────────────
+// ── Columnas (6) ─────────────────────────────────────────────────────────────
 const COLS = [
   { key: 'producto',     label: 'Producto',       sortable: true },
   { key: 'marca',        label: 'Marca / Modelo', sortable: true },
@@ -207,7 +212,7 @@ export default function EquipmentSummaryTable({ equipment }) {
 
       {/* Tabla */}
       <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-        <table className="min-w-full text-sm">
+        <table className="w-full table-auto text-sm">
           <thead className="bg-gray-50">
             <tr>
               {COLS.map(col => (
@@ -229,14 +234,16 @@ export default function EquipmentSummaryTable({ equipment }) {
                   row.estado === 'NO'
                     ? 'opacity-40'
                     : row.is_viteka
-                      ? 'bg-teal-50/40 hover:bg-teal-50'
+                      ? 'bg-green-50/40 hover:bg-green-50'
                       : 'hover:bg-gray-50'
                 }`}>
 
                 {/* Producto */}
-                <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
-                  {row.producto}
-                  <VitekaBadge is_viteka={row.is_viteka} />
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-900">{row.producto}</span>
+                    <VitekaBadge is_viteka={row.is_viteka} />
+                  </div>
                 </td>
 
                 {/* Marca / Modelo */}
