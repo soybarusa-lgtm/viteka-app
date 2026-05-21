@@ -6,25 +6,23 @@ html {
 }
 
 body {
-  background-color: #f9fafb; /* gray-50 */
-  color: #111827;            /* gray-900 */
+  background-color: #f9fafb;
+  color: #111827;
 }
 
-/* ── Login background animation ───────────────────────── */
-@keyframes gradientShift {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+/* ── Login: acuarela diagonal animada ─────────────────── */
+@keyframes washShift {
+  0%   { background-position: 0% 0%; }
+  50%  { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
 }
 
-.login-bg {
-  background: linear-gradient(
-    -45deg,
-    #bbf7d0,  /* green-200  */
-    #6ee7b7,  /* emerald-300 */
-    #a7f3d0,  /* emerald-200 */
-    #86efac   /* green-300  */
-  );
-  background-size: 400% 400%;
-  animation: gradientShift 8s ease infinite;
+.login-wash-bg {
+  background-color: #ffffff;
+  background-image:
+    radial-gradient(ellipse 160% 80% at 110% -10%, rgba(187,247,208,0.45) 0%, transparent 60%),
+    radial-gradient(ellipse 120% 100% at -10% 110%, rgba(209,250,229,0.35) 0%, transparent 55%),
+    radial-gradient(ellipse 90% 60% at 50% 50%, rgba(240,253,244,0.25) 0%, transparent 70%);
+  background-size: 200% 200%;
+  animation: washShift 18s ease-in-out infinite;
 }

@@ -17,9 +17,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-bg min-h-screen flex items-center justify-center">
+    <div className="login-wash-bg min-h-screen flex items-center justify-center">
       <div className="w-full max-w-sm">
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow border border-gray-100 overflow-hidden">
 
           {/* Cabecera con logo */}
           <div className="flex justify-center items-center py-8 px-8 border-b border-gray-100">
