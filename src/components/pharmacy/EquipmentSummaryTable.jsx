@@ -1,18 +1,24 @@
 import { useState, useMemo } from 'react'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-function stars(n) {
-  if (!n) return <span className="text-gray-300 text-xs">—</span>
+/** Muestra "Nombre ★n" o solo el nombre si no hay valoración */
+function NameWithRating({ name, rating }) {
+  if (!name) return <span className="text-gray-200">—</span>
   return (
-    <span className="text-yellow-400 text-xs tracking-tight">
-      {'★'.repeat(Number(n))}{'☆'.repeat(5 - Number(n))}
-      <span className="text-gray-400 ml-1">({n})</span>
+    <span className="inline-flex items-center gap-1.5 flex-wrap">
+      <span className="text-gray-700">{name}</span>
+      {rating ? (
+        <span className="text-yellow-500 text-xs font-medium whitespace-nowrap">
+          ★{Number(rating)}
+        </span>
+      ) : null}
     </span>
   )
 }
 
 function StatusBadge({ value }) {
-  if (!value || value === 'NO') return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Sin producto</span>
+  if (!value || value === 'NO')
+    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Sin producto</span>
   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200">Activo</span>
 }
 
@@ -28,134 +34,122 @@ function SortIcon({ col, sortCol, sortDir }) {
   return <span className="ml-1 text-teal-600">{sortDir === 'asc' ? '↑' : '↓'}</span>
 }
 
-// ── Row builder — mapea pharmacy_equipment a filas de tabla ─────────────────
+// ── Row builder ─────────────────────────────────────────────────────────────────
 function buildRows(eq) {
   if (!eq) return []
   const d = (key) => eq[key] || {}
-  const rows = []
 
-  rows.push({
-    key: 'erp', producto: 'ERP',
-    marca: eq.erp || '—', modelo: eq.erp_detail?.licencia ? `Lic: ${eq.erp_detail.licencia}` : '',
-    anio: eq.erp_detail?.year || '',
-    distribuidor: d('erp_detail').distribuidor || '', val_distribuidor: d('erp_detail').val_distribuidor || '',
-    soporte: d('erp_detail').soporte || '', val_soporte: d('erp_detail').val_soporte || '',
-    estado: eq.erp && eq.erp !== 'NO' ? 'SI' : 'NO', is_viteka: !!eq.erp_viteka,
-  })
-
-  rows.push({
-    key: 'caja', producto: 'Caja de cobro',
-    marca: eq.caja || '—', modelo: eq.caja_modelo || '',
-    anio: eq.caja_year || '',
-    distribuidor: d('cash_detail').distribuidor || '', val_distribuidor: d('cash_detail').val_distribuidor || '',
-    soporte: d('cash_detail').soporte || '', val_soporte: d('cash_detail').val_soporte || '',
-    estado: eq.caja && eq.caja !== 'NO' ? 'SI' : 'NO', is_viteka: !!eq.caja_viteka,
-  })
-
-  rows.push({
-    key: 'esl', producto: 'Etiquetas ESL',
-    marca: eq.esl || '—', modelo: '',
-    anio: eq.esl_year || '',
-    distribuidor: d('esl_detail').distribuidor || '', val_distribuidor: d('esl_detail').val_distribuidor || '',
-    soporte: d('esl_detail').soporte || '', val_soporte: d('esl_detail').val_soporte || '',
-    estado: eq.esl && eq.esl !== 'NO' ? 'SI' : 'NO', is_viteka: !!eq.esl_viteka,
-  })
-
-  rows.push({
-    key: 'bascula', producto: 'Báscula',
-    marca: eq.bascula || '—', modelo: '',
-    anio: eq.bascula_year || '',
-    distribuidor: d('scale_detail').distribuidor || '', val_distribuidor: d('scale_detail').val_distribuidor || '',
-    soporte: d('scale_detail').soporte || '', val_soporte: d('scale_detail').val_soporte || '',
-    estado: eq.bascula && eq.bascula !== 'NO' ? 'SI' : 'NO', is_viteka: !!eq.bascula_viteka,
-  })
-
-  rows.push({
-    key: 'antihurto', producto: 'Arco antihurto',
-    marca: eq.antihurto || '—', modelo: '',
-    anio: eq.antihurto_year || '',
-    distribuidor: d('antitheft_detail').distribuidor || '', val_distribuidor: d('antitheft_detail').val_distribuidor || '',
-    soporte: d('antitheft_detail').soporte || '', val_soporte: d('antitheft_detail').val_soporte || '',
-    estado: eq.antihurto && eq.antihurto !== 'NO' ? 'SI' : 'NO', is_viteka: false,
-  })
-
-  rows.push({
-    key: 'consultoria', producto: 'Consultoría',
-    marca: eq.consultoria || '—', modelo: eq.consultoria_detail?.otro || '',
-    anio: eq.consultoria_detail?.year || '',
-    distribuidor: d('consulting_detail').distribuidor || '', val_distribuidor: d('consulting_detail').val_distribuidor || '',
-    soporte: d('consulting_detail').soporte || '', val_soporte: d('consulting_detail').val_soporte || '',
-    estado: eq.consultoria && eq.consultoria !== 'NO' ? 'SI' : 'NO', is_viteka: !!eq.consultoria_viteka,
-  })
-
-  rows.push({
-    key: 'robot', producto: 'Robot dispensador',
-    marca: eq.robot || '—', modelo: '',
-    anio: eq.robot_year || '',
-    distribuidor: d('robot_detail').distribuidor || '', val_distribuidor: d('robot_detail').val_distribuidor || '',
-    soporte: d('robot_detail').soporte || '', val_soporte: d('robot_detail').val_soporte || '',
-    estado: eq.robot && eq.robot !== 'NO' ? 'SI' : 'NO', is_viteka: false,
-  })
-
-  rows.push({
-    key: 'cruz', producto: 'Cruz luminosa',
-    marca: eq.cruz && eq.cruz !== 'NO' ? `${eq.cruz_cantidad ?? 1} unidad(es)` : '—',
-    modelo: eq.cruz_ampliacion ? `Ampliación: ${eq.cruz_ampliacion}` : '',
-    anio: '', distribuidor: '', val_distribuidor: '', soporte: '', val_soporte: '',
-    estado: eq.cruz && eq.cruz !== 'NO' ? 'SI' : 'NO', is_viteka: false,
-  })
-
-  rows.push({
-    key: 'gestor_turnos', producto: 'Gestor de turnos',
-    marca: eq.gestor_turnos_marca || (eq.gestor_turnos === 'SI' ? 'Sí' : '—'), modelo: '',
-    anio: eq.gestor_turnos_year || '',
-    distribuidor: d('queue_detail').distribuidor || '', val_distribuidor: d('queue_detail').val_distribuidor || '',
-    soporte: d('queue_detail').soporte || '', val_soporte: d('queue_detail').val_soporte || '',
-    estado: eq.gestor_turnos === 'SI' ? 'SI' : 'NO', is_viteka: false,
-  })
-
-  rows.push({
-    key: 'spd', producto: 'SPD',
-    marca: eq.spd_marca || (eq.spd === 'SI' ? 'Sí' : '—'), modelo: '',
-    anio: eq.spd_year || '',
-    distribuidor: d('spd_detail').distribuidor || '', val_distribuidor: d('spd_detail').val_distribuidor || '',
-    soporte: d('spd_detail').soporte || '', val_soporte: d('spd_detail').val_soporte || '',
-    estado: eq.spd === 'SI' ? 'SI' : 'NO', is_viteka: false,
-  })
-
-  const pant_d = eq.pantallas_detail || {}
-  rows.push({
-    key: 'pantallas', producto: 'Pantallas',
-    marca: pant_d.marca || (eq.pantallas === 'SI' ? 'Sí' : '—'),
-    modelo: Array.isArray(pant_d.ubicaciones) && pant_d.ubicaciones.length ? pant_d.ubicaciones.join(', ') : '',
-    anio: pant_d.year || '',
-    distribuidor: d('screens_detail').distribuidor || '', val_distribuidor: d('screens_detail').val_distribuidor || '',
-    soporte: d('screens_detail').soporte || '', val_soporte: d('screens_detail').val_soporte || '',
-    estado: eq.pantallas === 'SI' ? 'SI' : 'NO', is_viteka: false,
-  })
-
-  rows.push({
-    key: 'frigorifico', producto: 'Frigorífico',
-    marca: eq.frigorifico_marca || '—', modelo: '',
-    anio: eq.frigorifico_year || '',
-    distribuidor: d('fridge_detail').distribuidor || '', val_distribuidor: d('fridge_detail').val_distribuidor || '',
-    soporte: d('fridge_detail').soporte || '', val_soporte: d('fridge_detail').val_soporte || '',
-    estado: eq.frigorifico_marca ? 'SI' : 'NO', is_viteka: !!eq.frigorifico_viteka,
-  })
-
-  return rows
+  return [
+    {
+      key: 'erp', producto: 'ERP',
+      marca: eq.erp || '—', modelo: eq.erp_detail?.licencia ? `Lic: ${eq.erp_detail.licencia}` : '',
+      anio: eq.erp_detail?.year || '',
+      distribuidor: d('erp_detail').distribuidor || '', val_distribuidor: d('erp_detail').val_distribuidor || '',
+      soporte: d('erp_detail').soporte || '', val_soporte: d('erp_detail').val_soporte || '',
+      estado: eq.erp && eq.erp !== 'NO' ? 'SI' : 'NO', is_viteka: !!eq.erp_viteka,
+    },
+    {
+      key: 'caja', producto: 'Caja de cobro',
+      marca: eq.caja || '—', modelo: eq.caja_modelo || '',
+      anio: eq.caja_year || '',
+      distribuidor: d('cash_detail').distribuidor || '', val_distribuidor: d('cash_detail').val_distribuidor || '',
+      soporte: d('cash_detail').soporte || '', val_soporte: d('cash_detail').val_soporte || '',
+      estado: eq.caja && eq.caja !== 'NO' ? 'SI' : 'NO', is_viteka: !!eq.caja_viteka,
+    },
+    {
+      key: 'esl', producto: 'Etiquetas ESL',
+      marca: eq.esl || '—', modelo: '',
+      anio: eq.esl_year || '',
+      distribuidor: d('esl_detail').distribuidor || '', val_distribuidor: d('esl_detail').val_distribuidor || '',
+      soporte: d('esl_detail').soporte || '', val_soporte: d('esl_detail').val_soporte || '',
+      estado: eq.esl && eq.esl !== 'NO' ? 'SI' : 'NO', is_viteka: !!eq.esl_viteka,
+    },
+    {
+      key: 'bascula', producto: 'Báscula',
+      marca: eq.bascula || '—', modelo: '',
+      anio: eq.bascula_year || '',
+      distribuidor: d('scale_detail').distribuidor || '', val_distribuidor: d('scale_detail').val_distribuidor || '',
+      soporte: d('scale_detail').soporte || '', val_soporte: d('scale_detail').val_soporte || '',
+      estado: eq.bascula && eq.bascula !== 'NO' ? 'SI' : 'NO', is_viteka: !!eq.bascula_viteka,
+    },
+    {
+      key: 'antihurto', producto: 'Arco antihurto',
+      marca: eq.antihurto || '—', modelo: '',
+      anio: eq.antihurto_year || '',
+      distribuidor: d('antitheft_detail').distribuidor || '', val_distribuidor: d('antitheft_detail').val_distribuidor || '',
+      soporte: d('antitheft_detail').soporte || '', val_soporte: d('antitheft_detail').val_soporte || '',
+      estado: eq.antihurto && eq.antihurto !== 'NO' ? 'SI' : 'NO', is_viteka: false,
+    },
+    {
+      key: 'consultoria', producto: 'Consultoría',
+      marca: eq.consultoria || '—', modelo: eq.consultoria_detail?.otro || '',
+      anio: eq.consultoria_detail?.year || '',
+      distribuidor: d('consulting_detail').distribuidor || '', val_distribuidor: d('consulting_detail').val_distribuidor || '',
+      soporte: d('consulting_detail').soporte || '', val_soporte: d('consulting_detail').val_soporte || '',
+      estado: eq.consultoria && eq.consultoria !== 'NO' ? 'SI' : 'NO', is_viteka: !!eq.consultoria_viteka,
+    },
+    {
+      key: 'robot', producto: 'Robot dispensador',
+      marca: eq.robot || '—', modelo: '',
+      anio: eq.robot_year || '',
+      distribuidor: d('robot_detail').distribuidor || '', val_distribuidor: d('robot_detail').val_distribuidor || '',
+      soporte: d('robot_detail').soporte || '', val_soporte: d('robot_detail').val_soporte || '',
+      estado: eq.robot && eq.robot !== 'NO' ? 'SI' : 'NO', is_viteka: false,
+    },
+    {
+      key: 'cruz', producto: 'Cruz luminosa',
+      marca: eq.cruz && eq.cruz !== 'NO' ? `${eq.cruz_cantidad ?? 1} unidad(es)` : '—',
+      modelo: eq.cruz_ampliacion ? `Ampliación: ${eq.cruz_ampliacion}` : '',
+      anio: '', distribuidor: '', val_distribuidor: '', soporte: '', val_soporte: '',
+      estado: eq.cruz && eq.cruz !== 'NO' ? 'SI' : 'NO', is_viteka: false,
+    },
+    {
+      key: 'gestor_turnos', producto: 'Gestor de turnos',
+      marca: eq.gestor_turnos_marca || (eq.gestor_turnos === 'SI' ? 'Sí' : '—'), modelo: '',
+      anio: eq.gestor_turnos_year || '',
+      distribuidor: d('queue_detail').distribuidor || '', val_distribuidor: d('queue_detail').val_distribuidor || '',
+      soporte: d('queue_detail').soporte || '', val_soporte: d('queue_detail').val_soporte || '',
+      estado: eq.gestor_turnos === 'SI' ? 'SI' : 'NO', is_viteka: false,
+    },
+    {
+      key: 'spd', producto: 'SPD',
+      marca: eq.spd_marca || (eq.spd === 'SI' ? 'Sí' : '—'), modelo: '',
+      anio: eq.spd_year || '',
+      distribuidor: d('spd_detail').distribuidor || '', val_distribuidor: d('spd_detail').val_distribuidor || '',
+      soporte: d('spd_detail').soporte || '', val_soporte: d('spd_detail').val_soporte || '',
+      estado: eq.spd === 'SI' ? 'SI' : 'NO', is_viteka: false,
+    },
+    (() => {
+      const pant_d = eq.pantallas_detail || {}
+      return {
+        key: 'pantallas', producto: 'Pantallas',
+        marca: pant_d.marca || (eq.pantallas === 'SI' ? 'Sí' : '—'),
+        modelo: Array.isArray(pant_d.ubicaciones) && pant_d.ubicaciones.length ? pant_d.ubicaciones.join(', ') : '',
+        anio: pant_d.year || '',
+        distribuidor: d('screens_detail').distribuidor || '', val_distribuidor: d('screens_detail').val_distribuidor || '',
+        soporte: d('screens_detail').soporte || '', val_soporte: d('screens_detail').val_soporte || '',
+        estado: eq.pantallas === 'SI' ? 'SI' : 'NO', is_viteka: false,
+      }
+    })(),
+    {
+      key: 'frigorifico', producto: 'Frigorífico',
+      marca: eq.frigorifico_marca || '—', modelo: '',
+      anio: eq.frigorifico_year || '',
+      distribuidor: d('fridge_detail').distribuidor || '', val_distribuidor: d('fridge_detail').val_distribuidor || '',
+      soporte: d('fridge_detail').soporte || '', val_soporte: d('fridge_detail').val_soporte || '',
+      estado: eq.frigorifico_marca ? 'SI' : 'NO', is_viteka: !!eq.frigorifico_viteka,
+    },
+  ]
 }
 
-// ── Columnas ─────────────────────────────────────────────────────────────────
+// ── Columnas (6) ──────────────────────────────────────────────────────────────
 const COLS = [
-  { key: 'producto',         label: 'Producto',          sortable: true  },
-  { key: 'marca',            label: 'Marca / Modelo',    sortable: true  },
-  { key: 'anio',             label: 'Año',               sortable: true  },
-  { key: 'distribuidor',     label: 'Distribuidor',      sortable: true  },
-  { key: 'val_distribuidor', label: 'Val. dist.',        sortable: true  },
-  { key: 'soporte',          label: 'Soporte',           sortable: true  },
-  { key: 'val_soporte',      label: 'Val. sop.',         sortable: true  },
-  { key: 'estado',           label: 'Estado',            sortable: true  },
+  { key: 'producto',     label: 'Producto',       sortable: true },
+  { key: 'marca',        label: 'Marca / Modelo', sortable: true },
+  { key: 'anio',         label: 'Año',            sortable: true },
+  { key: 'distribuidor', label: 'Distribuidor',   sortable: true },
+  { key: 'soporte',      label: 'Soporte',        sortable: true },
+  { key: 'estado',       label: 'Estado',         sortable: true },
 ]
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -196,9 +190,11 @@ export default function EquipmentSummaryTable({ equipment }) {
     <div className="space-y-4">
       {/* Filtros rápidos */}
       <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-xs text-gray-400">{activeCount} activo{activeCount !== 1 ? 's' : ''} · {vitekaCount} Viteka</span>
+        <span className="text-xs text-gray-400">
+          {activeCount} activo{activeCount !== 1 ? 's' : ''} · {vitekaCount} Viteka
+        </span>
         <div className="flex gap-1 ml-auto">
-          {[['all','Todos'],['active','Activos'],['viteka','Viteka']].map(([val,label]) => (
+          {[['all','Todos'],['active','Activos'],['viteka','Viteka']].map(([val, label]) => (
             <button key={val} onClick={() => setFilter(val)}
               className={`px-3 py-1 rounded-full text-xs font-medium transition ${
                 filter === val ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
@@ -219,8 +215,6 @@ export default function EquipmentSummaryTable({ equipment }) {
                   onClick={() => col.sortable && handleSort(col.key)}
                   className={`px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap select-none ${
                     col.sortable ? 'cursor-pointer hover:text-teal-600' : ''
-                  } ${
-                    col.key === 'val_distribuidor' || col.key === 'val_soporte' ? 'w-24' : ''
                   }`}>
                   {col.label}
                   {col.sortable && <SortIcon col={col.key} sortCol={sortCol} sortDir={sortDir} />}
@@ -256,24 +250,14 @@ export default function EquipmentSummaryTable({ equipment }) {
                   {row.anio || <span className="text-gray-200">—</span>}
                 </td>
 
-                {/* Distribuidor */}
-                <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
-                  {row.distribuidor || <span className="text-gray-200">—</span>}
+                {/* Distribuidor + valoración */}
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <NameWithRating name={row.distribuidor} rating={row.val_distribuidor} />
                 </td>
 
-                {/* Val. distribuidor */}
-                <td className="px-2 py-3 whitespace-nowrap">
-                  {stars(row.val_distribuidor)}
-                </td>
-
-                {/* Soporte */}
-                <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
-                  {row.soporte || <span className="text-gray-200">—</span>}
-                </td>
-
-                {/* Val. soporte */}
-                <td className="px-2 py-3 whitespace-nowrap">
-                  {stars(row.val_soporte)}
+                {/* Soporte + valoración */}
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <NameWithRating name={row.soporte} rating={row.val_soporte} />
                 </td>
 
                 {/* Estado */}
