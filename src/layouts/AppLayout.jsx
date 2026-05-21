@@ -8,16 +8,16 @@ import {
 } from '@heroicons/react/24/outline'
 
 const NAV = [
-  { to: '/',           label: 'Dashboard',   Icon: HomeIcon },
-  { to: '/farmacias',  label: 'Farmacias',   Icon: BuildingStorefrontIcon },
-  { to: '/proyectos',  label: 'Proyectos',   Icon: FolderIcon },
-  { to: '/incidencias',label: 'Incidencias', Icon: ExclamationTriangleIcon },
+  { to: '/',            label: 'Dashboard',   Icon: HomeIcon },
+  { to: '/farmacias',   label: 'Farmacias',   Icon: BuildingStorefrontIcon },
+  { to: '/proyectos',   label: 'Proyectos',   Icon: FolderIcon },
+  { to: '/incidencias', label: 'Incidencias', Icon: ExclamationTriangleIcon },
 ]
 
 export default function AppLayout({ session }) {
   const navigate = useNavigate()
-  const [sideOpen, setSideOpen]   = useState(false)   // desktop sidebar
-  const [mobileOpen, setMobileOpen] = useState(false) // mobile dropdown
+  const [sideOpen, setSideOpen]     = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -34,7 +34,12 @@ export default function AppLayout({ session }) {
 
       {/* ── MOBILE TOPBAR ────────────────────────────── */}
       <header className="md:hidden flex items-center justify-between h-14 px-4 bg-white border-b border-gray-200 shrink-0 z-20">
-        <span className="text-lg font-bold text-teal-600">Viteka</span>
+        {/* Logo icono en mobile */}
+        <img
+          src="/brand/logo-icon-colr.svg"
+          alt="Viteka"
+          className="h-8 w-auto"
+        />
         <button
           onClick={() => setMobileOpen(o => !o)}
           className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
@@ -77,11 +82,24 @@ export default function AppLayout({ session }) {
           sideOpen ? 'w-56' : 'w-14'
         }`}
       >
-        <div className="h-16 flex items-center justify-between px-3 border-b border-gray-200">
-          {sideOpen && <span className="text-lg font-bold text-teal-600 truncate">Viteka</span>}
+        <div className="h-16 flex items-center justify-between px-3 border-b border-gray-200 overflow-hidden">
+          {/* Logo full-color cuando está expandida, icono cuando está colapsada */}
+          {sideOpen ? (
+            <img
+              src="/brand/logo-full-color.svg"
+              alt="Viteka"
+              className="h-8 w-auto max-w-[140px] object-contain"
+            />
+          ) : (
+            <img
+              src="/brand/logo-icon-colr.svg"
+              alt="Viteka"
+              className="h-7 w-7 object-contain mx-auto"
+            />
+          )}
           <button
             onClick={() => setSideOpen(o => !o)}
-            className="ml-auto p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors"
+            className="ml-auto shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors"
             title={sideOpen ? 'Cerrar menú' : 'Abrir menú'}
           >
             {sideOpen
