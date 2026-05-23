@@ -167,24 +167,20 @@ function resolveBrand(device) {
   }
 }
 
-// Genera el resumen de specs en una sola línea para la vista compacta
 function buildSpecsSummary(device) {
   const s = device.specs || {}
   const parts = []
-  if (s.ip?.length)    parts.push(`Nº conexión/${Array.isArray(s.ip) ? s.ip.join(', ') : s.ip}`)
-  if (s.ip)            parts.push('IP')
-  if (s.so)            parts.push('SO')
-  if (s.cpu)           parts.push('Procesador')
-  if (s.ram)           parts.push('Ram')
-  if (s.disks?.length) parts.push('disco duro/')
-  if (device.install_date) parts.push('F inst')
-  if (device.warranty_end) parts.push('F garantía')
-  if (s.location || s.ubicacion) parts.push('ubicación')
-  // Si no hay nada, devuelve los campos estándar placeholder
-  return parts.length ? parts.join('/ ') : 'Nº conexión/IP/SO/Procesador/Ram/disco duro/ F inst/ F garantía/ ubicación'
+  if (s.ip?.length)         parts.push(`IP: ${Array.isArray(s.ip) ? s.ip.join(', ') : s.ip}`)
+  if (s.conexiones?.length) parts.push(`${s.conexiones.length} conexión${s.conexiones.length !== 1 ? 'es' : ''}`)
+  if (s.so)                 parts.push('SO')
+  if (s.cpu)                parts.push('Procesador')
+  if (s.ram)                parts.push('Ram')
+  if (s.disks?.length)      parts.push('disco duro')
+  if (device.install_date)  parts.push('F inst')
+  if (device.warranty_end)  parts.push('F garantía')
+  return parts.length ? parts.join(' / ') : 'Nº conexión/IP/SO/Procesador/Ram/disco duro/ F inst/ F garantía/ ubicación'
 }
 
-// Fila compacta dentro de un bloque de tipo
 function ITDeviceRow({ device, onEdit, onDelete, onDuplicate }) {
   const { marca } = resolveBrand(device)
   const summary = buildSpecsSummary(device)
@@ -197,27 +193,16 @@ function ITDeviceRow({ device, onEdit, onDelete, onDuplicate }) {
 
   return (
     <div className="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
-      {/* Nombre */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-semibold text-gray-800 truncate">
-            {device.label || `Equipo`}
-          </span>
-          <span className="text-xs text-gray-400 truncate hidden sm:inline">
-            {summary}
-          </span>
+          <span className="text-sm font-semibold text-gray-800 truncate">{device.label || 'Equipo'}</span>
+          <span className="text-xs text-gray-400 truncate hidden sm:inline">{summary}</span>
         </div>
-        {marca && (
-          <p className="text-xs text-gray-400 mt-0.5">Marca</p>
-        )}
+        {marca && <p className="text-xs text-gray-400 mt-0.5">Marca</p>}
       </div>
-
-      {/* Badge Viteka */}
       {device.is_viteka && (
         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-700 shrink-0">Viteka</span>
       )}
-
-      {/* Acciones — visibles en hover */}
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
         <button type="button" onClick={() => onDuplicate(device)} title="Duplicar"
           className="p-1.5 text-gray-400 hover:text-indigo-500 rounded-md hover:bg-white">
@@ -236,7 +221,6 @@ function ITDeviceRow({ device, onEdit, onDelete, onDuplicate }) {
   )
 }
 
-// Bloque por tipo: cabecera teal + filas compactas
 function ITTypeBlock({ typeKey, devices, onEdit, onDelete, onDuplicate }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -252,6 +236,7 @@ function ITTypeBlock({ typeKey, devices, onEdit, onDelete, onDuplicate }) {
   )
 }
 
+// ── Formulario de equipo ───────────────────────────────────────────────────────────
 function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
   const [form, setForm] = useState(initial || {
     device_type: 'servidor', label: '', is_viteka: false,
@@ -264,17 +249,27 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
   const isComputer = ['servidor', 'estacion'].includes(form.device_type)
   const isPrinter  = ['impresora_documentos', 'impresora_tickets', 'impresora_etiquetas'].includes(form.device_type)
 
+  // IPs
   function addIp()         { setSpec('ip', [...(form.specs.ip || ['']), '']) }
   function setIp(i, v)     { const arr = [...(form.specs.ip || [''])]; arr[i] = v; setSpec('ip', arr) }
   function removeIp(i)     { setSpec('ip', (form.specs.ip || []).filter((_, idx) => idx !== i)) }
-  function addDisk()       { setSpec('disks', [...(form.specs.disks || []), { type: 'SSD', capacity: '' }]) }
-  function setDisk(i, k, v){ const arr = [...(form.specs.disks || [])]; arr[i] = { ...arr[i], [k]: v }; setSpec('disks', arr) }
-  function removeDisk(i)   { setSpec('disks', (form.specs.disks || []).filter((_, idx) => idx !== i)) }
+
+  // Discos
+  function addDisk()        { setSpec('disks', [...(form.specs.disks || []), { type: 'SSD', capacity: '' }]) }
+  function setDisk(i, k, v) { const arr = [...(form.specs.disks || [])]; arr[i] = { ...arr[i], [k]: v }; setSpec('disks', arr) }
+  function removeDisk(i)    { setSpec('disks', (form.specs.disks || []).filter((_, idx) => idx !== i)) }
+
+  // Conexiones (número + contraseña)
+  const conexiones = form.specs.conexiones || [{ numero: '', pass: '' }]
+  function addConexion()        { setSpec('conexiones', [...conexiones, { numero: '', pass: '' }]) }
+  function setConexion(i, k, v) { const arr = conexiones.map((c, idx) => idx === i ? { ...c, [k]: v } : c); setSpec('conexiones', arr) }
+  function removeConexion(i)    { setSpec('conexiones', conexiones.filter((_, idx) => idx !== i)) }
 
   return (
     <div className="bg-white rounded-xl border border-teal-200 p-5 space-y-4">
       <h3 className="text-sm font-semibold text-gray-800">{initial ? 'Editar equipo' : 'Nuevo equipo'}</h3>
 
+      {/* Campos base */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label required>Tipo de equipo</Label>
@@ -287,6 +282,7 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
         <div><Label>Modelo</Label><Input value={form.specs.modelo || ''} onChange={e => setSpec('modelo', e.target.value)} /></div>
       </div>
 
+      {/* Viteka */}
       <label className="flex items-center gap-2 p-3 bg-teal-50 rounded-lg cursor-pointer">
         <input type="checkbox" checked={form.is_viteka} onChange={e => set('is_viteka', e.target.checked)} className="w-4 h-4 accent-teal-600" />
         <span className="text-sm text-teal-800">Equipo de Viteka</span>
@@ -299,9 +295,12 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
         </div>
       )}
 
+      {/* Bloque exclusivo servidores / estaciones */}
       {isComputer && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Especificaciones hardware</p>
+
+          {/* Hardware genérico */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div><Label>Sistema operativo</Label><Input value={form.specs.so || ''} onChange={e => setSpec('so', e.target.value)} /></div>
             <div><Label>Antivirus</Label><Input value={form.specs.antivirus || ''} onChange={e => setSpec('antivirus', e.target.value)} /></div>
@@ -310,6 +309,8 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
             <div><Label>Gráfica</Label><Input value={form.specs.gpu || ''} onChange={e => setSpec('gpu', e.target.value)} /></div>
             <div><Label>Fuente alimentación</Label><Input value={form.specs.psu || ''} onChange={e => setSpec('psu', e.target.value)} /></div>
           </div>
+
+          {/* IPs */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <Label>Dirección(es) IP</Label>
@@ -322,6 +323,43 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
               </div>
             ))}
           </div>
+
+          {/* Nº DE CONEXIÓN (número + contraseña, multilínea) */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <Label>Nº de conexión</Label>
+              <button type="button" onClick={addConexion} className="text-xs text-teal-600 hover:text-teal-800">+ Añadir conexión</button>
+            </div>
+            <div className="space-y-2">
+              {conexiones.map((c, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Input
+                      value={c.numero}
+                      onChange={e => setConexion(i, 'numero', e.target.value)}
+                      placeholder="Número"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Input
+                      value={c.pass}
+                      onChange={e => setConexion(i, 'pass', e.target.value)}
+                      placeholder="Contraseña"
+                      type="password"
+                      autoComplete="new-password"
+                    />
+                  </div>
+                  {conexiones.length > 1 && (
+                    <button type="button" onClick={() => removeConexion(i)} className="shrink-0 text-red-400 hover:text-red-600">
+                      <XMarkIcon className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Discos */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <Label>Disco(s) duro(s)</Label>
@@ -337,22 +375,47 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
               </div>
             ))}
           </div>
+
+          {/* Monitor */}
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Monitor</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="flex items-center gap-2">
-              <input type="checkbox" checked={!!form.specs.monitor} onChange={e => setSpec('monitor', e.target.checked ? { size: '', color: '', conn: 'HDMI' } : null)} className="accent-teal-600" />
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Check tiene monitor */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!form.specs.monitor}
+                onChange={e => setSpec('monitor', e.target.checked ? { size: '', color: '', conn: 'HDMI', tactil: false } : null)}
+                className="accent-teal-600"
+              />
               <span className="text-sm text-gray-700">Tiene monitor</span>
-            </div>
-            {form.specs.monitor && (<>
+            </label>
+            {/* Check táctil — solo visible si hay monitor */}
+            {form.specs.monitor && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!form.specs.monitor.tactil}
+                  onChange={e => setSpec('monitor', { ...form.specs.monitor, tactil: e.target.checked })}
+                  className="accent-teal-600"
+                />
+                <span className="text-sm text-gray-700">Táctil</span>
+              </label>
+            )}
+          </div>
+          {form.specs.monitor && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div><Label>Tamaño</Label><Input value={form.specs.monitor.size || ''} onChange={e => setSpec('monitor', { ...form.specs.monitor, size: e.target.value })} placeholder='"' /></div>
               <div><Label>Color</Label><Input value={form.specs.monitor.color || ''} onChange={e => setSpec('monitor', { ...form.specs.monitor, color: e.target.value })} /></div>
-              <div><Label>Conexión</Label>
+              <div>
+                <Label>Conexión</Label>
                 <Select value={form.specs.monitor.conn || ''} onChange={e => setSpec('monitor', { ...form.specs.monitor, conn: e.target.value })}>
                   {MONITOR_CONN.map(c => <option key={c} value={c}>{c}</option>)}
                 </Select>
               </div>
-            </>)}
-          </div>
+            </div>
+          )}
+
+          {/* Periféricos */}
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Periféricos</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[['teclado', 'Teclado'], ['raton', 'Ratón']].map(([key, lbl]) => (
@@ -394,9 +457,11 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
         </div>
       )}
 
+      {/* Impresoras */}
       {isPrinter && (
         <div className="grid grid-cols-2 gap-3">
-          <div><Label>Conexión</Label>
+          <div>
+            <Label>Conexión</Label>
             <Select value={form.specs.conn || ''} onChange={e => setSpec('conn', e.target.value)}>
               <option value="">Seleccionar</option>
               {CONNECTION_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
@@ -406,6 +471,7 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
         </div>
       )}
 
+      {/* SAI */}
       {form.device_type === 'sai' && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div><Label>Capacidad</Label><Input value={form.specs.capacity || ''} onChange={e => setSpec('capacity', e.target.value)} placeholder="p.ej. 600 VA" /></div>
@@ -414,6 +480,7 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
         </div>
       )}
 
+      {/* Router */}
       {form.device_type === 'router' && (
         <div className="space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -431,6 +498,7 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
         </div>
       )}
 
+      {/* Switch */}
       {form.device_type === 'switch' && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div><Label>Nº salidas</Label><Input type="number" value={form.specs.ports || ''} onChange={e => setSpec('ports', e.target.value)} /></div>
@@ -456,6 +524,7 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
         </div>
       )}
 
+      {/* Observaciones */}
       <div><Label>Observaciones</Label><Textarea value={form.observations || ''} onChange={e => set('observations', e.target.value)} /></div>
 
       <div className="flex gap-3 justify-end pt-2">
@@ -653,19 +722,16 @@ function TabIT({ pharmacyId, companyId }) {
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
 
-  // Agrupar por tipo respetando el orden de IT_TYPES
   const grouped = IT_TYPES.reduce((acc, t) => {
     const list = devices.filter(d => d.device_type === t.value)
     if (list.length) acc.push({ typeKey: t.value, list })
     return acc
   }, [])
 
-  // Si hay un equipo en edición abierto, mostramos el form inline sustituyendo su bloque
   const editingDeviceType = editing?.device_type
 
   return (
     <div className="space-y-4">
-      {/* Barra de acciones */}
       <div className="flex justify-end gap-2">
         <button type="button" onClick={() => setShowCopy(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50">
@@ -678,26 +744,21 @@ function TabIT({ pharmacyId, companyId }) {
         </button>
       </div>
 
-      {/* Formulario de nuevo equipo */}
       {adding && !editing && (
         <ITDeviceForm pharmacyId={pharmacyId} companyId={companyId} onSave={handleSave} onCancel={() => setAdding(false)} />
       )}
 
-      {/* Formulario de edición (si el equipo editado no tiene tipo aún agrupado) */}
       {editing && !grouped.find(g => g.typeKey === editingDeviceType) && (
         <ITDeviceForm initial={editing} pharmacyId={pharmacyId} companyId={companyId} onSave={handleSave} onCancel={() => setEditing(null)} />
       )}
 
-      {/* Vista vacía */}
       {devices.length === 0 && !adding && (
         <EmptyTab icon={ComputerDesktopIcon} message="Sin equipos registrados" />
       )}
 
-      {/* Grid 2 columnas de bloques por tipo */}
       {grouped.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {grouped.map(({ typeKey, list }) => {
-            // Si el equipo en edición es de este tipo, sustituimos su fila por el form
             if (editing && editingDeviceType === typeKey) {
               return (
                 <div key={typeKey} className="lg:col-span-2">
