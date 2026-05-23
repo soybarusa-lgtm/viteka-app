@@ -63,12 +63,8 @@ function EmptyTab({ icon: Icon, message }) {
     </div>
   )
 }
-function VitekaBadge({ value }) {
-  if (!value) return null
-  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-700">Viteka</span>
-}
 
-// ── Pestañas ───────────────────────────────────────────────────────────────────
+// ── Pestañas ──────────────────────────────────────────────────────────────────
 const TABS = [
   { key: 'general',   label: 'Datos generales',   icon: BuildingStorefrontIcon },
   { key: 'equipment', label: 'Equipamiento',       icon: WrenchScrewdriverIcon  },
@@ -79,7 +75,7 @@ const TABS = [
   { key: 'documents', label: 'Documentos',         icon: DocumentTextIcon       },
 ]
 
-// ── Tab: Datos generales ──────────────────────────────────────────────────────────────
+// ── Tab: Datos generales ──────────────────────────────────────────────────────
 function TabGeneral({ pharmacy }) {
   const lType = pharmacy.legal_type || ''
   const hasAuto = lType.includes('autonomo')
@@ -111,30 +107,18 @@ function TabGeneral({ pharmacy }) {
           <Field label="Observaciones"  value={pharmacy.observations} wide />
         </SectionBlock>
       )}
-
       {hasCb && (
         <SectionBlock title="Comunidad de Bienes (C.B.)">
           <Field label="Razón social" value={pharmacy.razon_social} />
           <Field label="CIF"          value={pharmacy.cif} />
           {cbOwners.length === 0 && (
-            <div className="col-span-2 md:col-span-3">
-              <p className="text-xs text-gray-300 italic">Sin titulares registrados</p>
-            </div>
+            <div className="col-span-2 md:col-span-3"><p className="text-xs text-gray-300 italic">Sin titulares registrados</p></div>
           )}
           {cbOwners.map((o, i) => (
             <div key={i} className="col-span-2 md:col-span-3 grid grid-cols-3 gap-3 bg-white rounded-lg p-3 border border-gray-200">
-              <div>
-                <dt className="text-xs text-gray-400">Titular {i + 1}</dt>
-                <dd className={`text-sm font-medium ${o.name ? 'text-gray-800' : 'text-gray-300 italic'}`}>{o.name || 'Sin informar'}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-gray-400">NIF</dt>
-                <dd className={`text-sm font-medium ${o.nif ? 'text-gray-800' : 'text-gray-300 italic'}`}>{o.nif || 'Sin informar'}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-gray-400">Colegiado</dt>
-                <dd className={`text-sm font-medium ${o.collegiate ? 'text-gray-800' : 'text-gray-300 italic'}`}>{o.collegiate || 'Sin informar'}</dd>
-              </div>
+              <div><dt className="text-xs text-gray-400">Titular {i + 1}</dt><dd className={`text-sm font-medium ${o.name ? 'text-gray-800' : 'text-gray-300 italic'}`}>{o.name || 'Sin informar'}</dd></div>
+              <div><dt className="text-xs text-gray-400">NIF</dt><dd className={`text-sm font-medium ${o.nif ? 'text-gray-800' : 'text-gray-300 italic'}`}>{o.nif || 'Sin informar'}</dd></div>
+              <div><dt className="text-xs text-gray-400">Colegiado</dt><dd className={`text-sm font-medium ${o.collegiate ? 'text-gray-800' : 'text-gray-300 italic'}`}>{o.collegiate || 'Sin informar'}</dd></div>
             </div>
           ))}
           <Field label="Teléfono"     value={pharmacy.contact_phone} />
@@ -149,7 +133,6 @@ function TabGeneral({ pharmacy }) {
           <Field label="Observaciones" value={pharmacy.observations} wide />
         </SectionBlock>
       )}
-
       {hasSl && (
         <SectionBlock title="Sociedad Limitada (S.L.)">
           <Field label="Razón social"  value={(hasAuto || hasCb) ? sl.razon_social : pharmacy.razon_social} />
@@ -167,17 +150,15 @@ function TabGeneral({ pharmacy }) {
   )
 }
 
-// ── Tab: Equipamiento ──────────────────────────────────────────────────────────────
+// ── Tab: Equipamiento ─────────────────────────────────────────────────────────
 function TabEquipment({ equipment }) {
   if (!equipment) return <EmptyTab icon={WrenchScrewdriverIcon} message="Sin equipamiento registrado" />
   return <EquipmentSummaryTable equipment={equipment} />
 }
 
-// ── Tab: Equipamiento Informático ───────────────────────────────────────────────────────────
+// ── Tab: Equipamiento Informático ─────────────────────────────────────────────
 const IT_LABEL = Object.fromEntries(IT_TYPES.map(t => [t.value, t.label]))
 
-// Resuelve marca y modelo leyendo specs primero y columnas directas como fallback
-// Esto garantiza compatibilidad con registros guardados antes y después del fix de mapeo
 function resolveBrand(device) {
   const specs = device.specs || {}
   return {
@@ -186,57 +167,87 @@ function resolveBrand(device) {
   }
 }
 
-function ITDeviceCard({ device, onEdit, onDelete, onDuplicate }) {
-  const specs = device.specs || {}
-  const { marca, modelo } = resolveBrand(device)
+// Genera el resumen de specs en una sola línea para la vista compacta
+function buildSpecsSummary(device) {
+  const s = device.specs || {}
+  const parts = []
+  if (s.ip?.length)    parts.push(`Nº conexión/${Array.isArray(s.ip) ? s.ip.join(', ') : s.ip}`)
+  if (s.ip)            parts.push('IP')
+  if (s.so)            parts.push('SO')
+  if (s.cpu)           parts.push('Procesador')
+  if (s.ram)           parts.push('Ram')
+  if (s.disks?.length) parts.push('disco duro/')
+  if (device.install_date) parts.push('F inst')
+  if (device.warranty_end) parts.push('F garantía')
+  if (s.location || s.ubicacion) parts.push('ubicación')
+  // Si no hay nada, devuelve los campos estándar placeholder
+  return parts.length ? parts.join('/ ') : 'Nº conexión/IP/SO/Procesador/Ram/disco duro/ F inst/ F garantía/ ubicación'
+}
 
-  // Al editar, normalizar el dispositivo para que el form use siempre specs.marca/modelo
+// Fila compacta dentro de un bloque de tipo
+function ITDeviceRow({ device, onEdit, onDelete, onDuplicate }) {
+  const { marca } = resolveBrand(device)
+  const summary = buildSpecsSummary(device)
+
   function handleEdit() {
-    const normalized = {
-      ...device,
-      specs: {
-        ...specs,
-        marca:  marca  || specs.marca  || '',
-        modelo: modelo || specs.modelo || '',
-      },
-    }
-    onEdit(normalized)
+    const specs = device.specs || {}
+    const { marca: m, modelo: mo } = resolveBrand(device)
+    onEdit({ ...device, specs: { ...specs, marca: m, modelo: mo } })
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <span className="text-xs font-semibold text-teal-600 uppercase tracking-wide">{IT_LABEL[device.device_type] || device.device_type}</span>
-          {device.label && <p className="text-sm font-medium text-gray-800 mt-0.5">{device.label}</p>}
+    <div className="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
+      {/* Nombre */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-semibold text-gray-800 truncate">
+            {device.label || `Equipo`}
+          </span>
+          <span className="text-xs text-gray-400 truncate hidden sm:inline">
+            {summary}
+          </span>
         </div>
-        <div className="flex items-center gap-1 shrink-0">
-          {device.is_viteka && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-700">Viteka</span>}
-          <button type="button" onClick={() => onDuplicate(device)} title="Duplicar equipo" className="p-1.5 text-gray-400 hover:text-indigo-500 rounded-lg hover:bg-gray-50">
-            <DocumentDuplicateIcon className="w-4 h-4" />
-          </button>
-          <button type="button" onClick={handleEdit} className="p-1.5 text-gray-400 hover:text-teal-600 rounded-lg hover:bg-gray-50">
-            <PencilSquareIcon className="w-4 h-4" />
-          </button>
-          <button type="button" onClick={() => onDelete(device)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-50">
-            <TrashIcon className="w-4 h-4" />
-          </button>
-        </div>
+        {marca && (
+          <p className="text-xs text-gray-400 mt-0.5">Marca</p>
+        )}
       </div>
+
+      {/* Badge Viteka */}
       {device.is_viteka && (
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-500">
-          {device.serial_number && <span><span className="font-medium">Nº serie:</span> {device.serial_number}</span>}
-          {device.install_date  && <span><span className="font-medium">Instalación:</span> {device.install_date}</span>}
-          {device.warranty_end  && <span><span className="font-medium">Fin garantía:</span> {device.warranty_end}</span>}
-        </div>
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-700 shrink-0">Viteka</span>
       )}
-      {(marca || modelo) && (
-        <p className="text-xs text-gray-500">
-          <span className="font-medium">Marca:</span> {marca}{modelo ? ` ${modelo}` : ''}
-        </p>
-      )}
-      {specs.ip && <p className="text-xs text-gray-500"><span className="font-medium">IP:</span> {Array.isArray(specs.ip) ? specs.ip.join(', ') : specs.ip}</p>}
-      {device.observations && <p className="text-xs text-gray-400 italic">{device.observations}</p>}
+
+      {/* Acciones — visibles en hover */}
+      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        <button type="button" onClick={() => onDuplicate(device)} title="Duplicar"
+          className="p-1.5 text-gray-400 hover:text-indigo-500 rounded-md hover:bg-white">
+          <DocumentDuplicateIcon className="w-3.5 h-3.5" />
+        </button>
+        <button type="button" onClick={handleEdit} title="Editar"
+          className="p-1.5 text-gray-400 hover:text-teal-600 rounded-md hover:bg-white">
+          <PencilSquareIcon className="w-3.5 h-3.5" />
+        </button>
+        <button type="button" onClick={() => onDelete(device)} title="Eliminar"
+          className="p-1.5 text-gray-400 hover:text-red-500 rounded-md hover:bg-white">
+          <TrashIcon className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// Bloque por tipo: cabecera teal + filas compactas
+function ITTypeBlock({ typeKey, devices, onEdit, onDelete, onDuplicate }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-gray-100">
+        <span className="text-xs font-bold text-teal-600 uppercase tracking-wide">{IT_LABEL[typeKey] || typeKey}</span>
+      </div>
+      <div className="divide-y divide-gray-100">
+        {devices.map(d => (
+          <ITDeviceRow key={d.id} device={d} onEdit={onEdit} onDelete={onDelete} onDuplicate={onDuplicate} />
+        ))}
+      </div>
     </div>
   )
 }
@@ -455,7 +466,7 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
   )
 }
 
-// ── Modal: Copiar equipos de otra farmacia ──────────────────────────────────────────────────
+// ── Modal: Copiar equipos de otra farmacia ─────────────────────────────────────
 function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }) {
   const [pharmacies, setPharmacies] = useState([])
   const [sourceId, setSourceId]     = useState('')
@@ -582,17 +593,17 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
   )
 }
 
+// ── TabIT principal ────────────────────────────────────────────────────────────
 function TabIT({ pharmacyId, companyId }) {
   const { devices, loading, createDevice, updateDevice, deleteDevice } = usePharmacyIT(pharmacyId)
   const toast = useToast()
-  const [adding, setAdding]       = useState(false)
-  const [editing, setEditing]     = useState(null)
+  const [adding, setAdding]         = useState(false)
+  const [editing, setEditing]       = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
-  const [showCopy, setShowCopy]   = useState(false)
+  const [showCopy, setShowCopy]     = useState(false)
 
   async function handleSave(form) {
     try {
-      // Limpiar columnas legacy brand/model para no duplicar datos
       const { brand: _b, model: _m, ...rest } = form
       const payload = { ...rest, pharmacy_id: pharmacyId, company_id: companyId }
       if (editing) { await updateDevice(editing.id, payload); toast('Equipo actualizado', 'success') }
@@ -642,8 +653,19 @@ function TabIT({ pharmacyId, companyId }) {
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
 
+  // Agrupar por tipo respetando el orden de IT_TYPES
+  const grouped = IT_TYPES.reduce((acc, t) => {
+    const list = devices.filter(d => d.device_type === t.value)
+    if (list.length) acc.push({ typeKey: t.value, list })
+    return acc
+  }, [])
+
+  // Si hay un equipo en edición abierto, mostramos el form inline sustituyendo su bloque
+  const editingDeviceType = editing?.device_type
+
   return (
     <div className="space-y-4">
+      {/* Barra de acciones */}
       <div className="flex justify-end gap-2">
         <button type="button" onClick={() => setShowCopy(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50">
@@ -656,24 +678,74 @@ function TabIT({ pharmacyId, companyId }) {
         </button>
       </div>
 
-      {(adding && !editing) && <ITDeviceForm pharmacyId={pharmacyId} companyId={companyId} onSave={handleSave} onCancel={() => setAdding(false)} />}
-      {devices.length === 0 && !adding && <EmptyTab icon={ComputerDesktopIcon} message="Sin equipos registrados" />}
-      {devices.map(d => (
-        editing?.id === d.id
-          ? <ITDeviceForm key={d.id} initial={editing} pharmacyId={pharmacyId} companyId={companyId} onSave={handleSave} onCancel={() => setEditing(null)} />
-          : <ITDeviceCard key={d.id} device={d} onEdit={setEditing} onDelete={setConfirmDel} onDuplicate={handleDuplicate} />
-      ))}
+      {/* Formulario de nuevo equipo */}
+      {adding && !editing && (
+        <ITDeviceForm pharmacyId={pharmacyId} companyId={companyId} onSave={handleSave} onCancel={() => setAdding(false)} />
+      )}
 
-      <ConfirmDialog open={!!confirmDel} title="Eliminar equipo"
+      {/* Formulario de edición (si el equipo editado no tiene tipo aún agrupado) */}
+      {editing && !grouped.find(g => g.typeKey === editingDeviceType) && (
+        <ITDeviceForm initial={editing} pharmacyId={pharmacyId} companyId={companyId} onSave={handleSave} onCancel={() => setEditing(null)} />
+      )}
+
+      {/* Vista vacía */}
+      {devices.length === 0 && !adding && (
+        <EmptyTab icon={ComputerDesktopIcon} message="Sin equipos registrados" />
+      )}
+
+      {/* Grid 2 columnas de bloques por tipo */}
+      {grouped.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {grouped.map(({ typeKey, list }) => {
+            // Si el equipo en edición es de este tipo, sustituimos su fila por el form
+            if (editing && editingDeviceType === typeKey) {
+              return (
+                <div key={typeKey} className="lg:col-span-2">
+                  <ITDeviceForm
+                    initial={editing}
+                    pharmacyId={pharmacyId}
+                    companyId={companyId}
+                    onSave={handleSave}
+                    onCancel={() => setEditing(null)}
+                  />
+                </div>
+              )
+            }
+            return (
+              <ITTypeBlock
+                key={typeKey}
+                typeKey={typeKey}
+                devices={list}
+                onEdit={setEditing}
+                onDelete={setConfirmDel}
+                onDuplicate={handleDuplicate}
+              />
+            )
+          })}
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={!!confirmDel}
+        title="Eliminar equipo"
         message={`¿Eliminar "${confirmDel?.label || IT_LABEL[confirmDel?.device_type] || 'este equipo'}"? Esta acción no se puede deshacer.`}
-        onConfirm={handleDelete} onCancel={() => setConfirmDel(null)} />
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDel(null)}
+      />
 
-      {showCopy && <CopyFromPharmacyModal currentPharmacyId={pharmacyId} companyId={companyId} onCopy={handleCopyDevices} onClose={() => setShowCopy(false)} />}
+      {showCopy && (
+        <CopyFromPharmacyModal
+          currentPharmacyId={pharmacyId}
+          companyId={companyId}
+          onCopy={handleCopyDevices}
+          onClose={() => setShowCopy(false)}
+        />
+      )}
     </div>
   )
 }
 
-// ── Tab: Personas ──────────────────────────────────────────────────────────────────
+// ── Tab: Personas ─────────────────────────────────────────────────────────────
 const PERSON_ROLE_COLORS = {
   Titular: 'bg-purple-100 text-purple-700', Adjunto: 'bg-blue-100 text-blue-700',
   Gestor: 'bg-indigo-100 text-indigo-700', Técnico: 'bg-orange-100 text-orange-700',
@@ -807,7 +879,7 @@ function TabPeople({ pharmacyId, companyId }) {
   )
 }
 
-// ── Tab: Documentos ──────────────────────────────────────────────────────────────────
+// ── Tab: Documentos ───────────────────────────────────────────────────────────
 const DOC_EXT_ICON = { pdf: '📄', doc: '📝', docx: '📝', xls: '📊', xlsx: '📊', jpg: '🖼️', jpeg: '🖼️', png: '🖼️', default: '📎' }
 
 function TabDocuments({ pharmacyId, companyId }) {
@@ -916,7 +988,7 @@ function TabDocuments({ pharmacyId, companyId }) {
   )
 }
 
-// ── Componente principal ────────────────────────────────────────────────────────────────
+// ── Componente principal ───────────────────────────────────────────────────────
 export default function PharmacyDetailPage() {
   const { id }      = useParams()
   const navigate    = useNavigate()
