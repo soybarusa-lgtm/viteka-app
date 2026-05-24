@@ -1672,7 +1672,8 @@ export default function PharmacyDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { pharmacy, loading, error } = usePharmacy(id)
+  // FIX: destructurar `equipment` directamente del hook, NO leerlo como pharmacy.equipment
+  const { pharmacy, equipment, loading, error } = usePharmacy(id)
   const [activeTab, setActiveTab] = useState('general')
 
   if (loading) {
@@ -1752,7 +1753,7 @@ export default function PharmacyDetailPage() {
       {/* Contenido */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         {activeTab === 'general'   && <TabGeneral pharmacy={pharmacy} />}
-        {activeTab === 'equipment' && <TabEquipment equipment={pharmacy.equipment} />}
+        {activeTab === 'equipment' && <TabEquipment equipment={equipment} />}
         {activeTab === 'it'        && <TabIT pharmacyId={id} companyId={pharmacy.company_id} />}
         {activeTab === 'people'    && <TabPeople pharmacyId={id} companyId={pharmacy.company_id} />}
         {activeTab === 'incidents' && <EmptyTab icon={ExclamationTriangleIcon} message="Módulo de incidencias próximamente" />}
