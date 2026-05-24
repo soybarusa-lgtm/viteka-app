@@ -212,7 +212,17 @@ function Chip({ children }) {
 }
 
 // ── Modal base con guard de cambios sin guardar ───────────────────────────────
-function DeviceModal({ isOpen, isDirty, title, onRequestClose, children }) {
+function DeviceModal({
+  isOpen,
+  isDirty,
+  title,
+  onRequestClose,
+  onSaveBeforeClose,
+  canSaveBeforeClose = false,
+  saving = false,
+  headerActions = null,
+  children,
+}) {
   const [showConfirm, setShowConfirm] = useState(false)
   const backdropRef = useRef(null)
 
@@ -222,17 +232,26 @@ function DeviceModal({ isOpen, isDirty, title, onRequestClose, children }) {
     return () => { document.body.style.overflow = '' }
   }, [isOpen])
 
-  // Cerrar con Escape
-  useEffect(() => {
-    if (!isOpen) return
-    function onKey(e) { if (e.key === 'Escape') handleClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  })
-
   function handleClose() {
     if (isDirty) setShowConfirm(true)
     else onRequestClose()
+  }
+
+  // Cerrar con Escape
+  useEffect(() => {
+    if (!isOpen) return
+    function onKey(e) {
+      if (e.key === 'Escape') handleClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, isDirty])
+
+  async function handleSaveAndClose() {
+    if (!onSaveBeforeClose || !canSaveBeforeClose || saving) return
+    await onSaveBeforeClose()
+    setShowConfirm(false)
   }
 
   if (!isOpen) return null
@@ -241,17 +260,19 @@ function DeviceModal({ isOpen, isDirty, title, onRequestClose, children }) {
     <div
       ref={backdropRef}
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm"
-      onClick={e => { if (e.target === backdropRef.current) handleClose() }}
+      onClick={e => {
+        if (e.target === backdropRef.current) handleClose()
+      }}
     >
       {/* Panel */}
       <div
-        className="relative w-full sm:max-w-2xl max-h-[95dvh] sm:max-h-[90vh] flex flex-col bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden"
+        className="relative w-full sm:max-w-3xl max-h-[95dvh] sm:max-h-[90vh] flex flex-col bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden"
         role="dialog"
         aria-modal="true"
         aria-labelledby="device-modal-title"
       >
         {/* Cabecera */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-white sticky top-0 z-10">
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-100 bg-white sticky top-0 z-10">
           <div className="flex items-center gap-2 min-w-0">
             {isDirty && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-700 shrink-0">
@@ -259,16 +280,22 @@ function DeviceModal({ isOpen, isDirty, title, onRequestClose, children }) {
                 Sin guardar
               </span>
             )}
-            <h2 id="device-modal-title" className="text-sm font-semibold text-gray-900 truncate">{title}</h2>
+            <h2 id="device-modal-title" className="text-sm font-semibold text-gray-900 truncate">
+              {title}
+            </h2>
           </div>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="shrink-0 p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors ml-2"
-            aria-label="Cerrar"
-          >
-            <XMarkIcon className="w-5 h-5" />
-          </button>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {headerActions}
+            <button
+              type="button"
+              onClick={handleClose}
+              className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+              aria-label="Cerrar"
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Contenido scrollable */}
@@ -279,29 +306,44 @@ function DeviceModal({ isOpen, isDirty, title, onRequestClose, children }) {
 
       {/* Confirmación cambios sin guardar */}
       {showConfirm && (
-        <div className="absolute inset-0 z-60 flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm text-center">
+        <div className="absolute inset-0 z-[60] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md text-center">
             <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <ExclamationTriangleIcon className="w-6 h-6 text-amber-600" />
             </div>
-            <h3 className="text-base font-bold text-gray-900 mb-1">¿Cerrar sin guardar?</h3>
+
+            <h3 className="text-base font-bold text-gray-900 mb-1">Hay cambios pendientes</h3>
             <p className="text-sm text-gray-500 mb-6">
-              Tienes cambios pendientes. Si cierras ahora se perderán.
+              ¿Quieres guardar antes de cerrar esta ventana?
             </p>
-            <div className="flex flex-col sm:flex-row gap-3">
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <button
                 type="button"
                 onClick={() => setShowConfirm(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                className="px-4 py-2.5 rounded-xl border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 font-medium transition-colors"
               >
-                Volver a editar
+                Seguir editando
               </button>
+
               <button
                 type="button"
-                onClick={() => { setShowConfirm(false); onRequestClose() }}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors"
+                onClick={handleSaveAndClose}
+                disabled={!canSaveBeforeClose || saving}
+                className="px-4 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                Descartar cambios
+                {saving ? 'Guardando...' : 'Guardar y cerrar'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConfirm(false)
+                  onRequestClose()
+                }}
+                className="px-4 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors"
+              >
+                Descartar
               </button>
             </div>
           </div>
@@ -784,20 +826,177 @@ function ITDeviceFormInner({ form, setForm }) {
   )
 }
 
+// ── Vistas de solo lectura ────────────────────────────────────────────────────
+function ReadOnlyField({ label, value, wide = false }) {
+  const isEmpty = value === null || value === undefined || value === ''
+  return (
+    <div className={wide ? 'sm:col-span-2' : ''}>
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{label}</p>
+      <p className={`mt-1 text-sm ${isEmpty ? 'text-gray-300 italic' : 'text-gray-800'}`}>
+        {isEmpty ? 'Sin informar' : value}
+      </p>
+    </div>
+  )
+}
+
+function ReadOnlySection({ title, children }) {
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+      <h3 className="text-xs font-bold uppercase tracking-widest text-teal-700">{title}</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {children}
+      </div>
+    </section>
+  )
+}
+
+function ITDeviceReadView({ device }) {
+  const s = device?.specs || {}
+  const ips = Array.isArray(s.ip) ? s.ip.filter(Boolean) : []
+  const disks = Array.isArray(s.disks) ? s.disks.filter(d => d?.type || d?.capacity) : []
+  const conexiones = Array.isArray(s.conexiones) ? s.conexiones.filter(c => c?.numero || c?.pass) : []
+  const monitor = s.monitor
+  const { marca, modelo } = resolveBrand(device)
+
+  return (
+    <div className="space-y-4">
+      <ReadOnlySection title="Resumen">
+        <ReadOnlyField label="Tipo" value={IT_LABEL[device.device_type] || device.device_type} />
+        <ReadOnlyField label="Etiqueta / Nombre" value={device.label} />
+        <ReadOnlyField label="Marca" value={marca} />
+        <ReadOnlyField label="Modelo" value={modelo} />
+        <ReadOnlyField label="Viteka" value={device.is_viteka ? 'Sí' : 'No'} />
+        <ReadOnlyField label="Nº serie" value={device.serial_number} />
+        <ReadOnlyField label="Fecha instalación" value={fmtDate(device.install_date)} />
+        <ReadOnlyField label="Fin garantía" value={fmtDate(device.warranty_end)} />
+      </ReadOnlySection>
+
+      {['servidor', 'estacion'].includes(device.device_type) && (
+        <>
+          <ReadOnlySection title="Hardware">
+            <ReadOnlyField label="Sistema operativo" value={s.so} />
+            <ReadOnlyField label="Antivirus" value={s.antivirus} />
+            <ReadOnlyField label="Procesador" value={s.cpu} />
+            <ReadOnlyField label="RAM" value={s.ram} />
+            <ReadOnlyField label="Gráfica" value={s.gpu} />
+            <ReadOnlyField label="Fuente de alimentación" value={s.psu} />
+            <ReadOnlyField label="Direcciones IP" value={ips.join(' · ')} wide />
+            <ReadOnlyField
+              label="Discos duros"
+              value={disks.map(d => `${d.type || ''} ${d.capacity || ''}`.trim()).join(' · ')}
+              wide
+            />
+          </ReadOnlySection>
+
+          <ReadOnlySection title="Monitor y Periféricos">
+            <ReadOnlyField label="Tiene monitor" value={monitor ? 'Sí' : 'No'} />
+            <ReadOnlyField
+              label="Detalle monitor"
+              value={
+                monitor
+                  ? [
+                      monitor.size && `${monitor.size}"`,
+                      monitor.color,
+                      monitor.conn,
+                      monitor.tactil ? 'Táctil' : null,
+                    ].filter(Boolean).join(' · ')
+                  : ''
+              }
+            />
+            <ReadOnlyField label="Teclado" value={s.teclado} />
+            <ReadOnlyField label="Ratón" value={s.raton} />
+            <ReadOnlyField
+              label="Lector tarjetas"
+              value={
+                s.card_reader && s.card_reader !== 'NO'
+                  ? [s.card_reader.modelo, s.card_reader.año].filter(Boolean).join(' · ')
+                  : s.card_reader === 'NO' ? 'No' : ''
+              }
+            />
+            <ReadOnlyField
+              label="Lector QR 2D"
+              value={
+                s.qr_reader && s.qr_reader !== 'NO'
+                  ? [s.qr_reader.tipo, s.qr_reader.modelo].filter(Boolean).join(' · ')
+                  : s.qr_reader === 'NO' ? 'No' : ''
+              }
+            />
+          </ReadOnlySection>
+
+          {conexiones.length > 0 && (
+            <ReadOnlySection title="Conexiones Remotas">
+              <ReadOnlyField
+                label="Nº Conexión"
+                value={conexiones.map(c => c.numero).filter(Boolean).join(' · ')}
+                wide
+              />
+            </ReadOnlySection>
+          )}
+        </>
+      )}
+
+      {['impresora_documentos', 'impresora_tickets', 'impresora_etiquetas'].includes(device.device_type) && (
+        <ReadOnlySection title="Configuración de Impresión">
+          <ReadOnlyField label="Conexión" value={s.conn} />
+          <ReadOnlyField label="Equipo vinculado" value={s.linked} />
+        </ReadOnlySection>
+      )}
+
+      {device.device_type === 'router' && (
+        <ReadOnlySection title="Configuración de Router">
+          <ReadOnlyField label="Proveedor" value={s.provider} />
+          <ReadOnlyField label="Año" value={s.year} />
+          <ReadOnlyField label="Prioridad" value={s.priority} />
+          <ReadOnlyField
+            label="Contacto del proveedor"
+            value={[s.contact_name, s.contact_role, s.contact_phone, s.contact_email].filter(Boolean).join(' · ')}
+            wide
+          />
+        </ReadOnlySection>
+      )}
+
+      {device.device_type === 'switch' && (
+        <ReadOnlySection title="Configuración de Switch">
+          <ReadOnlyField label="Nº de salidas" value={s.ports} />
+          <ReadOnlyField label="Año" value={s.year} />
+          <ReadOnlyField label="Capa" value={s.layer} />
+          <ReadOnlyField label="Gestionable" value={s.managed ? 'Sí' : 'No'} />
+          <ReadOnlyField label="Soporta PoE" value={s.poe ? `Sí · ${s.poe.ports || 'Sin indicar'} puertos` : 'No'} />
+        </ReadOnlySection>
+      )}
+
+      {device.device_type === 'sai' && (
+        <ReadOnlySection title="Configuración de SAI">
+          <ReadOnlyField label="Capacidad" value={s.capacity} />
+          <ReadOnlyField label="Año" value={s.year} />
+          <ReadOnlyField label="Equipo vinculado" value={s.linked} wide />
+        </ReadOnlySection>
+      )}
+
+      <ReadOnlySection title="Observaciones">
+        <ReadOnlyField label="Notas adicionales" value={device.observations} wide />
+      </ReadOnlySection>
+    </div>
+  )
+}
+
 // ── Modal unificado: ver / editar equipo ──────────────────────────────────────
 function ITDeviceModal({ device, pharmacyId, companyId, onSave, onClose }) {
   const isNew = !device?.id
+  const [form, setForm] = useState(device || createEmptyITDevice())
+  const [saving, setSaving] = useState(false)
+  const [mode, setMode] = useState(isNew ? 'edit' : 'view')
+
   const baseSnapshot = useMemo(
     () => JSON.stringify(device || createEmptyITDevice()),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [device?.id]
   )
-  const [form, setForm] = useState(device || createEmptyITDevice())
-  const [saving, setSaving] = useState(false)
 
   // Sincronizar cuando cambia el device (al abrir otro equipo)
   useEffect(() => {
     setForm(device || createEmptyITDevice())
+    setMode(device?.id ? 'view' : 'edit')
   }, [device])
 
   const isDirty = JSON.stringify(form) !== baseSnapshot
@@ -815,38 +1014,86 @@ function ITDeviceModal({ device, pharmacyId, companyId, onSave, onClose }) {
     ? `Nuevo equipo — ${IT_LABEL[form.device_type] || ''}`
     : (form.label || IT_LABEL[form.device_type] || 'Equipo')
 
+  const isReadMode = !isNew && mode === 'view'
+
   return (
     <DeviceModal
       isOpen={!!device || isNew}
       isDirty={isDirty}
       title={title}
       onRequestClose={onClose}
+      onSaveBeforeClose={handleSave}
+      canSaveBeforeClose={isDirty}
+      saving={saving}
+      headerActions={
+        isReadMode ? (
+          <button
+            type="button"
+            onClick={() => setMode('edit')}
+            className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-100 transition-colors"
+          >
+            <PencilSquareIcon className="w-4 h-4" />
+            Editar
+          </button>
+        ) : null
+      }
     >
-      <ITDeviceFormInner form={form} setForm={setForm} />
+      {isReadMode ? (
+        <ITDeviceReadView device={form} />
+      ) : (
+        <ITDeviceFormInner form={form} setForm={setForm} />
+      )}
 
       {/* Barra de acciones dentro del modal (sticky bottom) */}
       <div className="sticky bottom-0 -mx-5 -mb-5 mt-6 px-5 py-4 bg-white border-t border-gray-100 flex items-center justify-between gap-3">
         <span className={`text-xs font-medium transition-colors ${
           isDirty ? 'text-amber-600' : 'text-gray-400'
         }`}>
-          {isDirty ? '● Cambios sin guardar' : isNew ? 'Nuevo equipo' : 'Sin cambios'}
+          {isDirty ? '● Cambios sin guardar' : isReadMode ? 'Modo lectura' : isNew ? 'Nuevo equipo' : 'Sin cambios'}
         </span>
+
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 font-medium transition-colors"
-          >
-            {isDirty ? 'Cancelar' : 'Cerrar'}
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!isDirty || saving}
-            className="px-5 py-2 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            {saving ? 'Guardando...' : isNew ? 'Crear equipo' : 'Guardar cambios'}
-          </button>
+          {isReadMode ? (
+            <>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 font-medium transition-colors"
+              >
+                Cerrar
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('edit')}
+                className="px-5 py-2 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition-colors"
+              >
+                Editar
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  if (isNew) onClose()
+                  else if (isDirty) onClose()
+                  else setMode('view')
+                }}
+                className="px-4 py-2 rounded-xl border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 font-medium transition-colors"
+              >
+                {isNew ? 'Cancelar' : isDirty ? 'Cerrar' : 'Volver a lectura'}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={!isDirty || saving}
+                className="px-5 py-2 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                {saving ? 'Guardando...' : isNew ? 'Crear equipo' : 'Guardar cambios'}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </DeviceModal>
@@ -982,7 +1229,6 @@ function TabIT({ pharmacyId, companyId }) {
   const { devices, loading, createDevice, updateDevice, deleteDevice } = usePharmacyIT(pharmacyId)
   const toast = useToast()
 
-  // null = modal cerrado | objeto = equipo a ver/editar | 'new' = alta
   const [modalDevice, setModalDevice] = useState(null)
   const [confirmDel, setConfirmDel]   = useState(null)
   const [showCopy, setShowCopy]       = useState(false)
@@ -990,12 +1236,10 @@ function TabIT({ pharmacyId, companyId }) {
   const [draftType, setDraftType]     = useState('servidor')
   const [openGroups, setOpenGroups]   = useLocalStorageState(`pharmacy-it-open-${pharmacyId}`, {})
 
-  // Abre modal con equipo existente
   function openDevice(device) {
     setModalDevice({ ...device, specs: { ...device.specs, ...resolveBrand(device) } })
   }
 
-  // Abre modal para nuevo equipo
   function openNewForm(type = 'servidor') {
     setDraftType(type)
     setModalDevice(createEmptyITDevice(type))
@@ -1013,499 +1257,4 @@ function TabIT({ pharmacyId, companyId }) {
       toast('Equipo actualizado', 'success')
     } else {
       await createDevice(payload)
-      toast('Equipo añadido', 'success')
-      setOpenGroups(prev => ({ ...prev, [form.device_type]: true }))
-    }
-    closeModal()
-  }
-
-  async function handleDelete() {
-    try { await deleteDevice(confirmDel.id); toast('Equipo eliminado', 'success') }
-    catch (err) { toast(err.message, 'error', 5500) }
-    finally { setConfirmDel(null) }
-  }
-
-  async function handleDuplicate(device) {
-    try {
-      const { marca, modelo } = resolveBrand(device)
-      await createDevice({
-        pharmacy_id: pharmacyId, company_id: companyId,
-        device_type: device.device_type,
-        label: device.label ? `${device.label} (copia)` : '',
-        specs: { ...device.specs, marca, modelo },
-        observations: device.observations,
-        is_viteka: false, serial_number: null, install_date: null, warranty_end: null,
-      })
-      setOpenGroups(prev => ({ ...prev, [device.device_type]: true }))
-      toast('Equipo duplicado correctamente', 'success')
-    } catch (err) { toast(err.message, 'error', 5500) }
-  }
-
-  async function handleCopyDevices(deviceList) {
-    let ok = 0
-    for (const d of deviceList) {
-      try {
-        const { marca, modelo } = resolveBrand(d)
-        await createDevice({
-          pharmacy_id: pharmacyId, company_id: companyId,
-          device_type: d.device_type, label: d.label,
-          specs: { ...d.specs, marca, modelo },
-          observations: d.observations,
-          is_viteka: false, serial_number: null, install_date: null, warranty_end: null,
-        })
-        ok++
-        setOpenGroups(prev => ({ ...prev, [d.device_type]: true }))
-      } catch (err) { toast(err.message, 'error', 5500) }
-    }
-    if (ok > 0) toast(`${ok} equipo${ok !== 1 ? 's' : ''} copiado${ok !== 1 ? 's' : ''} correctamente`, 'success')
-  }
-
-  function toggleGroup(typeKey) {
-    setOpenGroups(prev => ({ ...prev, [typeKey]: !(prev[typeKey] ?? true) }))
-  }
-
-  const normalizedSearch = search.trim().toLowerCase()
-
-  const filteredDevices = useMemo(() => {
-    if (!normalizedSearch) return devices
-    return devices.filter(d => {
-      const s = d.specs || {}
-      const haystack = [
-        d.label, d.device_type, d.observations,
-        s.so, s.cpu, s.ram, s.provider, s.marca, s.modelo,
-        ...(Array.isArray(s.ip) ? s.ip : []),
-      ].filter(Boolean).join(' ').toLowerCase()
-      return haystack.includes(normalizedSearch)
-    })
-  }, [devices, normalizedSearch])
-
-  if (loading) return (
-    <div className="flex justify-center py-20">
-      <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
-    </div>
-  )
-
-  const grouped = IT_TYPES.reduce((acc, t) => {
-    const list = filteredDevices.filter(d => d.device_type === t.value)
-    if (list.length) acc.push({ typeKey: t.value, list })
-    return acc
-  }, [])
-
-  const totalDevices    = devices.length
-  const totalViteka     = devices.filter(d => d.is_viteka).length
-  const withWarranty    = devices.filter(d => d.warranty_end && new Date(d.warranty_end) >= new Date()).length
-  const expiredWarranty = devices.filter(d => d.warranty_end && new Date(d.warranty_end) < new Date()).length
-
-  return (
-    <div className="space-y-4">
-
-      {/* KPIs */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        {[
-          { label: 'Total equipos',      value: totalDevices,    color: 'text-gray-900' },
-          { label: 'Viteka',             value: totalViteka,     color: 'text-teal-700' },
-          { label: 'En garantía',        value: withWarranty,    color: 'text-green-600' },
-          { label: 'Garantía expirada',  value: expiredWarranty, color: 'text-red-500' },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-            <p className="text-xs text-gray-400">{label}</p>
-            <p className={`text-2xl font-bold mt-0.5 ${color}`}>{value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Barra: búsqueda + acciones */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-        <div className="relative w-full lg:max-w-sm">
-          <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar por nombre, IP, marca, CPU..."
-            className="w-full rounded-xl border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-          />
-        </div>
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={() => setShowCopy(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-            <ArrowsRightLeftIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">Copiar de otra farmacia</span>
-          </button>
-          <button type="button" onClick={() => openNewForm('servidor')}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition-colors">
-            <PlusIcon className="w-4 h-4" /> Añadir equipo
-          </button>
-        </div>
-      </div>
-
-      {/* Estado vacío */}
-      {filteredDevices.length === 0 && (
-        <EmptyTab
-          icon={ComputerDesktopIcon}
-          message={search ? 'No hay resultados para la búsqueda' : 'Sin equipos registrados'}
-        />
-      )}
-
-      {/* Layout masonry limpio — sin formularios inline */}
-      {grouped.length > 0 && (
-        <div className="columns-1 xl:columns-2 gap-4">
-          {grouped.map(({ typeKey, list }) => (
-            <ITTypeBlock
-              key={typeKey}
-              typeKey={typeKey}
-              devices={list}
-              isOpen={openGroups[typeKey] ?? true}
-              onToggle={() => toggleGroup(typeKey)}
-              onOpen={openDevice}
-              onDelete={setConfirmDel}
-              onDuplicate={handleDuplicate}
-              onAddSameType={openNewForm}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Modal único de detalle/edición */}
-      {modalDevice !== null && (
-        <ITDeviceModal
-          device={modalDevice}
-          pharmacyId={pharmacyId}
-          companyId={companyId}
-          onSave={handleSave}
-          onClose={closeModal}
-        />
-      )}
-
-      <ConfirmDialog
-        open={!!confirmDel}
-        title="Eliminar equipo"
-        message={`¿Eliminar "${confirmDel?.label || IT_LABEL[confirmDel?.device_type] || 'este equipo'}"? Esta acción no se puede deshacer.`}
-        onConfirm={handleDelete}
-        onCancel={() => setConfirmDel(null)}
-      />
-
-      {showCopy && (
-        <CopyFromPharmacyModal
-          currentPharmacyId={pharmacyId}
-          companyId={companyId}
-          onCopy={handleCopyDevices}
-          onClose={() => setShowCopy(false)}
-        />
-      )}
-    </div>
-  )
-}
-
-// ── Tab: Personas ─────────────────────────────────────────────────────────────
-const PERSON_ROLE_COLORS = {
-  Titular: 'bg-purple-100 text-purple-700', Adjunto: 'bg-blue-100 text-blue-700',
-  Gestor: 'bg-indigo-100 text-indigo-700', Técnico: 'bg-orange-100 text-orange-700',
-  Auxiliar: 'bg-gray-100 text-gray-600', Otro: 'bg-gray-100 text-gray-500',
-}
-
-function PersonCard({ person, onEdit, onDelete }) {
-  const areas = Array.isArray(person.areas) ? person.areas : []
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-semibold text-gray-900">{person.name}</p>
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${PERSON_ROLE_COLORS[person.role] || 'bg-gray-100 text-gray-500'}`}>{person.role}</span>
-            {person.is_responsible && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Responsable</span>}
-          </div>
-          {areas.length > 0 && <p className="text-xs text-gray-400 mt-1">Áreas: {areas.join(', ')}</p>}
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <button type="button" onClick={() => onEdit(person)} className="p-1.5 text-gray-400 hover:text-teal-600 rounded-lg hover:bg-gray-50"><PencilSquareIcon className="w-4 h-4" /></button>
-          <button type="button" onClick={() => onDelete(person)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-50"><TrashIcon className="w-4 h-4" /></button>
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-        {person.phone && <span>📞 {person.phone}</span>}
-        {person.email && <span>✉️ {person.email}</span>}
-      </div>
-      {person.observations && <p className="text-xs text-gray-400 italic">{person.observations}</p>}
-    </div>
-  )
-}
-
-function PersonForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
-  const [form, setForm] = useState(initial || {
-    name: '', phone: '', email: '', role: 'Titular',
-    is_responsible: false, areas: [], custom_area: '', observations: ''
-  })
-  const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
-  const toggleArea = area => setForm(p => ({
-    ...p,
-    areas: p.areas.includes(area) ? p.areas.filter(a => a !== area) : [...p.areas, area]
-  }))
-
-  return (
-    <div className="bg-white rounded-xl border border-teal-200 p-5 space-y-4">
-      <h3 className="text-sm font-semibold text-gray-800">{initial ? 'Editar persona' : 'Nueva persona'}</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div><Label required>Nombre completo</Label><Input required value={form.name} onChange={e => set('name', e.target.value)} /></div>
-        <div>
-          <Label required>Rol</Label>
-          <Select value={form.role} onChange={e => set('role', e.target.value)}>
-            {PERSON_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-          </Select>
-        </div>
-        <div><Label>Teléfono</Label><Input value={form.phone} onChange={e => set('phone', e.target.value)} /></div>
-        <div><Label>Email</Label><Input type="email" value={form.email} onChange={e => set('email', e.target.value)} /></div>
-      </div>
-      <div>
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Áreas de responsabilidad</p>
-        <div className="flex flex-wrap gap-2">
-          {RESPONSIBILITY_AREAS.map(area => (
-            <button key={area} type="button" onClick={() => toggleArea(area)}
-              className={`py-1.5 px-3 rounded-lg text-xs border transition-colors ${
-                form.areas.includes(area) ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-gray-600 border-gray-300 hover:border-teal-400'
-              }`}>{area}</button>
-          ))}
-        </div>
-        {form.areas.includes('Categoría') && (
-          <div className="mt-2">
-            <Label>Indicar categoría(s)</Label>
-            <Input value={form.custom_area} onChange={e => set('custom_area', e.target.value)} placeholder="Descripción de la categoría" />
-          </div>
-        )}
-      </div>
-      <label className="flex items-center gap-2 cursor-pointer">
-        <input type="checkbox" checked={form.is_responsible} onChange={e => set('is_responsible', e.target.checked)} className="w-4 h-4 accent-teal-600" />
-        <span className="text-sm text-gray-700">Marcar como responsable principal</span>
-      </label>
-      <div><Label>Observaciones</Label><Textarea value={form.observations} onChange={e => set('observations', e.target.value)} /></div>
-      <div className="flex gap-3 justify-end pt-2">
-        <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50">Cancelar</button>
-        <button type="button" onClick={() => onSave(form)} className="px-5 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700">Guardar</button>
-      </div>
-    </div>
-  )
-}
-
-function TabPeople({ pharmacyId, companyId }) {
-  const { persons, loading, createPerson, updatePerson, deletePerson } = usePharmacyPersons(pharmacyId)
-  const toast = useToast()
-  const [adding, setAdding] = useState(false)
-  const [editing, setEditing] = useState(null)
-  const [confirmDel, setConfirmDel] = useState(null)
-
-  async function handleSave(form) {
-    try {
-      const payload = { ...form, pharmacy_id: pharmacyId, company_id: companyId }
-      if (editing) { await updatePerson(editing.id, payload); toast('Persona actualizada', 'success') }
-      else { await createPerson(payload); toast('Persona añadida', 'success') }
-      setAdding(false); setEditing(null)
-    } catch (err) { toast(err.message, 'error', 5500) }
-  }
-  async function handleDelete() {
-    try { await deletePerson(confirmDel.id); toast('Persona eliminada', 'success') }
-    catch (err) { toast(err.message, 'error', 5500) }
-    finally { setConfirmDel(null) }
-  }
-
-  if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <button type="button" onClick={() => { setAdding(true); setEditing(null) }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700">
-          <PlusIcon className="w-4 h-4" /> Añadir persona
-        </button>
-      </div>
-      {(adding && !editing) && <PersonForm pharmacyId={pharmacyId} companyId={companyId} onSave={handleSave} onCancel={() => setAdding(false)} />}
-      {persons.length === 0 && !adding && <EmptyTab icon={UsersIcon} message="Sin personas registradas" />}
-      {persons.map(p => (
-        editing?.id === p.id
-          ? <PersonForm key={p.id} initial={editing} pharmacyId={pharmacyId} companyId={companyId} onSave={handleSave} onCancel={() => setEditing(null)} />
-          : <PersonCard key={p.id} person={p} onEdit={setEditing} onDelete={setConfirmDel} />
-      ))}
-      <ConfirmDialog open={!!confirmDel} title="Eliminar persona"
-        message={`¿Eliminar a "${confirmDel?.name}"? Esta acción no se puede deshacer.`}
-        onConfirm={handleDelete} onCancel={() => setConfirmDel(null)} />
-    </div>
-  )
-}
-
-// ── Tab: Documentos ───────────────────────────────────────────────────────────
-const DOC_EXT_ICON = { pdf: '📄', doc: '📝', docx: '📝', xls: '📊', xlsx: '📊', jpg: '🖼️', jpeg: '🖼️', png: '🖼️', default: '📎' }
-
-function TabDocuments({ pharmacyId, companyId }) {
-  const { documents, loading, uploadDocument, deleteDocument } = usePharmacyDocuments(pharmacyId)
-  const toast = useToast()
-  const [activeCategory, setActiveCategory] = useState('Todos')
-  const [uploading, setUploading] = useState(false)
-  const [uploadForm, setUploadForm] = useState({ category: DOC_CATEGORIES[0], name: '', file: null })
-  const [showUpload, setShowUpload] = useState(false)
-  const [confirmDel, setConfirmDel] = useState(null)
-
-  const categories = ['Todos', ...DOC_CATEGORIES]
-  const filtered = activeCategory === 'Todos' ? documents : documents.filter(d => d.category === activeCategory)
-
-  async function handleUpload() {
-    if (!uploadForm.file) { toast('Selecciona un archivo', 'error'); return }
-    setUploading(true)
-    try {
-      await uploadDocument({ file: uploadForm.file, category: uploadForm.category, name: uploadForm.name || uploadForm.file.name, pharmacyId, companyId })
-      toast('Documento subido correctamente', 'success')
-      setShowUpload(false); setUploadForm({ category: DOC_CATEGORIES[0], name: '', file: null })
-    } catch (err) { toast(err.message, 'error', 5500) }
-    finally { setUploading(false) }
-  }
-
-  async function handleDelete() {
-    try { await deleteDocument(confirmDel); toast('Documento eliminado', 'success') }
-    catch (err) { toast(err.message, 'error', 5500) }
-    finally { setConfirmDel(null) }
-  }
-
-  if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex gap-1 flex-wrap">
-          {categories.map(cat => (
-            <button key={cat} type="button" onClick={() => setActiveCategory(cat)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                activeCategory === cat ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-gray-600 border-gray-300 hover:border-teal-400'
-              }`}>{cat}
-            </button>
-          ))}
-        </div>
-        <button type="button" onClick={() => setShowUpload(v => !v)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700">
-          <PlusIcon className="w-4 h-4" /> Subir documento
-        </button>
-      </div>
-
-      {showUpload && (
-        <div className="bg-white rounded-xl border border-teal-200 p-5 space-y-3">
-          <h3 className="text-sm font-semibold text-gray-800">Subir nuevo documento</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <Label required>Categoría</Label>
-              <Select value={uploadForm.category} onChange={e => setUploadForm(p => ({ ...p, category: e.target.value }))}>
-                {DOC_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </Select>
-            </div>
-            <div><Label>Nombre del documento</Label><Input value={uploadForm.name} onChange={e => setUploadForm(p => ({ ...p, name: e.target.value }))} placeholder="Opcional — si no, usa el nombre del archivo" /></div>
-            <div>
-              <Label required>Archivo</Label>
-              <input type="file" onChange={e => setUploadForm(p => ({ ...p, file: e.target.files[0] || null }))}
-                className="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-teal-50 file:text-teal-700 file:text-xs file:font-medium hover:file:bg-teal-100 cursor-pointer" />
-            </div>
-          </div>
-          <div className="flex gap-3 justify-end">
-            <button type="button" onClick={() => setShowUpload(false)} className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50">Cancelar</button>
-            <button type="button" onClick={handleUpload} disabled={uploading} className="px-5 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700 disabled:opacity-50">
-              {uploading ? 'Subiendo...' : 'Subir'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {filtered.length === 0 && <EmptyTab icon={DocumentTextIcon} message={activeCategory === 'Todos' ? 'Sin documentos adjuntos' : `Sin documentos en "${activeCategory}"`} />}
-
-      <div className="space-y-2">
-        {filtered.map(doc => {
-          const icon = DOC_EXT_ICON[doc.file_ext?.toLowerCase()] || DOC_EXT_ICON.default
-          return (
-            <div key={doc.id} className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 p-3">
-              <span className="text-2xl">{icon}</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-800 truncate">{doc.name}</p>
-                <p className="text-xs text-gray-400">{doc.category} · {doc.size_bytes ? `${(doc.size_bytes / 1024).toFixed(0)} KB` : ''} · {new Date(doc.created_at).toLocaleDateString('es-ES')}</p>
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <a href={doc.public_url} target="_blank" rel="noopener noreferrer"
-                  className="p-1.5 text-gray-400 hover:text-teal-600 rounded-lg hover:bg-gray-50 text-xs">Ver</a>
-                <button type="button" onClick={() => setConfirmDel(doc)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-50">
-                  <TrashIcon className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      <ConfirmDialog open={!!confirmDel} title="Eliminar documento"
-        message={`¿Eliminar "${confirmDel?.name}"? Se borrará también del almacenamiento.`}
-        onConfirm={handleDelete} onCancel={() => setConfirmDel(null)} />
-    </div>
-  )
-}
-
-// ── Componente principal ───────────────────────────────────────────────────────
-export default function PharmacyDetailPage() {
-  const { id }      = useParams()
-  const navigate    = useNavigate()
-  const { profile } = useAuth()
-  const { pharmacy, equipment, loading } = usePharmacy(id)
-  const [activeTab, setActiveTab] = useState('general')
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
-  if (!pharmacy) return <div className="p-6 text-gray-500">Farmacia no encontrada.</div>
-
-  const companyId = profile?.company_id
-
-  return (
-    <div className="p-4 md:p-6 space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <button type="button" onClick={() => navigate(-1)} className="text-gray-400 hover:text-gray-600 shrink-0">
-            <ArrowLeftIcon className="w-5 h-5" />
-          </button>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl md:text-2xl font-bold text-gray-900 truncate">{pharmacy.pharmacy_name}</h1>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium shrink-0 ${
-                pharmacy.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-              }`}>{pharmacy.is_active ? 'Activa' : 'Inactiva'}</span>
-            </div>
-            <p className="text-xs md:text-sm text-gray-500 mt-0.5">
-              {LEGAL_LABEL[pharmacy.legal_type] || pharmacy.legal_type}
-              {pharmacy.city     ? ` · ${pharmacy.city}` : ''}
-              {pharmacy.province ? `, ${PROVINCE_LABEL[pharmacy.province] || pharmacy.province}` : ''}
-            </p>
-          </div>
-        </div>
-        <Link to={`/farmacias/${id}/editar`}
-          className="flex items-center gap-1.5 bg-teal-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors shrink-0">
-          <PencilSquareIcon className="w-4 h-4" />
-          <span className="hidden sm:inline">Editar</span>
-        </Link>
-      </div>
-
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex gap-1 overflow-x-auto">
-          {TABS.map(tab => {
-            const Icon = tab.icon, active = activeTab === tab.key
-            return (
-              <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
-                  active ? 'border-teal-600 text-teal-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}>
-                <Icon className="w-4 h-4" />{tab.label}
-              </button>
-            )
-          })}
-        </nav>
-      </div>
-
-      <div>
-        {activeTab === 'general'   && <TabGeneral pharmacy={pharmacy} />}
-        {activeTab === 'equipment' && <TabEquipment equipment={equipment} />}
-        {activeTab === 'it'        && <TabIT pharmacyId={id} companyId={companyId} />}
-        {activeTab === 'people'    && <TabPeople pharmacyId={id} companyId={companyId} />}
-        {activeTab === 'incidents' && <EmptyTab icon={ExclamationTriangleIcon} message="Sin incidencias registradas" />}
-        {activeTab === 'projects'  && <EmptyTab icon={FolderOpenIcon} message="Sin proyectos registrados" />}
-        {activeTab === 'documents' && <TabDocuments pharmacyId={id} companyId={companyId} />}
-      </div>
-    </div>
-  )
-}
+      toas
