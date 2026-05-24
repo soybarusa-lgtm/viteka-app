@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase } from '../supabaseClient'
 
 export function usePharmacyDocuments(pharmacyId) {
   const [documents, setDocuments] = useState([])
@@ -33,7 +33,16 @@ export function usePharmacyDocuments(pharmacyId) {
 
     const { data, error: dbErr } = await supabase
       .from('pharmacy_documents')
-      .insert({ pharmacy_id: pid, company_id: companyId, name: name || file.name, category, storage_path: path, public_url: urlData.publicUrl, file_ext: ext, size_bytes: file.size })
+      .insert({
+        pharmacy_id: pid,
+        company_id:  companyId,
+        name:        name || file.name,
+        category,
+        storage_path: path,
+        public_url:   urlData.publicUrl,
+        file_ext:     ext,
+        size_bytes:   file.size,
+      })
       .select()
       .single()
     if (dbErr) throw dbErr

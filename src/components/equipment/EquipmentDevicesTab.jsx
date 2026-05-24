@@ -89,9 +89,10 @@ function buildSummaryChips(device) {
 
 // ─── DeviceCard ───────────────────────────────────────────────────────────
 function DeviceCard({ device, allDevices, onUpdate, onDelete }) {
-  const [open, setOpen]     = useState(false)
-  const [form, setForm]     = useState({ ...device })
-  const [saving, setSaving] = useState(false)
+  const [open, setOpen]       = useState(false)
+  const [form, setForm]       = useState({ ...device })
+  const [saving, setSaving]   = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const s = form.specs || {}
   function setSpec(k, v) { setForm(f => ({ ...f, specs: { ...f.specs, [k]: v } })) }
@@ -110,8 +111,21 @@ function DeviceCard({ device, allDevices, onUpdate, onDelete }) {
     try { await onUpdate(device.id, form) } finally { setSaving(false) }
   }
 
+  async function handleDelete() {
+    if (!window.confirm(`¿Eliminar este equipo (${typeLabel})? Esta acción no se puede deshacer.`)) return
+    setDeleting(true)
+    try {
+      await onDelete(device.id)
+    } catch (e) {
+      alert('Error al eliminar: ' + e.message)
+      setDeleting(false)
+    }
+  }
+
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden mb-3">
+    <div className={`rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden mb-3 transition-opacity ${
+      deleting ? 'opacity-40 pointer-events-none' : ''
+    }`}>
 
       {/* ── Cabecera (siempre visible) ── */}
       <div
@@ -158,11 +172,12 @@ function DeviceCard({ device, allDevices, onUpdate, onDelete }) {
         <div className="flex items-center gap-1 shrink-0 ml-1" onClick={e => e.stopPropagation()}>
           <button
             type="button"
-            onClick={() => onDelete(device.id)}
-            className="rounded-lg p-1.5 text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
-            title="Eliminar"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="rounded-lg p-1.5 text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-40"
+            title="Eliminar equipo"
           >
-            🗑
+            {deleting ? '⏳' : '🗑'}
           </button>
           <span className="text-gray-300 text-xs pl-1">{open ? '▲' : '▼'}</span>
         </div>
