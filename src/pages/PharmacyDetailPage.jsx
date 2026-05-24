@@ -167,43 +167,110 @@ function resolveBrand(device) {
   }
 }
 
-function buildSpecsSummary(device) {
+// ── Pieza de resumen: valor real o etiqueta al 50% si no tiene dato ──────────────────
+// Devuelve un elemento <span> con el valor o la etiqueta transparente
+function SummaryToken({ value, label, format }) {
+  const display = value ? (format ? format(value) : String(value)) : null
+  if (display) return <span className="text-gray-500">{display}</span>
+  return <span className="text-gray-400 opacity-50">{label}</span>
+}
+
+// Construye el array de tokens para la fila de resumen de un equipo IT
+function buildSummaryTokens(device) {
   const s = device.specs || {}
-  const parts = []
-  if (s.ip?.length)         parts.push(`IP: ${Array.isArray(s.ip) ? s.ip.join(', ') : s.ip}`)
-  if (s.conexiones?.length) parts.push(`${s.conexiones.length} conexión${s.conexiones.length !== 1 ? 'es' : ''}`)
-  if (s.so)                 parts.push('SO')
-  if (s.cpu)                parts.push('Procesador')
-  if (s.ram)                parts.push('Ram')
-  if (s.disks?.length)      parts.push('disco duro')
-  if (device.install_date)  parts.push('F inst')
-  if (device.warranty_end)  parts.push('F garantía')
-  return parts.length ? parts.join(' / ') : 'Nº conexión/IP/SO/Procesador/Ram/disco duro/ F inst/ F garantía/ ubicación'
+  const isComputer = ['servidor', 'estacion'].includes(device.device_type)
+
+  if (!isComputer) {
+    // Para otros tipos mostramos sólo lo que haya relevante
+    const tokens = []
+    if (s.provider)  tokens.push({ value: s.provider,  label: 'Proveedor' })
+    if (s.ports)     tokens.push({ value: `${s.ports} puertos`, label: 'Puertos' })
+    if (s.capacity)  tokens.push({ value: s.capacity,  label: 'Capacidad' })
+    if (s.conn)      tokens.push({ value: s.conn,       label: 'Conexión' })
+    return tokens
+  }
+
+  // Conexión: primer número (sin pass)
+  const primerNumero = Array.isArray(s.conexiones) && s.conexiones.length > 0 && s.conexiones[0].numero
+    ? s.conexiones[0].numero
+    : null
+  // IPs: primera o todas separadas por coma
+  const ipVal = Array.isArray(s.ip) && s.ip.filter(Boolean).length > 0
+    ? s.ip.filter(Boolean).join(', ')
+    : (typeof s.ip === 'string' && s.ip ? s.ip : null)
+  // Disco: primera capacidad
+  const diskVal = Array.isArray(s.disks) && s.disks.length > 0 && s.disks[0].capacity
+    ? `${s.disks[0].type} ${s.disks[0].capacity}`
+    : null
+  // Fechas formateadas
+  const fInst = device.install_date
+    ? new Date(device.install_date).toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'2-digit' })
+    : null
+  const fGar = device.warranty_end
+    ? new Date(device.warranty_end).toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'2-digit' })
+    : null
+
+  return [
+    { value: primerNumero, label: 'Nº conexión' },
+    { value: ipVal,        label: 'IP'           },
+    { value: s.so,         label: 'SO'           },
+    { value: s.cpu,        label: 'Procesador'   },
+    { value: s.ram,        label: 'RAM'          },
+    { value: diskVal,      label: 'Disco'        },
+    { value: fInst,        label: 'F. inst.'     },
+    { value: fGar,         label: 'F. garantía'  },
+  ]
 }
 
 function ITDeviceRow({ device, onEdit, onDelete, onDuplicate }) {
-  const { marca } = resolveBrand(device)
-  const summary = buildSpecsSummary(device)
+  const { marca, modelo } = resolveBrand(device)
+  const tokens = buildSummaryTokens(device)
+  const isComputer = ['servidor', 'estacion'].includes(device.device_type)
 
   function handleEdit() {
     const specs = device.specs || {}
-    const { marca: m, modelo: mo } = resolveBrand(device)
-    onEdit({ ...device, specs: { ...specs, marca: m, modelo: mo } })
+    onEdit({ ...device, specs: { ...specs, marca, modelo } })
   }
 
   return (
-    <div className="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
+    <div className="group flex items-start gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-semibold text-gray-800 truncate">{device.label || 'Equipo'}</span>
-          <span className="text-xs text-gray-400 truncate hidden sm:inline">{summary}</span>
-        </div>
-        {marca && <p className="text-xs text-gray-400 mt-0.5">Marca</p>}
+        {/* Nombre del equipo */}
+        <span className="text-sm font-semibold text-gray-800">{device.label || 'Equipo'}</span>
+
+        {/* Fila de resumen con tokens reales / fantasma */}
+        {isComputer ? (
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-0.5">
+            {tokens.map((t, i) => (
+              <span key={i} className="flex items-center gap-1 text-xs">
+                {i > 0 && <span className="text-gray-200 select-none">/</span>}
+                <SummaryToken value={t.value} label={t.label} />
+              </span>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-x-1.5 mt-0.5">
+            {tokens.map((t, i) => (
+              <span key={i} className="text-xs text-gray-500">{t.value}</span>
+            ))}
+          </div>
+        )}
+
+        {/* Marca y modelo */}
+        {(marca || modelo) && (
+          <p className="text-xs text-gray-400 mt-0.5">
+            {[marca, modelo].filter(Boolean).join(' — ')}
+          </p>
+        )}
       </div>
+
+      {/* Badge Viteka */}
       {device.is_viteka && (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-700 shrink-0">Viteka</span>
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-700 shrink-0 mt-0.5">Viteka</span>
       )}
-      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+
+      {/* Acciones */}
+      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5">
         <button type="button" onClick={() => onDuplicate(device)} title="Duplicar"
           className="p-1.5 text-gray-400 hover:text-indigo-500 rounded-md hover:bg-white">
           <DocumentDuplicateIcon className="w-3.5 h-3.5" />
@@ -249,17 +316,14 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
   const isComputer = ['servidor', 'estacion'].includes(form.device_type)
   const isPrinter  = ['impresora_documentos', 'impresora_tickets', 'impresora_etiquetas'].includes(form.device_type)
 
-  // IPs
   function addIp()         { setSpec('ip', [...(form.specs.ip || ['']), '']) }
   function setIp(i, v)     { const arr = [...(form.specs.ip || [''])]; arr[i] = v; setSpec('ip', arr) }
   function removeIp(i)     { setSpec('ip', (form.specs.ip || []).filter((_, idx) => idx !== i)) }
 
-  // Discos
   function addDisk()        { setSpec('disks', [...(form.specs.disks || []), { type: 'SSD', capacity: '' }]) }
   function setDisk(i, k, v) { const arr = [...(form.specs.disks || [])]; arr[i] = { ...arr[i], [k]: v }; setSpec('disks', arr) }
   function removeDisk(i)    { setSpec('disks', (form.specs.disks || []).filter((_, idx) => idx !== i)) }
 
-  // Conexiones (número + contraseña)
   const conexiones = form.specs.conexiones || [{ numero: '', pass: '' }]
   function addConexion()        { setSpec('conexiones', [...conexiones, { numero: '', pass: '' }]) }
   function setConexion(i, k, v) { const arr = conexiones.map((c, idx) => idx === i ? { ...c, [k]: v } : c); setSpec('conexiones', arr) }
@@ -269,7 +333,6 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
     <div className="bg-white rounded-xl border border-teal-200 p-5 space-y-4">
       <h3 className="text-sm font-semibold text-gray-800">{initial ? 'Editar equipo' : 'Nuevo equipo'}</h3>
 
-      {/* Campos base */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label required>Tipo de equipo</Label>
@@ -282,7 +345,6 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
         <div><Label>Modelo</Label><Input value={form.specs.modelo || ''} onChange={e => setSpec('modelo', e.target.value)} /></div>
       </div>
 
-      {/* Viteka */}
       <label className="flex items-center gap-2 p-3 bg-teal-50 rounded-lg cursor-pointer">
         <input type="checkbox" checked={form.is_viteka} onChange={e => set('is_viteka', e.target.checked)} className="w-4 h-4 accent-teal-600" />
         <span className="text-sm text-teal-800">Equipo de Viteka</span>
@@ -295,12 +357,9 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
         </div>
       )}
 
-      {/* Bloque exclusivo servidores / estaciones */}
       {isComputer && (
         <div className="space-y-4">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Especificaciones hardware</p>
-
-          {/* Hardware genérico */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div><Label>Sistema operativo</Label><Input value={form.specs.so || ''} onChange={e => setSpec('so', e.target.value)} /></div>
             <div><Label>Antivirus</Label><Input value={form.specs.antivirus || ''} onChange={e => setSpec('antivirus', e.target.value)} /></div>
@@ -310,7 +369,6 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
             <div><Label>Fuente alimentación</Label><Input value={form.specs.psu || ''} onChange={e => setSpec('psu', e.target.value)} /></div>
           </div>
 
-          {/* IPs */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <Label>Dirección(es) IP</Label>
@@ -324,7 +382,6 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
             ))}
           </div>
 
-          {/* Nº DE CONEXIÓN (número + contraseña, multilínea) */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label>Nº de conexión</Label>
@@ -334,20 +391,10 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
               {conexiones.map((c, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <div className="flex-1">
-                    <Input
-                      value={c.numero}
-                      onChange={e => setConexion(i, 'numero', e.target.value)}
-                      placeholder="Número"
-                    />
+                    <Input value={c.numero} onChange={e => setConexion(i, 'numero', e.target.value)} placeholder="Número" />
                   </div>
                   <div className="flex-1">
-                    <Input
-                      value={c.pass}
-                      onChange={e => setConexion(i, 'pass', e.target.value)}
-                      placeholder="Contraseña"
-                      type="password"
-                      autoComplete="new-password"
-                    />
+                    <Input value={c.pass} onChange={e => setConexion(i, 'pass', e.target.value)} placeholder="Contraseña" type="password" autoComplete="new-password" />
                   </div>
                   {conexiones.length > 1 && (
                     <button type="button" onClick={() => removeConexion(i)} className="shrink-0 text-red-400 hover:text-red-600">
@@ -359,7 +406,6 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
             </div>
           </div>
 
-          {/* Discos */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <Label>Disco(s) duro(s)</Label>
@@ -376,28 +422,19 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
             ))}
           </div>
 
-          {/* Monitor */}
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Monitor</p>
           <div className="flex flex-wrap items-center gap-4">
-            {/* Check tiene monitor */}
             <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={!!form.specs.monitor}
+              <input type="checkbox" checked={!!form.specs.monitor}
                 onChange={e => setSpec('monitor', e.target.checked ? { size: '', color: '', conn: 'HDMI', tactil: false } : null)}
-                className="accent-teal-600"
-              />
+                className="accent-teal-600" />
               <span className="text-sm text-gray-700">Tiene monitor</span>
             </label>
-            {/* Check táctil — solo visible si hay monitor */}
             {form.specs.monitor && (
               <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={!!form.specs.monitor.tactil}
+                <input type="checkbox" checked={!!form.specs.monitor.tactil}
                   onChange={e => setSpec('monitor', { ...form.specs.monitor, tactil: e.target.checked })}
-                  className="accent-teal-600"
-                />
+                  className="accent-teal-600" />
                 <span className="text-sm text-gray-700">Táctil</span>
               </label>
             )}
@@ -415,7 +452,6 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
             </div>
           )}
 
-          {/* Periféricos */}
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Periféricos</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[['teclado', 'Teclado'], ['raton', 'Ratón']].map(([key, lbl]) => (
@@ -457,7 +493,6 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
         </div>
       )}
 
-      {/* Impresoras */}
       {isPrinter && (
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -471,7 +506,6 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
         </div>
       )}
 
-      {/* SAI */}
       {form.device_type === 'sai' && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div><Label>Capacidad</Label><Input value={form.specs.capacity || ''} onChange={e => setSpec('capacity', e.target.value)} placeholder="p.ej. 600 VA" /></div>
@@ -480,7 +514,6 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
         </div>
       )}
 
-      {/* Router */}
       {form.device_type === 'router' && (
         <div className="space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -498,7 +531,6 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
         </div>
       )}
 
-      {/* Switch */}
       {form.device_type === 'switch' && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div><Label>Nº salidas</Label><Input type="number" value={form.specs.ports || ''} onChange={e => setSpec('ports', e.target.value)} /></div>
@@ -524,7 +556,6 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
         </div>
       )}
 
-      {/* Observaciones */}
       <div><Label>Observaciones</Label><Textarea value={form.observations || ''} onChange={e => set('observations', e.target.value)} /></div>
 
       <div className="flex gap-3 justify-end pt-2">
@@ -1064,8 +1095,6 @@ export default function PharmacyDetailPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-4">
-
-      {/* Cabecera */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <button type="button" onClick={() => navigate(-1)} className="text-gray-400 hover:text-gray-600 shrink-0">
@@ -1092,7 +1121,6 @@ export default function PharmacyDetailPage() {
         </Link>
       </div>
 
-      {/* Pestañas */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex gap-1 overflow-x-auto">
           {TABS.map(tab => {
@@ -1109,7 +1137,6 @@ export default function PharmacyDetailPage() {
         </nav>
       </div>
 
-      {/* Contenido */}
       <div>
         {activeTab === 'general'   && <TabGeneral pharmacy={pharmacy} />}
         {activeTab === 'equipment' && <TabEquipment equipment={equipment} />}
@@ -1119,7 +1146,6 @@ export default function PharmacyDetailPage() {
         {activeTab === 'projects'  && <EmptyTab icon={FolderOpenIcon} message="Sin proyectos registrados" />}
         {activeTab === 'documents' && <TabDocuments pharmacyId={id} companyId={companyId} />}
       </div>
-
     </div>
   )
 }
