@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { supabase } from '../supabaseClient'
+import { supabase } from '../lib/supabase'
 
 export function usePharmacyDocuments(pharmacyId) {
   const [documents, setDocuments] = useState([])
@@ -21,9 +21,11 @@ export function usePharmacyDocuments(pharmacyId) {
 
   useEffect(() => { load() }, [load])
 
-  const uploadDocument = useCallback(async ({ file, category, name, pharmacyId: pid, companyId }) => {
-    const ext      = file.name.split('.').pop()
-    const path     = `${companyId}/${pid}/${Date.now()}_${file.name}`
+  // Firma: uploadDocument(file, { name, category, pharmacy_id, company_id })
+  const uploadDocument = useCallback(async (file, { name, category, pharmacy_id: pid, company_id: companyId }) => {
+    const ext  = file.name.split('.').pop()
+    const path = `${companyId}/${pid}/${Date.now()}_${file.name}`
+
     const { error: upErr } = await supabase.storage
       .from('task-evidence')
       .upload(path, file, { upsert: false })
@@ -34,9 +36,9 @@ export function usePharmacyDocuments(pharmacyId) {
     const { data, error: dbErr } = await supabase
       .from('pharmacy_documents')
       .insert({
-        pharmacy_id: pid,
-        company_id:  companyId,
-        name:        name || file.name,
+        pharmacy_id:  pid,
+        company_id:   companyId,
+        name:         name || file.name,
         category,
         storage_path: path,
         public_url:   urlData.publicUrl,
@@ -51,7 +53,9 @@ export function usePharmacyDocuments(pharmacyId) {
   }, [])
 
   const deleteDocument = useCallback(async (doc) => {
-    await supabase.storage.from('task-evidence').remove([doc.storage_path])
+    if (doc.storage_path) {
+      await supabase.storage.from('task-evidence').remove([doc.storage_path])
+    }
     const { error } = await supabase.from('pharmacy_documents').delete().eq('id', doc.id)
     if (error) throw error
     setDocuments(prev => prev.filter(d => d.id !== doc.id))
