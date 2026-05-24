@@ -22,7 +22,6 @@ function avatarColor(str = '') {
   return COLORS[Math.abs(h) % COLORS.length]
 }
 
-// Parsea el campo operators (puede ser string separado por comas/saltos)
 function parseOperators(raw) {
   if (!raw || typeof raw !== 'string') return []
   return raw.split(/[,\n;]+/).map(s => s.trim()).filter(Boolean)
@@ -32,13 +31,12 @@ export default function PeoplePage({ profile }) {
   const [people, setPeople]   = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch]   = useState('')
-  const [tab, setTab]         = useState('all') // 'all' | 'internal' | 'pharmacists' | 'operators'
+  const [tab, setTab]         = useState('all')
 
   useEffect(() => { load() }, [profile])
 
   async function load() {
     setLoading(true)
-
     const [{ data: clients }, { data: profiles }] = await Promise.all([
       supabase
         .from('clients')
@@ -51,8 +49,6 @@ export default function PeoplePage({ profile }) {
     ])
 
     const list = []
-
-    // Titulares de farmacia
     ;(clients || []).forEach(c => {
       if (c.pharmacist_owner?.trim()) {
         list.push({
@@ -65,8 +61,6 @@ export default function PeoplePage({ profile }) {
           source: 'pharmacist',
         })
       }
-
-      // Operadores de la farmacia
       parseOperators(c.operators).forEach((op, i) => {
         list.push({
           id: `op-${c.id}-${i}`,
@@ -79,8 +73,6 @@ export default function PeoplePage({ profile }) {
         })
       })
     })
-
-    // Equipo interno
     ;(profiles || []).forEach(p => {
       list.push({
         id: `profile-${p.id}`,
@@ -118,19 +110,20 @@ export default function PeoplePage({ profile }) {
   }), [people])
 
   return (
-    <div className="space-y-6">
+    <div className="page-wrapper space-y-5">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-[#0F172A]">Personas</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#0F172A]">Personas</h1>
         <p className="mt-1 text-sm text-[#94A3B8]">Equipo interno y contactos de farmacia</p>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          { label: 'Total',              value: counts.total,       dot: 'bg-slate-400' },
-          { label: 'Equipo interno',     value: counts.internal,    dot: 'bg-[#005643]' },
-          { label: 'Titulares',          value: counts.pharmacists, dot: 'bg-violet-500' },
-          { label: 'Operadores',         value: counts.operators,   dot: 'bg-sky-500'   },
+          { label: 'Total',          value: counts.total,       dot: 'bg-slate-400' },
+          { label: 'Equipo interno', value: counts.internal,    dot: 'bg-[#005643]' },
+          { label: 'Titulares',      value: counts.pharmacists, dot: 'bg-violet-500' },
+          { label: 'Operadores',     value: counts.operators,   dot: 'bg-sky-500'   },
         ].map(k => (
           <div key={k.label} className="flex flex-col justify-between rounded-2xl border border-[#E8EDF2] bg-white p-4">
             <div className="flex items-center gap-1.5">
@@ -150,8 +143,8 @@ export default function PeoplePage({ profile }) {
           className="w-full rounded-xl border border-[#E8EDF2] bg-white py-2.5 pl-9 pr-4 text-[13px] outline-none placeholder:text-[#94A3B8] focus:border-[#005643] focus:ring-1 focus:ring-[#005643]/20" />
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 rounded-xl border border-[#E8EDF2] bg-[#F8FAFC] p-1 w-fit">
+      {/* Tabs — scroll horizontal en móvil */}
+      <div className="tabs-scroll">
         {[
           { id: 'all',         label: `Todos (${counts.total})` },
           { id: 'internal',    label: `Equipo (${counts.internal})` },
@@ -159,8 +152,10 @@ export default function PeoplePage({ profile }) {
           { id: 'operators',   label: `Operadores (${counts.operators})` },
         ].map(t => (
           <button key={t.id} type="button" onClick={() => setTab(t.id)}
-            className={`rounded-lg px-3 py-2 text-[12px] font-medium transition ${
-              tab === t.id ? 'bg-white text-[#0F172A] shadow-sm' : 'text-[#64748B] hover:text-[#0F172A]'
+            className={`shrink-0 rounded-lg px-3 py-2 text-[12px] font-medium transition ${
+              tab === t.id
+                ? 'bg-[#005643] text-white'
+                : 'bg-white border border-[#E8EDF2] text-[#64748B] hover:text-[#0F172A]'
             }`}>
             {t.label}
           </button>

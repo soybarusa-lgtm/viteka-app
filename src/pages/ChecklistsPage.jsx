@@ -46,7 +46,7 @@ export default function ChecklistsPage({
   }), [executedChecklists, templates])
 
   return (
-    <div className="page-container space-y-6">
+    <div className="page-container space-y-5">
 
       {/* Header */}
       <div className="page-header">
@@ -54,9 +54,9 @@ export default function ChecklistsPage({
           <h1 className="page-title">Checklists</h1>
           <p className="text-sm text-gray-500">Ejecuciones técnicas y plantillas</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={onCreateTemplate} className="btn-secondary text-sm">+ Plantilla</button>
-          <button onClick={onCreateChecklist} className="btn-primary text-sm">+ Nuevo checklist</button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button onClick={onCreateTemplate} className="btn-secondary text-sm w-full sm:w-auto">+ Plantilla</button>
+          <button onClick={onCreateChecklist} className="btn-primary text-sm w-full sm:w-auto">+ Nuevo checklist</button>
         </div>
       </div>
 
@@ -83,17 +83,17 @@ export default function ChecklistsPage({
         ))}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1 w-fit">
+      {/* Tabs — scroll horizontal en móvil */}
+      <div className="tabs-scroll">
         {[
           { id: 'executions', label: `Ejecuciones (${counts.total})` },
           { id: 'templates',  label: `Plantillas (${counts.templates})` },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+            className={`shrink-0 rounded-lg px-4 py-2 text-sm font-medium transition ${
               tab === t.id
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-900'
+                ? 'bg-teal-600 text-white'
+                : 'bg-white border border-gray-200 text-gray-500 hover:text-gray-900'
             }`}>
             {t.label}
           </button>
@@ -197,8 +197,6 @@ function ChecklistCard({ checklist: c, onOpen, onDelete }) {
               {c.projects?.clients && ` · ${c.projects.clients.pharmacy_name || c.projects.clients.name}`}
             </p>
           </div>
-
-          {/* Progress bar */}
           <div>
             <div className="mb-1 flex items-center justify-between text-[11px] text-gray-400">
               <span>Progreso</span><span>{progress}%</span>
@@ -212,8 +210,6 @@ function ChecklistCard({ checklist: c, onOpen, onDelete }) {
               />
             </div>
           </div>
-
-          {/* Mini stats */}
           <div className="flex flex-wrap gap-2">
             {[
               { l: 'Total',       v: c.stats?.total || 0,     danger: false },
@@ -227,15 +223,9 @@ function ChecklistCard({ checklist: c, onOpen, onDelete }) {
             ))}
           </div>
         </button>
-
         <div className="flex shrink-0 items-center gap-1">
-          <button onClick={onOpen}
-            className="btn-primary rounded-lg px-3 py-1.5 text-xs">
-            Abrir
-          </button>
-          <ActionBtn onClick={onDelete} title="Eliminar" cls="bg-red-50 text-red-500 hover:bg-red-100">
-            <IconTrash />
-          </ActionBtn>
+          <button onClick={onOpen} className="btn-primary rounded-lg px-3 py-1.5 text-xs">Abrir</button>
+          <ActionBtn onClick={onDelete} title="Eliminar" cls="bg-red-50 text-red-500 hover:bg-red-100"><IconTrash /></ActionBtn>
         </div>
       </div>
     </div>
@@ -243,7 +233,7 @@ function ChecklistCard({ checklist: c, onOpen, onDelete }) {
 }
 
 function StatusPill({ status, blocked }) {
-  if (blocked > 0)        return <span className="badge-red">Bloqueado</span>
+  if (blocked > 0)            return <span className="badge-red">Bloqueado</span>
   if (status === 'completed') return <span className="badge-blue">Finalizado</span>
   return <span className="badge-green">En curso</span>
 }

@@ -18,21 +18,11 @@ const CAT_COLORS = {
   report:   'bg-amber-50 text-amber-700',
 }
 
-function IconFile() {
-  return (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>)
-}
-function IconUpload() {
-  return (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>)
-}
-function IconDownload() {
-  return (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>)
-}
-function IconTrash() {
-  return (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>)
-}
-function IconSearch() {
-  return (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>)
-}
+function IconFile()     { return (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>) }
+function IconUpload()   { return (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>) }
+function IconDownload() { return (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>) }
+function IconTrash()    { return (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>) }
+function IconSearch()   { return (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>) }
 
 function fmtSize(bytes) {
   if (!bytes) return ''
@@ -51,7 +41,6 @@ export default function DocumentsPage({ profile }) {
   const [catFilter, setCatFilter] = useState('all')
   const [uploading, setUploading] = useState(false)
 
-  // Form
   const [title, setTitle]         = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory]   = useState('general')
@@ -98,22 +87,22 @@ export default function DocumentsPage({ profile }) {
   })
 
   return (
-    <div className="space-y-6">
+    <div className="page-wrapper space-y-5">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#0F172A]">Documentación</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#0F172A]">Documentación</h1>
           <p className="mt-1 text-sm text-[#94A3B8]">Biblioteca documental corporativa</p>
         </div>
         <button type="button" onClick={() => setFormOpen(o => !o)}
-          className="flex items-center gap-2 rounded-xl bg-[#005643] px-4 py-2.5 text-[13px] font-medium text-white shadow-sm transition hover:bg-[#00442f]">
+          className="flex items-center justify-center gap-2 rounded-xl bg-[#005643] px-4 py-2.5 text-[13px] font-medium text-white shadow-sm transition hover:bg-[#00442f] w-full sm:w-auto">
           <IconUpload /> {formOpen ? 'Cancelar' : 'Subir documento'}
         </button>
       </div>
 
       {/* Upload form */}
       {formOpen && (
-        <div className="rounded-2xl border border-[#E8EDF2] bg-white p-6 space-y-4">
+        <div className="rounded-2xl border border-[#E8EDF2] bg-white p-5 space-y-4">
           <p className="text-[13px] font-medium text-[#0F172A]">Nuevo documento</p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField label="Título *">
@@ -132,7 +121,7 @@ export default function DocumentsPage({ profile }) {
             <input type="checkbox" checked={visibleToClient} onChange={e => setVisibleToClient(e.target.checked)} className="rounded" />
             Visible al cliente
           </label>
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#005643] px-4 py-2.5 text-[13px] font-medium text-white hover:bg-[#00442f]">
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#005643] px-4 py-2.5 text-[13px] font-medium text-white hover:bg-[#00442f] w-full sm:w-auto justify-center">
             {uploading ? 'Subiendo...' : <><IconUpload /> Seleccionar archivo</>}
             <input type="file" className="hidden" onChange={e => uploadDocument(e.target.files[0])} disabled={uploading} />
           </label>
@@ -140,14 +129,15 @@ export default function DocumentsPage({ profile }) {
       )}
 
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
+      <div className="flex flex-col gap-3">
+        <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]"><IconSearch /></span>
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Buscar por título, descripción o archivo..."
             className="w-full rounded-xl border border-[#E8EDF2] bg-white py-2.5 pl-9 pr-4 text-[13px] outline-none placeholder:text-[#94A3B8] focus:border-[#005643] focus:ring-1 focus:ring-[#005643]/20" />
         </div>
-        <div className="flex gap-1 rounded-xl border border-[#E8EDF2] bg-white p-1">
+        {/* Category pills — scroll horizontal en móvil */}
+        <div className="tabs-scroll">
           <CatBtn active={catFilter === 'all'} onClick={() => setCatFilter('all')}>Todos</CatBtn>
           {CATEGORIES.map(c => <CatBtn key={c.value} active={catFilter === c.value} onClick={() => setCatFilter(c.value)}>{c.label}</CatBtn>)}
         </div>
@@ -216,7 +206,9 @@ function FormField({ label, children }) {
 function CatBtn({ active, onClick, children }) {
   return (
     <button type="button" onClick={onClick}
-      className={`rounded-lg px-3 py-1.5 text-[12px] font-medium transition ${active ? 'bg-[#005643] text-white' : 'text-[#64748B] hover:bg-[#F8FAFC]'}`}>
+      className={`shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-medium transition ${
+        active ? 'bg-[#005643] text-white' : 'bg-white border border-[#E8EDF2] text-[#64748B] hover:bg-[#F8FAFC]'
+      }`}>
       {children}
     </button>
   )

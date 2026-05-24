@@ -47,8 +47,8 @@ function fmt(d) {
 
 function Skeleton() {
   return (
-    <div className="animate-pulse px-6 py-10 max-w-5xl mx-auto space-y-8">
-      <div className="h-16 bg-gray-200/60 rounded-2xl" />
+    <div className="animate-pulse px-4 sm:px-6 py-8 max-w-5xl mx-auto space-y-6">
+      <div className="h-14 bg-gray-200/60 rounded-2xl" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-gray-200/60 rounded-2xl" />)}
       </div>
@@ -64,18 +64,18 @@ function KpiCard({ icon, label, value, sub, alert = false, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="group text-left w-full bg-white rounded-2xl p-5 border border-gray-200/80 hover:border-gray-300 transition-all duration-150 focus:outline-none"
+      className="group text-left w-full bg-white rounded-2xl p-4 sm:p-5 border border-gray-200/80 hover:border-gray-300 transition-all duration-150 focus:outline-none"
     >
-      <div className={`inline-flex h-8 w-8 items-center justify-center rounded-xl mb-4 ${
+      <div className={`inline-flex h-8 w-8 items-center justify-center rounded-xl mb-3 sm:mb-4 ${
         alert ? 'bg-red-50 text-red-500' : 'bg-[#f0f7f4] text-[#1c473c]'
       }`}>
         {icon}
       </div>
-      <p className={`text-2xl font-semibold tracking-tight ${
+      <p className={`text-xl sm:text-2xl font-semibold tracking-tight ${
         alert && value > 0 ? 'text-red-500' : 'text-gray-900'
       }`}>{value}</p>
-      <p className="mt-0.5 text-[13px] text-gray-500">{label}</p>
-      {sub && <p className="mt-1 text-[11px] text-gray-400">{sub}</p>}
+      <p className="mt-0.5 text-[12px] sm:text-[13px] text-gray-500">{label}</p>
+      {sub && <p className="mt-1 text-[10px] sm:text-[11px] text-gray-400">{sub}</p>}
     </button>
   )
 }
@@ -90,7 +90,7 @@ function Card({ children, className = '' }) {
 
 function SectionHead({ title, action, onAction }) {
   return (
-    <div className="flex items-center justify-between px-5 py-4">
+    <div className="flex items-center justify-between px-4 sm:px-5 py-4">
       <h2 className="text-sm font-medium text-gray-900">{title}</h2>
       {action && (
         <button onClick={onAction} className="text-xs text-gray-400 hover:text-gray-600 transition">
@@ -128,28 +128,28 @@ export default function Dashboard({ profile, navigate }) {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f6f5f0' }}>
-      <div className="mx-auto max-w-5xl px-5 pb-28 pt-10 sm:px-8 md:pb-12">
+      <div className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6 sm:pt-10 md:pb-12">
 
         {/* HERO */}
-        <div className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mb-6 sm:mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-medium text-gray-900">{saludo}, {nombre}</h1>
+            <h1 className="text-xl sm:text-2xl font-medium text-gray-900">{saludo}, {nombre}</h1>
             <p className="mt-1 text-sm text-gray-400">{hoyStr}</p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2">
             <button onClick={() => go('pharmacies')}
-              className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition">
-              <IcPlus /> Nueva farmacia
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 sm:px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition">
+              <IcPlus /> <span className="hidden sm:inline">Nueva farmacia</span><span className="sm:hidden">Farmacia</span>
             </button>
             <button onClick={() => go('projects')}
-              className="flex items-center gap-1.5 rounded-xl bg-[#1c473c] px-4 py-2 text-sm font-medium text-white hover:bg-[#163a31] transition">
-              <IcPlus /> Nuevo proyecto
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-xl bg-[#1c473c] px-3 sm:px-4 py-2 text-sm font-medium text-white hover:bg-[#163a31] transition">
+              <IcPlus /> <span className="hidden sm:inline">Nuevo proyecto</span><span className="sm:hidden">Proyecto</span>
             </button>
           </div>
         </div>
 
         {/* KPIs globales */}
-        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="mb-4 sm:mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard icon={<IcPharmacy />} label="Farmacias"         value={data.pharmacies}     sub="en cartera"                                                    onClick={() => go('pharmacies')} />
           <KpiCard icon={<IcFolder />}   label="Proyectos activos" value={data.projectsActive} sub={`de ${data.projectsTotal} totales`}                           onClick={() => go('projects')} />
           <KpiCard icon={<IcTask />}     label="Tareas pendientes" value={data.tasksPending}    sub={data.tasksOverdue > 0 ? `${data.tasksOverdue} vencidas` : 'Al día'} alert={data.tasksOverdue > 0} onClick={() => go('tasks')} />
@@ -157,7 +157,7 @@ export default function Dashboard({ profile, navigate }) {
         </div>
 
         {/* Fila principal */}
-        <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-5">
+        <div className="mb-4 sm:mb-6 grid grid-cols-1 gap-4 lg:grid-cols-5">
           <Card className="lg:col-span-3">
             <SectionHead title="Proyectos recientes" action="Ver todos" onAction={() => go('projects')} />
             <div className="border-t border-gray-100">
@@ -170,7 +170,7 @@ export default function Dashboard({ profile, navigate }) {
                 <div>
                   {data.recentProjects.map(p => (
                     <button key={p.id} onClick={() => go('project-detail', { projectId: p.id })}
-                      className="flex w-full items-center gap-3 px-5 py-3.5 text-left hover:bg-gray-50 transition border-b border-gray-100 last:border-0">
+                      className="flex w-full items-center gap-3 px-4 sm:px-5 py-3.5 text-left hover:bg-gray-50 transition border-b border-gray-100 last:border-0">
                       <Dot priority={p.priority} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm text-gray-800">{p.name}</p>
@@ -187,7 +187,7 @@ export default function Dashboard({ profile, navigate }) {
 
           <Card className="lg:col-span-2">
             <SectionHead title="Estado de proyectos" action="Proyectos" onAction={() => go('projects')} />
-            <div className="border-t border-gray-100 p-5 space-y-4">
+            <div className="border-t border-gray-100 p-4 sm:p-5 space-y-4">
               {data.projectsByStatus.map(item => {
                 const pct = Math.round((item.count / total) * 100)
                 return (
@@ -230,7 +230,7 @@ export default function Dashboard({ profile, navigate }) {
                 <div>
                   {data.recentIncidents.map(inc => (
                     <button key={inc.id} onClick={() => go('incidents')}
-                      className="flex w-full items-start gap-3 px-5 py-3.5 text-left hover:bg-gray-50 transition border-b border-gray-100 last:border-0">
+                      className="flex w-full items-start gap-3 px-4 sm:px-5 py-3.5 text-left hover:bg-gray-50 transition border-b border-gray-100 last:border-0">
                       <Dot priority={inc.priority} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm text-gray-800">{inc.title}</p>
@@ -242,7 +242,7 @@ export default function Dashboard({ profile, navigate }) {
                 </div>
               )}
             </div>
-            <div className="flex items-center justify-between border-t border-gray-100 px-5 py-3">
+            <div className="flex items-center justify-between border-t border-gray-100 px-4 sm:px-5 py-3">
               <span className="text-xs text-gray-400">Checklists en curso</span>
               <span className="text-sm font-medium text-gray-700">{data.checklistsInProgress}</span>
             </div>
@@ -260,7 +260,7 @@ export default function Dashboard({ profile, navigate }) {
                 <div>
                   {data.urgentTasks.map(t => (
                     <button key={t.id} onClick={() => go('tasks')}
-                      className="flex w-full items-start gap-3 px-5 py-3.5 text-left hover:bg-gray-50 transition border-b border-gray-100 last:border-0">
+                      className="flex w-full items-start gap-3 px-4 sm:px-5 py-3.5 text-left hover:bg-gray-50 transition border-b border-gray-100 last:border-0">
                       <Dot priority={t.priority} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm text-gray-800">{t.title}</p>
@@ -272,7 +272,7 @@ export default function Dashboard({ profile, navigate }) {
                 </div>
               )}
             </div>
-            <div className="flex items-center justify-between border-t border-gray-100 px-5 py-3">
+            <div className="flex items-center justify-between border-t border-gray-100 px-4 sm:px-5 py-3">
               <span className="text-xs text-gray-400">Pendientes hoy</span>
               <span className="text-sm font-medium text-gray-700">{data.tasksPending}</span>
             </div>

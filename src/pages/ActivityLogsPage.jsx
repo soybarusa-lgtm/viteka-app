@@ -20,13 +20,11 @@ function fmtDateTime(str) {
   })
 }
 
-// Intenta extraer un texto legible de metadata (JSON o string)
 function extractMeta(meta) {
   if (!meta) return null
   if (typeof meta === 'string') {
     try { meta = JSON.parse(meta) } catch { return meta }
   }
-  // Prioridad: description > name > title > primer valor string
   const pick = meta.description || meta.name || meta.title || meta.label
   if (pick) return String(pick)
   const first = Object.values(meta).find(v => typeof v === 'string' && v.length > 0)
@@ -46,17 +44,12 @@ export default function ActivityLogsPage() {
   async function load() {
     setLoading(true)
     setError(null)
-
-    // Intento 1: con join a profiles
     let { data, error: err } = await supabase
       .from('activity_logs')
       .select('*, profiles(id, full_name, email)')
       .order('created_at', { ascending: false })
       .limit(500)
-
-    // Si falla el join (FK no declarada), carga sin join
     if (err) {
-      console.warn('Join profiles falló, cargando sin join:', err.message)
       const fallback = await supabase
         .from('activity_logs')
         .select('*')
@@ -65,13 +58,7 @@ export default function ActivityLogsPage() {
       data = fallback.data
       err  = fallback.error
     }
-
-    if (err) {
-      setError(err.message)
-      setLoading(false)
-      return
-    }
-
+    if (err) { setError(err.message); setLoading(false); return }
     setLogs(data || [])
     setLoading(false)
   }
@@ -101,20 +88,19 @@ export default function ActivityLogsPage() {
   }), [logs])
 
   return (
-    <div className="space-y-6">
+    <div className="page-wrapper space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#0F172A]">Auditoría</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#0F172A]">Auditoría</h1>
           <p className="mt-1 text-sm text-[#94A3B8]">Registro completo de acciones del sistema</p>
         </div>
         <button type="button" onClick={load} disabled={loading}
-          className="flex items-center gap-1.5 rounded-xl border border-[#E8EDF2] bg-white px-3 py-2 text-[13px] text-[#64748B] transition hover:bg-[#F8FAFC] disabled:opacity-50">
+          className="flex items-center gap-1.5 rounded-xl border border-[#E8EDF2] bg-white px-3 py-2 text-[13px] text-[#64748B] transition hover:bg-[#F8FAFC] disabled:opacity-50 w-full sm:w-auto justify-center sm:justify-start">
           <IconRefresh /> Recargar
         </button>
       </div>
 
-      {/* Error banner */}
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
           Error al cargar los logs: {error}
@@ -122,41 +108,43 @@ export default function ActivityLogsPage() {
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           { label: 'Total registros', value: counts.total,  dot: 'bg-slate-400' },
           { label: 'Creaciones',      value: counts.create, dot: 'bg-emerald-500' },
           { label: 'Ediciones',       value: counts.update, dot: 'bg-blue-500' },
           { label: 'Eliminaciones',   value: counts.delete, dot: 'bg-red-400' },
         ].map(k => (
-          <div key={k.label} className="flex flex-col justify-between rounded-2xl border border-[#E8EDF2] bg-white p-5">
+          <div key={k.label} className="flex flex-col justify-between rounded-2xl border border-[#E8EDF2] bg-white p-4">
             <div className="flex items-center gap-1.5">
               <span className={`h-2 w-2 rounded-full ${k.dot}`}/>
-              <p className="text-[12px] text-[#94A3B8]">{k.label}</p>
+              <p className="text-[11px] text-[#94A3B8]">{k.label}</p>
             </div>
-            <p className="mt-3 text-3xl font-semibold tracking-tight text-[#0F172A]">{k.value}</p>
+            <p className="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight text-[#0F172A]">{k.value}</p>
           </div>
         ))}
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
+      <div className="flex flex-col gap-3">
+        <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]"><IconSearch /></span>
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar por acción, entidad, usuario o descripción..."
+            placeholder="Buscar por acción, entidad, usuario..."
             className="w-full rounded-xl border border-[#E8EDF2] bg-white py-2.5 pl-9 pr-4 text-[13px] outline-none placeholder:text-[#94A3B8] focus:border-[#005643] focus:ring-1 focus:ring-[#005643]/20" />
         </div>
-        <select value={action} onChange={e => setAction(e.target.value)}
-          className="rounded-xl border border-[#E8EDF2] bg-white px-3 py-2.5 text-[13px] outline-none sm:w-[150px]">
-          <option value="all">Todas las acciones</option>
-          {Object.entries(ACTION_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-        </select>
-        <select value={entity} onChange={e => setEntity(e.target.value)}
-          className="rounded-xl border border-[#E8EDF2] bg-white px-3 py-2.5 text-[13px] outline-none sm:w-[160px]">
-          <option value="all">Todas las entidades</option>
-          {entityTypes.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
+        <div className="flex gap-2">
+          <select value={action} onChange={e => setAction(e.target.value)}
+            className="flex-1 rounded-xl border border-[#E8EDF2] bg-white px-3 py-2.5 text-[13px] outline-none">
+            <option value="all">Todas las acciones</option>
+            {Object.entries(ACTION_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          </select>
+          <select value={entity} onChange={e => setEntity(e.target.value)}
+            className="flex-1 rounded-xl border border-[#E8EDF2] bg-white px-3 py-2.5 text-[13px] outline-none">
+            <option value="all">Todas las entidades</option>
+            {entityTypes.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
       </div>
 
       <p className="text-[12px] text-[#94A3B8]">
@@ -175,11 +163,11 @@ export default function ActivityLogsPage() {
       ) : (
         <div className="overflow-hidden rounded-2xl border border-[#E8EDF2] bg-white">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-left">
+            <table className="w-full min-w-[600px] text-left">
               <thead>
                 <tr className="border-b border-[#F1F5F9]">
                   {['Acción', 'Entidad', 'Descripción', 'Usuario', 'Fecha'].map(h => (
-                    <th key={h} className="px-5 py-3 text-[11px] font-medium uppercase tracking-wider text-[#94A3B8]">{h}</th>
+                    <th key={h} className="px-4 py-3 text-[11px] font-medium uppercase tracking-wider text-[#94A3B8]">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -196,23 +184,23 @@ export default function ActivityLogsPage() {
                   const meta = extractMeta(log.metadata || log.description || log.details)
                   return (
                     <tr key={log.id} className="hover:bg-[#FAFBFC]">
-                      <td className="px-5 py-3">
+                      <td className="px-4 py-3">
                         <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ring-1 ${a.pill}`}>{a.label}</span>
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-4 py-3">
                         <p className="text-[13px] font-medium text-[#334155]">{log.entity_type || '—'}</p>
                         {log.entity_id && (
-                          <p className="text-[11px] font-mono text-[#CBD5E1] truncate max-w-[100px]">{log.entity_id}</p>
+                          <p className="text-[11px] font-mono text-[#CBD5E1] truncate max-w-[80px]">{log.entity_id}</p>
                         )}
                       </td>
-                      <td className="px-5 py-3 max-w-[240px]">
+                      <td className="px-4 py-3 max-w-[200px]">
                         {meta
                           ? <p className="text-[13px] text-[#64748B] line-clamp-2">{meta}</p>
                           : <span className="text-[12px] text-[#CBD5E1]">—</span>
                         }
                       </td>
-                      <td className="px-5 py-3 text-[13px] text-[#64748B] whitespace-nowrap">{user}</td>
-                      <td className="px-5 py-3 text-[12px] text-[#94A3B8] whitespace-nowrap">{fmtDateTime(log.created_at)}</td>
+                      <td className="px-4 py-3 text-[13px] text-[#64748B] whitespace-nowrap">{user}</td>
+                      <td className="px-4 py-3 text-[12px] text-[#94A3B8] whitespace-nowrap">{fmtDateTime(log.created_at)}</td>
                     </tr>
                   )
                 })}
