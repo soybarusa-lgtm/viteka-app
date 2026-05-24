@@ -226,6 +226,7 @@ function DeviceModal({
   const [showConfirm, setShowConfirm] = useState(false)
   const backdropRef = useRef(null)
 
+  // Bloquear scroll del body
   useEffect(() => {
     if (isOpen) document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = '' }
@@ -236,6 +237,7 @@ function DeviceModal({
     else onRequestClose()
   }
 
+  // Cerrar con Escape
   useEffect(() => {
     if (!isOpen) return
     function onKey(e) {
@@ -262,12 +264,14 @@ function DeviceModal({
         if (e.target === backdropRef.current) handleClose()
       }}
     >
+      {/* Panel */}
       <div
         className="relative w-full sm:max-w-3xl max-h-[95dvh] sm:max-h-[90vh] flex flex-col bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden"
         role="dialog"
         aria-modal="true"
         aria-labelledby="device-modal-title"
       >
+        {/* Cabecera */}
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-100 bg-white sticky top-0 z-10">
           <div className="flex items-center gap-2 min-w-0">
             {isDirty && (
@@ -294,11 +298,13 @@ function DeviceModal({
           </div>
         </div>
 
+        {/* Contenido scrollable */}
         <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-5">
           {children}
         </div>
       </div>
 
+      {/* Confirmación cambios sin guardar */}
       {showConfirm && (
         <div className="absolute inset-0 z-[60] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md text-center">
@@ -365,10 +371,12 @@ function ITDeviceRow({ device, onOpen, onDelete, onDuplicate }) {
       tabIndex={0}
       onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onOpen(device)}
     >
+      {/* Indicador Viteka */}
       <span className={`mt-[7px] shrink-0 w-2 h-2 rounded-full transition-all ${
         device.is_viteka ? 'bg-teal-400' : 'bg-gray-300'
       }`} />
 
+      {/* Contenido */}
       <div className="flex-1 min-w-0 pr-14">
         <div className="flex items-start justify-between gap-2 flex-wrap">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -416,6 +424,7 @@ function ITDeviceRow({ device, onOpen, onDelete, onDuplicate }) {
         )}
       </div>
 
+      {/* Acciones flotantes (aparecen en hover) */}
       <div
         className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
         onClick={e => e.stopPropagation()}
@@ -569,6 +578,7 @@ function ITDeviceFormInner({ form, setForm }) {
 
   return (
     <div className="space-y-5">
+      {/* Tipo y etiqueta */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label required>Tipo de equipo</Label>
@@ -581,6 +591,7 @@ function ITDeviceFormInner({ form, setForm }) {
         <div><Label>Modelo</Label><Input value={form.specs.modelo || ''} onChange={e => setSpec('modelo', e.target.value)} /></div>
       </div>
 
+      {/* Bloque Viteka */}
       <div className="rounded-xl border border-teal-200 bg-teal-50/40 p-4 space-y-3">
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={form.is_viteka} onChange={e => set('is_viteka', e.target.checked)} className="w-4 h-4 accent-teal-600" />
@@ -595,6 +606,7 @@ function ITDeviceFormInner({ form, setForm }) {
         )}
       </div>
 
+      {/* Especificaciones: ordenadores */}
       {isComputer && (
         <div className="space-y-4">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1.5">Hardware</p>
@@ -608,6 +620,7 @@ function ITDeviceFormInner({ form, setForm }) {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* IPs */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <Label>Dirección(es) IP</Label>
@@ -625,6 +638,7 @@ function ITDeviceFormInner({ form, setForm }) {
               ))}
             </div>
 
+            {/* Conexiones */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <Label>Nº conexión / contraseña</Label>
@@ -644,6 +658,7 @@ function ITDeviceFormInner({ form, setForm }) {
             </div>
           </div>
 
+          {/* Discos */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <Label>Disco(s) duro(s)</Label>
@@ -662,6 +677,7 @@ function ITDeviceFormInner({ form, setForm }) {
             ))}
           </div>
 
+          {/* Monitor */}
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1.5">Monitor y periféricos</p>
           <div className="flex flex-wrap items-center gap-4">
             <label className="flex items-center gap-2 cursor-pointer">
@@ -732,6 +748,7 @@ function ITDeviceFormInner({ form, setForm }) {
         </div>
       )}
 
+      {/* Impresoras */}
       {isPrinter && (
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -745,6 +762,7 @@ function ITDeviceFormInner({ form, setForm }) {
         </div>
       )}
 
+      {/* SAI */}
       {form.device_type === 'sai' && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div><Label>Capacidad</Label><Input value={form.specs.capacity || ''} onChange={e => setSpec('capacity', e.target.value)} placeholder="600 VA" /></div>
@@ -753,6 +771,7 @@ function ITDeviceFormInner({ form, setForm }) {
         </div>
       )}
 
+      {/* Router */}
       {form.device_type === 'router' && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -770,6 +789,7 @@ function ITDeviceFormInner({ form, setForm }) {
         </div>
       )}
 
+      {/* Switch */}
       {form.device_type === 'switch' && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div><Label>Nº salidas</Label><Input type="number" value={form.specs.ports || ''} onChange={e => setSpec('ports', e.target.value)} /></div>
@@ -797,6 +817,7 @@ function ITDeviceFormInner({ form, setForm }) {
         </div>
       )}
 
+      {/* Observaciones */}
       <div>
         <Label>Observaciones</Label>
         <Textarea rows={3} value={form.observations || ''} onChange={e => set('observations', e.target.value)} placeholder="Notas adicionales..." />
@@ -972,6 +993,7 @@ function ITDeviceModal({ device, pharmacyId, companyId, onSave, onClose }) {
     [device?.id]
   )
 
+  // Sincronizar cuando cambia el device (al abrir otro equipo)
   useEffect(() => {
     setForm(device || createEmptyITDevice())
     setMode(device?.id ? 'view' : 'edit')
@@ -1022,6 +1044,7 @@ function ITDeviceModal({ device, pharmacyId, companyId, onSave, onClose }) {
         <ITDeviceFormInner form={form} setForm={setForm} />
       )}
 
+      {/* Barra de acciones dentro del modal (sticky bottom) */}
       <div className="sticky bottom-0 -mx-5 -mb-5 mt-6 px-5 py-4 bg-white border-t border-gray-100 flex items-center justify-between gap-3">
         <span className={`text-xs font-medium transition-colors ${
           isDirty ? 'text-amber-600' : 'text-gray-400'
@@ -1672,8 +1695,7 @@ export default function PharmacyDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
-  // FIX: destructurar `equipment` directamente del hook, NO leerlo como pharmacy.equipment
-  const { pharmacy, equipment, loading, error } = usePharmacy(id)
+  const { pharmacy, loading, error } = usePharmacy(id)
   const [activeTab, setActiveTab] = useState('general')
 
   if (loading) {
@@ -1753,7 +1775,7 @@ export default function PharmacyDetailPage() {
       {/* Contenido */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         {activeTab === 'general'   && <TabGeneral pharmacy={pharmacy} />}
-        {activeTab === 'equipment' && <TabEquipment equipment={equipment} />}
+        {activeTab === 'equipment' && <TabEquipment equipment={pharmacy.equipment} />}
         {activeTab === 'it'        && <TabIT pharmacyId={id} companyId={pharmacy.company_id} />}
         {activeTab === 'people'    && <TabPeople pharmacyId={id} companyId={pharmacy.company_id} />}
         {activeTab === 'incidents' && <EmptyTab icon={ExclamationTriangleIcon} message="Módulo de incidencias próximamente" />}
