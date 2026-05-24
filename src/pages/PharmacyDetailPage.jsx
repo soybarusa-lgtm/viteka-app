@@ -13,6 +13,7 @@ import {
   DocumentTextIcon, ComputerDesktopIcon,
   PlusIcon, TrashIcon, XMarkIcon, ArrowsRightLeftIcon,
   DocumentDuplicateIcon,
+  CalendarDaysIcon, ShieldCheckIcon,
 } from '@heroicons/react/24/outline'
 import { useToast } from '../context/ToastContext'
 import ConfirmDialog from '../components/pharmacy/ConfirmDialog'
@@ -167,65 +168,63 @@ function resolveBrand(device) {
   }
 }
 
-// ── Pieza de resumen: valor real o etiqueta al 50% si no tiene dato ──────────────────
-// Devuelve un elemento <span> con el valor o la etiqueta transparente
-function SummaryToken({ value, label, format }) {
-  const display = value ? (format ? format(value) : String(value)) : null
-  if (display) return <span className="text-gray-500">{display}</span>
-  return <span className="text-gray-400 opacity-50">{label}</span>
-}
-
-// Construye el array de tokens para la fila de resumen de un equipo IT
-function buildSummaryTokens(device) {
+function buildChips(device) {
   const s = device.specs || {}
   const isComputer = ['servidor', 'estacion'].includes(device.device_type)
 
   if (!isComputer) {
-    // Para otros tipos mostramos sólo lo que haya relevante
-    const tokens = []
-    if (s.provider)  tokens.push({ value: s.provider,  label: 'Proveedor' })
-    if (s.ports)     tokens.push({ value: `${s.ports} puertos`, label: 'Puertos' })
-    if (s.capacity)  tokens.push({ value: s.capacity,  label: 'Capacidad' })
-    if (s.conn)      tokens.push({ value: s.conn,       label: 'Conexión' })
-    return tokens
+    const chips = []
+    if (s.provider) chips.push(s.provider)
+    if (s.ports)    chips.push(`${s.ports} puertos`)
+    if (s.capacity) chips.push(s.capacity)
+    if (s.conn)     chips.push(s.conn)
+    return chips
   }
 
-  // Conexión: primer número (sin pass)
-  const primerNumero = Array.isArray(s.conexiones) && s.conexiones.length > 0 && s.conexiones[0].numero
-    ? s.conexiones[0].numero
+  const ip = Array.isArray(s.ip) && s.ip.filter(Boolean).length > 0
+    ? `IP · ${s.ip.filter(Boolean)[0]}`
     : null
-  // IPs: primera o todas separadas por coma
-  const ipVal = Array.isArray(s.ip) && s.ip.filter(Boolean).length > 0
-    ? s.ip.filter(Boolean).join(', ')
-    : (typeof s.ip === 'string' && s.ip ? s.ip : null)
-  // Disco: primera capacidad
-  const diskVal = Array.isArray(s.disks) && s.disks.length > 0 && s.disks[0].capacity
+  const disk = Array.isArray(s.disks) && s.disks.length > 0 && s.disks[0].capacity
     ? `${s.disks[0].type} ${s.disks[0].capacity}`
-    : null
-  // Fechas formateadas
-  const fInst = device.install_date
-    ? new Date(device.install_date).toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'2-digit' })
-    : null
-  const fGar = device.warranty_end
-    ? new Date(device.warranty_end).toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'2-digit' })
     : null
 
   return [
-    { value: primerNumero, label: 'Nº conexión' },
-    { value: ipVal,        label: 'IP'           },
-    { value: s.so,         label: 'SO'           },
-    { value: s.cpu,        label: 'Procesador'   },
-    { value: s.ram,        label: 'RAM'          },
-    { value: diskVal,      label: 'Disco'        },
-    { value: fInst,        label: 'F. inst.'     },
-    { value: fGar,         label: 'F. garantía'  },
-  ]
+    ip,
+    s.so   || null,
+    s.cpu  || null,
+    s.ram  ? `${s.ram}` : null,
+    disk,
+  ].filter(Boolean)
 }
 
+function fmtDate(raw) {
+  if (!raw) return null
+  return new Date(raw).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' })
+}
+
+// ── Chip pill ──────────────────────────────────────────────────────────────────
+function Chip({ children, empty }) {
+  if (empty) return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs bg-gray-50 text-gray-300 border border-dashed border-gray-200">—</span>
+  )
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-600">
+      {children}
+    </span>
+  )
+}
+
+// ── Fila de dispositivo — diseño Option C ─────────────────────────────────────
 function ITDeviceRow({ device, onEdit, onDelete, onDuplicate }) {
   const { marca, modelo } = resolveBrand(device)
-  const tokens = buildSummaryTokens(device)
-  const isComputer = ['servidor', 'estacion'].includes(device.device_type)
+  const chips  = buildChips(device)
+  const fInst  = fmtDate(device.install_date)
+  const fGar   = fmtDate(device.warranty_end)
+
+  // Estado garantía
+  const now = new Date()
+  const warExpired  = device.warranty_end && new Date(device.warranty_end) < now
+  const warOk       = device.warranty_end && !warExpired
 
   function handleEdit() {
     const specs = device.specs || {}
@@ -233,56 +232,93 @@ function ITDeviceRow({ device, onEdit, onDelete, onDuplicate }) {
   }
 
   return (
-    <div className="group flex items-start gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
-      <div className="flex-1 min-w-0">
-        {/* Nombre del equipo */}
-        <span className="text-sm font-semibold text-gray-800">{device.label || 'Equipo'}</span>
+    <div className="group px-4 py-3 hover:bg-slate-50 transition-colors">
+      {/* Fila principal: dot + nombre + badge Viteka + fechas + acciones */}
+      <div className="flex items-start gap-2">
+        {/* Dot estado */}
+        <span className={`mt-1.5 shrink-0 w-2 h-2 rounded-full ${device.is_viteka ? 'bg-teal-400' : 'bg-gray-300'}`} />
 
-        {/* Fila de resumen con tokens reales / fantasma */}
-        {isComputer ? (
-          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-0.5">
-            {tokens.map((t, i) => (
-              <span key={i} className="flex items-center gap-1 text-xs">
-                {i > 0 && <span className="text-gray-200 select-none">/</span>}
-                <SummaryToken value={t.value} label={t.label} />
+        {/* Contenido */}
+        <div className="flex-1 min-w-0">
+          {/* Nombre + badge + fechas */}
+          <div className="flex items-start justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-semibold text-gray-800 leading-tight">
+                {device.label || IT_LABEL[device.device_type] || 'Equipo'}
               </span>
-            ))}
+              {device.is_viteka && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-700">
+                  Viteka
+                </span>
+              )}
+              {warOk && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                  <ShieldCheckIcon className="w-3 h-3" />
+                  Garantía
+                </span>
+              )}
+              {warExpired && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-500">
+                  <ShieldCheckIcon className="w-3 h-3" />
+                  Expirada
+                </span>
+              )}
+            </div>
+
+            {/* Fechas alineadas a la derecha */}
+            {(fInst || fGar) && (
+              <div className="flex flex-col items-end gap-0.5 shrink-0">
+                {fInst && (
+                  <span className="flex items-center gap-1 text-[11px] text-gray-400">
+                    <CalendarDaysIcon className="w-3 h-3" />
+                    {fInst}
+                  </span>
+                )}
+                {fGar && (
+                  <span className={`flex items-center gap-1 text-[11px] ${warExpired ? 'text-red-400' : 'text-gray-400'}`}>
+                    <ShieldCheckIcon className="w-3 h-3" />
+                    {fGar}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="flex flex-wrap items-center gap-x-1.5 mt-0.5">
-            {tokens.map((t, i) => (
-              <span key={i} className="text-xs text-gray-500">{t.value}</span>
-            ))}
+
+          {/* Chips de especificaciones */}
+          {chips.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {chips.map((c, i) => <Chip key={i}>{c}</Chip>)}
+            </div>
+          )}
+
+          {/* Marca/modelo + observaciones */}
+          <div className="mt-1 flex items-center justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              {(marca || modelo) && (
+                <p className="text-xs text-gray-400 truncate">{[marca, modelo].filter(Boolean).join(' · ')}</p>
+              )}
+              {device.observations && (
+                <p className="text-xs text-gray-400 italic truncate mt-0.5">{device.observations}</p>
+              )}
+            </div>
+
+            {/* Acciones — visibles en hover */}
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+              <button type="button" onClick={() => onDuplicate(device)} title="Duplicar"
+                className="p-1.5 text-gray-400 hover:text-indigo-500 rounded-md hover:bg-white">
+                <DocumentDuplicateIcon className="w-3.5 h-3.5" />
+              </button>
+              <button type="button" onClick={handleEdit} title="Editar"
+                className="p-1.5 text-gray-400 hover:text-teal-600 rounded-md hover:bg-white">
+                <PencilSquareIcon className="w-3.5 h-3.5" />
+              </button>
+              <button type="button" onClick={() => onDelete(device)} title="Eliminar"
+                className="p-1.5 text-gray-400 hover:text-red-500 rounded-md hover:bg-white">
+                <TrashIcon className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-        )}
-
-        {/* Marca y modelo */}
-        {(marca || modelo) && (
-          <p className="text-xs text-gray-400 mt-0.5">
-            {[marca, modelo].filter(Boolean).join(' — ')}
-          </p>
-        )}
-      </div>
-
-      {/* Badge Viteka */}
-      {device.is_viteka && (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-700 shrink-0 mt-0.5">Viteka</span>
-      )}
-
-      {/* Acciones */}
-      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5">
-        <button type="button" onClick={() => onDuplicate(device)} title="Duplicar"
-          className="p-1.5 text-gray-400 hover:text-indigo-500 rounded-md hover:bg-white">
-          <DocumentDuplicateIcon className="w-3.5 h-3.5" />
-        </button>
-        <button type="button" onClick={handleEdit} title="Editar"
-          className="p-1.5 text-gray-400 hover:text-teal-600 rounded-md hover:bg-white">
-          <PencilSquareIcon className="w-3.5 h-3.5" />
-        </button>
-        <button type="button" onClick={() => onDelete(device)} title="Eliminar"
-          className="p-1.5 text-gray-400 hover:text-red-500 rounded-md hover:bg-white">
-          <TrashIcon className="w-3.5 h-3.5" />
-        </button>
+        </div>
       </div>
     </div>
   )
@@ -290,11 +326,15 @@ function ITDeviceRow({ device, onEdit, onDelete, onDuplicate }) {
 
 function ITTypeBlock({ typeKey, devices, onEdit, onDelete, onDuplicate }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="px-4 py-2.5 border-b border-gray-100">
-        <span className="text-xs font-bold text-teal-600 uppercase tracking-wide">{IT_LABEL[typeKey] || typeKey}</span>
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      {/* Cabecera del grupo */}
+      <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+        <span className="text-xs font-bold text-teal-600 uppercase tracking-widest">
+          {IT_LABEL[typeKey] || typeKey}
+        </span>
       </div>
-      <div className="divide-y divide-gray-100">
+      {/* Filas separadas por divider */}
+      <div className="divide-y divide-slate-100">
         {devices.map(d => (
           <ITDeviceRow key={d.id} device={d} onEdit={onEdit} onDelete={onDelete} onDuplicate={onDuplicate} />
         ))}
