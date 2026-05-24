@@ -226,7 +226,6 @@ function DeviceModal({
   const [showConfirm, setShowConfirm] = useState(false)
   const backdropRef = useRef(null)
 
-  // Bloquear scroll del body
   useEffect(() => {
     if (isOpen) document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = '' }
@@ -237,7 +236,6 @@ function DeviceModal({
     else onRequestClose()
   }
 
-  // Cerrar con Escape
   useEffect(() => {
     if (!isOpen) return
     function onKey(e) {
@@ -264,14 +262,12 @@ function DeviceModal({
         if (e.target === backdropRef.current) handleClose()
       }}
     >
-      {/* Panel */}
       <div
         className="relative w-full sm:max-w-3xl max-h-[95dvh] sm:max-h-[90vh] flex flex-col bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden"
         role="dialog"
         aria-modal="true"
         aria-labelledby="device-modal-title"
       >
-        {/* Cabecera */}
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-100 bg-white sticky top-0 z-10">
           <div className="flex items-center gap-2 min-w-0">
             {isDirty && (
@@ -298,13 +294,11 @@ function DeviceModal({
           </div>
         </div>
 
-        {/* Contenido scrollable */}
         <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-5">
           {children}
         </div>
       </div>
 
-      {/* Confirmación cambios sin guardar */}
       {showConfirm && (
         <div className="absolute inset-0 z-[60] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md text-center">
@@ -371,12 +365,10 @@ function ITDeviceRow({ device, onOpen, onDelete, onDuplicate }) {
       tabIndex={0}
       onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onOpen(device)}
     >
-      {/* Indicador Viteka */}
       <span className={`mt-[7px] shrink-0 w-2 h-2 rounded-full transition-all ${
         device.is_viteka ? 'bg-teal-400' : 'bg-gray-300'
       }`} />
 
-      {/* Contenido */}
       <div className="flex-1 min-w-0 pr-14">
         <div className="flex items-start justify-between gap-2 flex-wrap">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -424,7 +416,6 @@ function ITDeviceRow({ device, onOpen, onDelete, onDuplicate }) {
         )}
       </div>
 
-      {/* Acciones flotantes (aparecen en hover) */}
       <div
         className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
         onClick={e => e.stopPropagation()}
@@ -578,7 +569,6 @@ function ITDeviceFormInner({ form, setForm }) {
 
   return (
     <div className="space-y-5">
-      {/* Tipo y etiqueta */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label required>Tipo de equipo</Label>
@@ -591,7 +581,6 @@ function ITDeviceFormInner({ form, setForm }) {
         <div><Label>Modelo</Label><Input value={form.specs.modelo || ''} onChange={e => setSpec('modelo', e.target.value)} /></div>
       </div>
 
-      {/* Bloque Viteka */}
       <div className="rounded-xl border border-teal-200 bg-teal-50/40 p-4 space-y-3">
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={form.is_viteka} onChange={e => set('is_viteka', e.target.checked)} className="w-4 h-4 accent-teal-600" />
@@ -606,7 +595,6 @@ function ITDeviceFormInner({ form, setForm }) {
         )}
       </div>
 
-      {/* Especificaciones: ordenadores */}
       {isComputer && (
         <div className="space-y-4">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1.5">Hardware</p>
@@ -620,7 +608,6 @@ function ITDeviceFormInner({ form, setForm }) {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {/* IPs */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <Label>Dirección(es) IP</Label>
@@ -638,7 +625,6 @@ function ITDeviceFormInner({ form, setForm }) {
               ))}
             </div>
 
-            {/* Conexiones */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <Label>Nº conexión / contraseña</Label>
@@ -658,7 +644,6 @@ function ITDeviceFormInner({ form, setForm }) {
             </div>
           </div>
 
-          {/* Discos */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <Label>Disco(s) duro(s)</Label>
@@ -677,7 +662,6 @@ function ITDeviceFormInner({ form, setForm }) {
             ))}
           </div>
 
-          {/* Monitor */}
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1.5">Monitor y periféricos</p>
           <div className="flex flex-wrap items-center gap-4">
             <label className="flex items-center gap-2 cursor-pointer">
@@ -748,7 +732,6 @@ function ITDeviceFormInner({ form, setForm }) {
         </div>
       )}
 
-      {/* Impresoras */}
       {isPrinter && (
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -762,7 +745,6 @@ function ITDeviceFormInner({ form, setForm }) {
         </div>
       )}
 
-      {/* SAI */}
       {form.device_type === 'sai' && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div><Label>Capacidad</Label><Input value={form.specs.capacity || ''} onChange={e => setSpec('capacity', e.target.value)} placeholder="600 VA" /></div>
@@ -771,7 +753,6 @@ function ITDeviceFormInner({ form, setForm }) {
         </div>
       )}
 
-      {/* Router */}
       {form.device_type === 'router' && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -789,7 +770,6 @@ function ITDeviceFormInner({ form, setForm }) {
         </div>
       )}
 
-      {/* Switch */}
       {form.device_type === 'switch' && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div><Label>Nº salidas</Label><Input type="number" value={form.specs.ports || ''} onChange={e => setSpec('ports', e.target.value)} /></div>
@@ -817,7 +797,6 @@ function ITDeviceFormInner({ form, setForm }) {
         </div>
       )}
 
-      {/* Observaciones */}
       <div>
         <Label>Observaciones</Label>
         <Textarea rows={3} value={form.observations || ''} onChange={e => set('observations', e.target.value)} placeholder="Notas adicionales..." />
@@ -993,7 +972,6 @@ function ITDeviceModal({ device, pharmacyId, companyId, onSave, onClose }) {
     [device?.id]
   )
 
-  // Sincronizar cuando cambia el device (al abrir otro equipo)
   useEffect(() => {
     setForm(device || createEmptyITDevice())
     setMode(device?.id ? 'view' : 'edit')
@@ -1044,7 +1022,6 @@ function ITDeviceModal({ device, pharmacyId, companyId, onSave, onClose }) {
         <ITDeviceFormInner form={form} setForm={setForm} />
       )}
 
-      {/* Barra de acciones dentro del modal (sticky bottom) */}
       <div className="sticky bottom-0 -mx-5 -mb-5 mt-6 px-5 py-4 bg-white border-t border-gray-100 flex items-center justify-between gap-3">
         <span className={`text-xs font-medium transition-colors ${
           isDirty ? 'text-amber-600' : 'text-gray-400'
@@ -1257,4 +1234,531 @@ function TabIT({ pharmacyId, companyId }) {
       toast('Equipo actualizado', 'success')
     } else {
       await createDevice(payload)
-      toas
+      toast('Equipo creado', 'success')
+    }
+    closeModal()
+  }
+
+  async function handleDuplicate(device) {
+    const { id: _id, created_at: _c, updated_at: _u, ...rest } = device
+    const payload = {
+      ...rest,
+      label: rest.label ? `${rest.label} (copia)` : 'Copia',
+      pharmacy_id: pharmacyId,
+      company_id: companyId,
+    }
+    await createDevice(payload)
+    toast('Equipo duplicado', 'success')
+  }
+
+  async function handleCopyDevices(toCopy) {
+    for (const d of toCopy) {
+      const { id: _id, created_at: _c, updated_at: _u, ...rest } = d
+      await createDevice({ ...rest, pharmacy_id: pharmacyId, company_id: companyId })
+    }
+    toast(`${toCopy.length} equipo${toCopy.length !== 1 ? 's' : ''} copiado${toCopy.length !== 1 ? 's' : ''}`, 'success')
+  }
+
+  async function handleDelete(device) {
+    await deleteDevice(device.id)
+    toast('Equipo eliminado', 'success')
+    setConfirmDel(null)
+  }
+
+  function toggleGroup(key) {
+    setOpenGroups(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const filtered = (devices || []).filter(d => {
+    if (!search.trim()) return true
+    const q = search.toLowerCase()
+    const { marca, modelo } = resolveBrand(d)
+    return (
+      (d.label || '').toLowerCase().includes(q) ||
+      (IT_LABEL[d.device_type] || '').toLowerCase().includes(q) ||
+      marca.toLowerCase().includes(q) ||
+      modelo.toLowerCase().includes(q) ||
+      (d.serial_number || '').toLowerCase().includes(q)
+    )
+  })
+
+  const grouped = IT_TYPES.reduce((acc, t) => {
+    const list = filtered.filter(d => d.device_type === t.value)
+    if (list.length > 0) acc[t.value] = list
+    return acc
+  }, {})
+
+  const totalDevices = (devices || []).length
+  const vitekaDevices = (devices || []).filter(d => d.is_viteka).length
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-20">
+        <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Cabecera con stats y acciones */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {totalDevices > 0 && (
+            <>
+              <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                {totalDevices} equipo{totalDevices !== 1 ? 's' : ''}
+              </span>
+              {vitekaDevices > 0 && (
+                <span className="inline-flex items-center rounded-full bg-teal-100 px-3 py-1 text-xs font-medium text-teal-700">
+                  {vitekaDevices} Viteka
+                </span>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowCopy(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+          >
+            <ArrowsRightLeftIcon className="w-4 h-4" />
+            Copiar de otra farmacia
+          </button>
+          <button
+            type="button"
+            onClick={() => openNewForm(draftType)}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700 transition-colors"
+          >
+            <PlusIcon className="w-4 h-4" />
+            Añadir equipo
+          </button>
+        </div>
+      </div>
+
+      {/* Buscador */}
+      {totalDevices > 3 && (
+        <div className="relative">
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="search"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar equipo..."
+            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-colors"
+          />
+        </div>
+      )}
+
+      {/* Lista agrupada */}
+      {Object.keys(grouped).length === 0 ? (
+        <EmptyTab icon={ComputerDesktopIcon} message={search ? 'Sin resultados para esa búsqueda' : 'Sin equipos informáticos registrados'} />
+      ) : (
+        <div>
+          {IT_TYPES.filter(t => grouped[t.value]).map(t => (
+            <ITTypeBlock
+              key={t.value}
+              typeKey={t.value}
+              devices={grouped[t.value]}
+              isOpen={openGroups[t.value] !== false}
+              onToggle={() => toggleGroup(t.value)}
+              onOpen={openDevice}
+              onDelete={d => setConfirmDel(d)}
+              onDuplicate={handleDuplicate}
+              onAddSameType={openNewForm}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Modal equipo */}
+      {modalDevice !== null && (
+        <ITDeviceModal
+          device={modalDevice}
+          pharmacyId={pharmacyId}
+          companyId={companyId}
+          onSave={handleSave}
+          onClose={closeModal}
+        />
+      )}
+
+      {/* Modal copiar */}
+      {showCopy && (
+        <CopyFromPharmacyModal
+          currentPharmacyId={pharmacyId}
+          companyId={companyId}
+          onCopy={handleCopyDevices}
+          onClose={() => setShowCopy(false)}
+        />
+      )}
+
+      {/* Confirmar borrado */}
+      {confirmDel && (
+        <ConfirmDialog
+          title="Eliminar equipo"
+          message={`¿Seguro que quieres eliminar "${confirmDel.label || IT_LABEL[confirmDel.device_type] || 'este equipo'}"? Esta acción no se puede deshacer.`}
+          confirmLabel="Eliminar"
+          variant="danger"
+          onConfirm={() => handleDelete(confirmDel)}
+          onCancel={() => setConfirmDel(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+// ── Tab: Personas ─────────────────────────────────────────────────────────────
+function TabPeople({ pharmacyId, companyId }) {
+  const { persons, loading, createPerson, updatePerson, deletePerson } = usePharmacyPersons(pharmacyId)
+  const toast = useToast()
+  const [editing, setEditing] = useState(null)
+  const [confirmDel, setConfirmDel] = useState(null)
+
+  const empty = { name: '', role: '', phone: '', email: '', responsibility_areas: [], notes: '' }
+
+  async function handleSave(form) {
+    if (form.id) {
+      await updatePerson(form.id, form)
+      toast('Persona actualizada', 'success')
+    } else {
+      await createPerson({ ...form, pharmacy_id: pharmacyId, company_id: companyId })
+      toast('Persona añadida', 'success')
+    }
+    setEditing(null)
+  }
+
+  async function handleDelete(person) {
+    await deletePerson(person.id)
+    toast('Persona eliminada', 'success')
+    setConfirmDel(null)
+  }
+
+  if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setEditing(empty)}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700 transition-colors"
+        >
+          <PlusIcon className="w-4 h-4" /> Añadir persona
+        </button>
+      </div>
+
+      {(!persons || persons.length === 0) ? (
+        <EmptyTab icon={UsersIcon} message="Sin personas registradas" />
+      ) : (
+        <div className="space-y-2">
+          {persons.map(p => (
+            <div key={p.id} className="flex items-start justify-between gap-3 p-4 rounded-xl border border-gray-200 bg-white hover:border-gray-300 transition-colors">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-semibold text-gray-800">{p.name}</span>
+                  {p.role && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700">{p.role}</span>}
+                </div>
+                <div className="flex flex-wrap gap-3 mt-1">
+                  {p.phone && <span className="text-xs text-gray-500">{p.phone}</span>}
+                  {p.email && <span className="text-xs text-gray-500">{p.email}</span>}
+                </div>
+                {Array.isArray(p.responsibility_areas) && p.responsibility_areas.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {p.responsibility_areas.map(a => (
+                      <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-gray-600">{a}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button type="button" onClick={() => setEditing(p)} className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors">
+                  <PencilSquareIcon className="w-4 h-4" />
+                </button>
+                <button type="button" onClick={() => setConfirmDel(p)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                  <TrashIcon className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {editing !== null && (
+        <PersonModal person={editing} onSave={handleSave} onClose={() => setEditing(null)} />
+      )}
+
+      {confirmDel && (
+        <ConfirmDialog
+          title="Eliminar persona"
+          message={`¿Seguro que quieres eliminar a "${confirmDel.name}"?`}
+          confirmLabel="Eliminar"
+          variant="danger"
+          onConfirm={() => handleDelete(confirmDel)}
+          onCancel={() => setConfirmDel(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+function PersonModal({ person, onSave, onClose }) {
+  const [form, setForm] = useState(person)
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
+
+  function toggleArea(area) {
+    const current = form.responsibility_areas || []
+    set('responsibility_areas', current.includes(area) ? current.filter(a => a !== area) : [...current, area])
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+          <h2 className="text-base font-semibold text-gray-900">{person.id ? 'Editar persona' : 'Nueva persona'}</h2>
+          <button type="button" onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+            <XMarkIcon className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-5 space-y-3">
+          <div><Label required>Nombre</Label><Input value={form.name || ''} onChange={e => set('name', e.target.value)} /></div>
+          <div>
+            <Label>Rol</Label>
+            <Select value={form.role || ''} onChange={e => set('role', e.target.value)}>
+              <option value="">Sin rol</option>
+              {PERSON_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Teléfono</Label><Input value={form.phone || ''} onChange={e => set('phone', e.target.value)} /></div>
+            <div><Label>Email</Label><Input type="email" value={form.email || ''} onChange={e => set('email', e.target.value)} /></div>
+          </div>
+          <div>
+            <Label>Áreas de responsabilidad</Label>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {RESPONSIBILITY_AREAS.map(a => (
+                <button
+                  key={a} type="button"
+                  onClick={() => toggleArea(a)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                    (form.responsibility_areas || []).includes(a)
+                      ? 'bg-teal-600 text-white border-teal-600'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-teal-300'
+                  }`}
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div><Label>Notas</Label><Textarea rows={2} value={form.notes || ''} onChange={e => set('notes', e.target.value)} /></div>
+        </div>
+        <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-200">
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50">Cancelar</button>
+          <button type="button" onClick={() => onSave(form)} disabled={!form.name?.trim()}
+            className="px-5 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700 disabled:opacity-40">
+            {person.id ? 'Guardar' : 'Crear'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Tab: Documentos ───────────────────────────────────────────────────────────
+function TabDocuments({ pharmacyId, companyId }) {
+  const { documents, loading, uploadDocument, deleteDocument } = usePharmacyDocuments(pharmacyId)
+  const toast = useToast()
+  const [uploading, setUploading] = useState(false)
+  const [confirmDel, setConfirmDel] = useState(null)
+  const fileRef = useRef(null)
+  const [meta, setMeta] = useState({ name: '', category: '' })
+
+  async function handleUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      await uploadDocument(file, {
+        name: meta.name || file.name,
+        category: meta.category,
+        pharmacy_id: pharmacyId,
+        company_id: companyId,
+      })
+      toast('Documento subido', 'success')
+      setMeta({ name: '', category: '' })
+    } catch {
+      toast('Error al subir el documento', 'error')
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  async function handleDelete(doc) {
+    await deleteDocument(doc.id, doc.file_path)
+    toast('Documento eliminado', 'success')
+    setConfirmDel(null)
+  }
+
+  if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 space-y-3">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Subir documento</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div><Label>Nombre del documento</Label><Input value={meta.name} onChange={e => setMeta(m => ({ ...m, name: e.target.value }))} placeholder="Opcional" /></div>
+          <div>
+            <Label>Categoría</Label>
+            <Select value={meta.category} onChange={e => setMeta(m => ({ ...m, category: e.target.value }))}>
+              <option value="">Sin categoría</option>
+              {DOC_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </Select>
+          </div>
+        </div>
+        <input ref={fileRef} type="file" onChange={handleUpload} disabled={uploading} className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 cursor-pointer" />
+        {uploading && <p className="text-xs text-teal-600 animate-pulse">Subiendo...</p>}
+      </div>
+
+      {(!documents || documents.length === 0) ? (
+        <EmptyTab icon={DocumentTextIcon} message="Sin documentos adjuntos" />
+      ) : (
+        <div className="space-y-2">
+          {documents.map(doc => (
+            <div key={doc.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:border-gray-300 transition-colors">
+              <div className="min-w-0 flex items-center gap-3">
+                <DocumentTextIcon className="w-5 h-5 text-gray-400 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-gray-800 truncate">{doc.name || doc.file_name}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {doc.category && <span className="text-[11px] text-gray-400">{doc.category}</span>}
+                    <span className="text-[11px] text-gray-300">{new Date(doc.created_at).toLocaleDateString('es-ES')}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                {doc.file_url && (
+                  <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors">
+                    <EyeIcon className="w-4 h-4" />
+                  </a>
+                )}
+                <button type="button" onClick={() => setConfirmDel(doc)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                  <TrashIcon className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {confirmDel && (
+        <ConfirmDialog
+          title="Eliminar documento"
+          message={`¿Seguro que quieres eliminar "${confirmDel.name || confirmDel.file_name}"?`}
+          confirmLabel="Eliminar"
+          variant="danger"
+          onConfirm={() => handleDelete(confirmDel)}
+          onCancel={() => setConfirmDel(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+// ── Página principal ──────────────────────────────────────────────────────────
+export default function PharmacyDetailPage() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const { pharmacy, loading, error } = usePharmacy(id)
+  const [activeTab, setActiveTab] = useState('general')
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (error || !pharmacy) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-gray-500">
+        <ExclamationTriangleIcon className="w-12 h-12 text-red-400" />
+        <p className="text-lg font-medium">Farmacia no encontrada</p>
+        <button onClick={() => navigate(-1)} className="text-sm text-teal-600 hover:underline">Volver</button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Cabecera */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-30">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between gap-3 py-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
+              >
+                <ArrowLeftIcon className="w-5 h-5" />
+              </button>
+              <div className="min-w-0">
+                <h1 className="text-base font-bold text-gray-900 truncate">{pharmacy.pharmacy_name}</h1>
+                <p className="text-xs text-gray-400 truncate">
+                  {[pharmacy.city, PROVINCE_LABEL[pharmacy.province] || pharmacy.province].filter(Boolean).join(', ')}
+                  {pharmacy.legal_type && ` · ${LEGAL_LABEL[pharmacy.legal_type] || pharmacy.legal_type}`}
+                </p>
+              </div>
+            </div>
+
+            <Link
+              to={`/pharmacies/${id}/edit`}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700 transition-colors shrink-0"
+            >
+              <PencilSquareIcon className="w-4 h-4" />
+              <span className="hidden sm:inline">Editar</span>
+            </Link>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-1 overflow-x-auto pb-0 -mb-px scrollbar-none">
+            {TABS.map(tab => {
+              const Icon = tab.icon
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
+                    activeTab === tab.key
+                      ? 'border-teal-600 text-teal-700'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Contenido */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+        {activeTab === 'general'   && <TabGeneral pharmacy={pharmacy} />}
+        {activeTab === 'equipment' && <TabEquipment equipment={pharmacy.equipment} />}
+        {activeTab === 'it'        && <TabIT pharmacyId={id} companyId={pharmacy.company_id} />}
+        {activeTab === 'people'    && <TabPeople pharmacyId={id} companyId={pharmacy.company_id} />}
+        {activeTab === 'incidents' && <EmptyTab icon={ExclamationTriangleIcon} message="Módulo de incidencias próximamente" />}
+        {activeTab === 'projects'  && <EmptyTab icon={FolderOpenIcon} message="Módulo de proyectos próximamente" />}
+        {activeTab === 'documents' && <TabDocuments pharmacyId={id} companyId={pharmacy.company_id} />}
+      </div>
+    </div>
+  )
+}
