@@ -57,7 +57,7 @@ const CAPA_OPTIONS = ['1ª','2ª','3ª','4ª','5ª']
 // ── Utils ────────────────────────────────────────────────────────────────────
 function fmtDate(d) {
   if (!d) return null
-  return new Date(d).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' })
+  return new Date(d).toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'2-digit' })
 }
 function isExpired(d) { return d && new Date(d) < new Date() }
 
@@ -646,12 +646,35 @@ function SwitchList({ items=[], onChange }) {
   )
 }
 
+// ── Chip inline ───────────────────────────────────────────────────────────────
+function Chip({ label, value }) {
+  const isEmpty = !value
+  return (
+    <span
+      className={`inline-flex items-center shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium border ${
+        isEmpty
+          ? 'bg-slate-50 border-slate-200 text-slate-300'
+          : 'bg-slate-100 border-slate-200 text-slate-600'
+      }`}
+    >
+      {label && <span className="text-slate-400 mr-1">{label}·</span>}
+      {isEmpty ? '—' : value}
+    </span>
+  )
+}
+
 // ── DeviceCard ────────────────────────────────────────────────────────────────
 function DeviceCard({ device, allDevices, onChange, onDelete, onDuplicate }) {
-  const [expanded, setExpanded] = useState(true)
-  const s       = (f,v) => onChange({ ...device, [f]: v })
+  const [expanded, setExpanded] = useState(false)
+  const s        = (f,v) => onChange({ ...device, [f]: v })
   const isViteka = device.is_viteka || false
-  const exp     = isExpired(device.fin_garantia)
+  const exp      = isExpired(device.fin_garantia)
+
+  // Chips resumen: IP principal, SO, CPU, RAM, disco principal
+  const ipPrimary  = device.ips?.[0] || null
+  const diskPrimary = device.disks?.[0]
+    ? `${device.disks[0].tipo} ${device.disks[0].capacidad}`.trim()
+    : null
 
   function renderTypeFields() {
     if (['Servidor','Estación'].includes(device.tipo))
@@ -665,59 +688,118 @@ function DeviceCard({ device, allDevices, onChange, onDelete, onDuplicate }) {
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 overflow-hidden mb-3">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100">
-        <button type="button" onClick={()=>setExpanded(e=>!e)}
-          className="text-gray-400 hover:text-gray-600 text-lg w-5 text-center">
-          {expanded?'▾':'▸'}
-        </button>
-        <span className="text-lg shrink-0">{IT_ICONS[device.tipo]||'📦'}</span>
-        <Field className="flex-1">
-          <select className="input font-medium" value={device.tipo||''} onChange={e=>s('tipo',e.target.value)}>
-            <option value="">Tipo de equipo…</option>
-            {IT_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
-          </select>
-        </Field>
-        <Field className="w-48">
-          <input className="input" placeholder="Nombre / identificador"
-            value={device.nombre||''} onChange={e=>s('nombre',e.target.value)} />
-        </Field>
-        <label className="flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
-          <input type="checkbox" className="rounded border-gray-300" style={{accentColor:'#0f766e'}}
-            checked={isViteka} onChange={e=>s('is_viteka',e.target.checked)} />
-          <span className="text-xs font-semibold text-teal-700">VITEKA</span>
-        </label>
-        {device.fin_garantia&&(
-          <span className={`text-xs font-medium shrink-0 ${exp?'text-red-500':'text-green-600'}`}>
-            {exp?'⚠️ Gtía vencida':`Gtía: ${fmtDate(device.fin_garantia)}`}
-          </span>
-        )}
-        <button type="button" onClick={onDuplicate} title="Duplicar"
-          className="text-gray-400 hover:text-teal-600 text-base px-1">⧉</button>
-        <button type="button" onClick={onDelete}
-          className="text-red-400 hover:text-red-600 text-lg">×</button>
+    <div className="bg-white border-b border-slate-100 last:border-b-0">
+      {/* ── Fila principal (siempre visible) ── */}
+      <div className="flex items-start gap-3 px-4 py-3">
+        {/* Dot de estado */}
+        <span className={`mt-[3px] shrink-0 w-2 h-2 rounded-full ${
+          isViteka ? 'bg-teal-500' : 'bg-slate-300'
+        }`} />
+
+        {/* Cuerpo */}
+        <div className="flex-1 min-w-0">
+          {/* Línea nombre + badge */}
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            {device.tipo && (
+              <span className="text-sm shrink-0">{IT_ICONS[device.tipo]||'📦'}</span>
+            )}
+            <span className="font-semibold text-[14px] text-slate-900 truncate">
+              {device.nombre || device.tipo || <span className="text-slate-400 italic">Sin nombre</span>}
+            </span>
+            {isViteka && (
+              <span className="shrink-0 bg-teal-50 text-teal-700 border border-teal-200 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide">Viteka</span>
+            )}
+            {/* Garantía badge */}
+            {device.fin_garantia && (
+              <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full border ${
+                exp
+                  ? 'bg-red-50 border-red-200 text-red-500'
+                  : 'bg-green-50 border-green-200 text-green-600'
+              }`}>
+                {exp ? '⚠️ Gtía vencida' : `Gtía ${fmtDate(device.fin_garantia)}`}
+              </span>
+            )}
+          </div>
+
+          {/* Chips resumen */}
+          <div className="flex flex-wrap gap-1.5 mb-1">
+            {ipPrimary && <Chip label="IP" value={ipPrimary} />}
+            {device.so && <Chip value={device.so} />}
+            {device.procesador && <Chip value={device.procesador} />}
+            {device.ram && <Chip label="RAM" value={device.ram} />}
+            {diskPrimary && <Chip value={diskPrimary} />}
+            {/* Serie (no-IT o genérico) */}
+            {!device.so && !ipPrimary && device.serie && <Chip label="S/N" value={device.serie} />}
+            {/* Fechas instalación */}
+            {device.fecha_instalacion && (
+              <span className="text-[11px] text-slate-400 flex items-center gap-0.5">
+                <span>📅</span>{fmtDate(device.fecha_instalacion)}
+              </span>
+            )}
+          </div>
+
+          {/* Notas/observaciones (1 línea truncada) */}
+          {device.observaciones && (
+            <p className="text-[11px] text-slate-400 italic truncate">{device.observaciones}</p>
+          )}
+        </div>
+
+        {/* Acciones */}
+        <div className="flex items-center gap-1 shrink-0 ml-1">
+          <button type="button" onClick={onDuplicate}
+            title="Duplicar"
+            className="text-slate-300 hover:text-teal-500 text-base px-1 transition-colors">⧉</button>
+          <button type="button" onClick={onDelete}
+            className="text-slate-300 hover:text-red-500 text-lg transition-colors">×</button>
+          <button type="button" onClick={()=>setExpanded(e=>!e)}
+            className="text-slate-400 hover:text-slate-600 text-sm px-1 transition-colors">
+            {expanded ? '▴' : '▾'}
+          </button>
+        </div>
       </div>
 
-      {/* Bloque VITEKA */}
-      {isViteka&&expanded&&(
-        <div className="bg-teal-50 border-b border-teal-100 px-4 py-3">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Field label="Nº serie"><input className="input" value={device.serie||''} onChange={e=>s('serie',e.target.value)} /></Field>
-            <Field label="Fecha instalación"><input className="input" type="date" value={device.fecha_instalacion||''} onChange={e=>s('fecha_instalacion',e.target.value)} /></Field>
-            <Field label="Fin garantía"><input className="input" type="date" value={device.fin_garantia||''} onChange={e=>s('fin_garantia',e.target.value)} /></Field>
-            <Field label="Observaciones"><input className="input" value={device.obs_viteka||''} onChange={e=>s('obs_viteka',e.target.value)} /></Field>
+      {/* ── Panel expandido ── */}
+      {expanded && (
+        <div className="border-t border-slate-100 bg-slate-50">
+          {/* Header de edición */}
+          <div className="flex flex-wrap gap-3 items-center px-4 pt-3 pb-2 border-b border-slate-100 bg-white">
+            <Field className="w-40">
+              <select className="input font-medium text-sm" value={device.tipo||''} onChange={e=>s('tipo',e.target.value)}>
+                <option value="">Tipo de equipo…</option>
+                {IT_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
+              </select>
+            </Field>
+            <Field className="flex-1 min-w-[140px]">
+              <input className="input text-sm" placeholder="Nombre / identificador"
+                value={device.nombre||''} onChange={e=>s('nombre',e.target.value)} />
+            </Field>
+            <label className="flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+              <input type="checkbox" className="rounded border-gray-300" style={{accentColor:'#0f766e'}}
+                checked={isViteka} onChange={e=>s('is_viteka',e.target.checked)} />
+              <span className="text-xs font-semibold text-teal-700">VITEKA</span>
+            </label>
           </div>
-        </div>
-      )}
 
-      {expanded&&(
-        <div className="px-4 py-3">
-          {renderTypeFields()}
-          <Field label="Observaciones generales" className="mt-3">
-            <textarea className="input" rows={2} value={device.observaciones||''}
-              onChange={e=>s('observaciones',e.target.value)} />
-          </Field>
+          {/* Bloque VITEKA */}
+          {isViteka && (
+            <div className="bg-teal-50 border-b border-teal-100 px-4 py-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <Field label="Nº serie"><input className="input" value={device.serie||''} onChange={e=>s('serie',e.target.value)} /></Field>
+                <Field label="Fecha instalación"><input className="input" type="date" value={device.fecha_instalacion||''} onChange={e=>s('fecha_instalacion',e.target.value)} /></Field>
+                <Field label="Fin garantía"><input className="input" type="date" value={device.fin_garantia||''} onChange={e=>s('fin_garantia',e.target.value)} /></Field>
+                <Field label="Observaciones"><input className="input" value={device.obs_viteka||''} onChange={e=>s('obs_viteka',e.target.value)} /></Field>
+              </div>
+            </div>
+          )}
+
+          {/* Campos específicos del tipo */}
+          <div className="px-4 py-3">
+            {renderTypeFields()}
+            <Field label="Observaciones generales" className="mt-3">
+              <textarea className="input" rows={2} value={device.observaciones||''}
+                onChange={e=>s('observaciones',e.target.value)} />
+            </Field>
+          </div>
         </div>
       )}
     </div>
@@ -801,32 +883,40 @@ function SeccionEquiposIT({ devices, onChange, onSaveDevice, onDuplicate, onDele
 
   const renderList = () => {
     if (!groupByType) {
-      return devices.map((d,i)=>(
-        <DeviceCard key={d.id||`new-${i}`} device={d} allDevices={devices}
-          onChange={v=>updateDevice(i,v)}
-          onDelete={()=>deleteDevice(i)}
-          onDuplicate={()=>onDuplicate(i)}
-        />
-      ))
+      return (
+        <div className="rounded-xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
+          {devices.map((d,i)=>(
+            <DeviceCard key={d.id||`new-${i}`} device={d} allDevices={devices}
+              onChange={v=>updateDevice(i,v)}
+              onDelete={()=>deleteDevice(i)}
+              onDuplicate={()=>onDuplicate(i)}
+            />
+          ))}
+        </div>
+      )
     }
     return IT_TYPES.map(tipo => {
       const group = devices.map((d,idx)=>({d,idx})).filter(({d})=>d.tipo===tipo)
       if (!group.length) return null
       return (
-        <div key={tipo} className="mb-5">
-          <div className="flex items-center gap-2 mb-2">
+        <div key={tipo} className="mb-4">
+          {/* Cabecera de grupo */}
+          <div className="flex items-center gap-2 mb-1.5 px-1">
             <span className="text-sm">{IT_ICONS[tipo]||'📦'}</span>
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{tipo}</h4>
-            <span className="text-[10px] bg-gray-100 text-gray-400 rounded-full px-2 py-0.5 font-medium">{group.length}</span>
-            <div className="flex-1 border-t border-gray-100" />
+            <h4 className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">{tipo}</h4>
+            <span className="text-[10px] bg-slate-100 text-slate-400 rounded-full px-2 py-0.5 font-medium">{group.length}</span>
+            <div className="flex-1 border-t border-slate-100" />
           </div>
-          {group.map(({d,idx})=>(
-            <DeviceCard key={d.id||`new-${idx}`} device={d} allDevices={devices}
-              onChange={v=>updateDevice(idx,v)}
-              onDelete={()=>deleteDevice(idx)}
-              onDuplicate={()=>onDuplicate(idx)}
-            />
-          ))}
+          {/* Lista compacta con borde contenedor */}
+          <div className="rounded-xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
+            {group.map(({d,idx})=>(
+              <DeviceCard key={d.id||`new-${idx}`} device={d} allDevices={devices}
+                onChange={v=>updateDevice(idx,v)}
+                onDelete={()=>deleteDevice(idx)}
+                onDuplicate={()=>onDuplicate(idx)}
+              />
+            ))}
+          </div>
         </div>
       )
     })
@@ -889,8 +979,6 @@ export default function PharmacyEquipmentPage({ pharmacyId, pharmacyName, naviga
 
   async function handleSave() {
     try {
-      // saveEquipment recibe el form + la lista local de devices
-      // El hook separa internamente ambos payloads
       await saveEquipment({ ...form, it_devices: localDevices })
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
@@ -900,9 +988,8 @@ export default function PharmacyEquipmentPage({ pharmacyId, pharmacyName, naviga
   async function handleDuplicate(idx) {
     const d = localDevices[idx]
     if (d?.id) {
-      await duplicateDevice(d.id)        // BD → hook refresca devices
+      await duplicateDevice(d.id)
     } else {
-      // Nuevo no guardado → copia local
       const copy = { ...d, nombre: `${d.nombre||d.tipo||'Equipo'} (copia)` }
       setLocalDevices(prev => [...prev, copy])
     }
