@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { usePharmacy } from '../hooks/usePharmacy'
 import { usePharmacyPersons } from '../hooks/usePharmacyPersons'
@@ -13,7 +13,7 @@ import {
   DocumentTextIcon, ComputerDesktopIcon,
   PlusIcon, TrashIcon, XMarkIcon, ArrowsRightLeftIcon,
   DocumentDuplicateIcon, ChevronDownIcon, MagnifyingGlassIcon,
-  CalendarDaysIcon, ShieldCheckIcon,
+  CalendarDaysIcon, ShieldCheckIcon, EyeIcon,
 } from '@heroicons/react/24/outline'
 import { useToast } from '../context/ToastContext'
 import ConfirmDialog from '../components/pharmacy/ConfirmDialog'
@@ -211,8 +211,108 @@ function Chip({ children }) {
   )
 }
 
-// ── Fila de dispositivo ───────────────────────────────────────────────────────
-function ITDeviceRow({ device, onEdit, onDelete, onDuplicate }) {
+// ── Modal base con guard de cambios sin guardar ───────────────────────────────
+function DeviceModal({ isOpen, isDirty, title, onRequestClose, children }) {
+  const [showConfirm, setShowConfirm] = useState(false)
+  const backdropRef = useRef(null)
+
+  // Bloquear scroll del body
+  useEffect(() => {
+    if (isOpen) document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [isOpen])
+
+  // Cerrar con Escape
+  useEffect(() => {
+    if (!isOpen) return
+    function onKey(e) { if (e.key === 'Escape') handleClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
+  function handleClose() {
+    if (isDirty) setShowConfirm(true)
+    else onRequestClose()
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div
+      ref={backdropRef}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm"
+      onClick={e => { if (e.target === backdropRef.current) handleClose() }}
+    >
+      {/* Panel */}
+      <div
+        className="relative w-full sm:max-w-2xl max-h-[95dvh] sm:max-h-[90vh] flex flex-col bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="device-modal-title"
+      >
+        {/* Cabecera */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-white sticky top-0 z-10">
+          <div className="flex items-center gap-2 min-w-0">
+            {isDirty && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-700 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                Sin guardar
+              </span>
+            )}
+            <h2 id="device-modal-title" className="text-sm font-semibold text-gray-900 truncate">{title}</h2>
+          </div>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="shrink-0 p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors ml-2"
+            aria-label="Cerrar"
+          >
+            <XMarkIcon className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Contenido scrollable */}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-5">
+          {children}
+        </div>
+      </div>
+
+      {/* Confirmación cambios sin guardar */}
+      {showConfirm && (
+        <div className="absolute inset-0 z-60 flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm text-center">
+            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <ExclamationTriangleIcon className="w-6 h-6 text-amber-600" />
+            </div>
+            <h3 className="text-base font-bold text-gray-900 mb-1">¿Cerrar sin guardar?</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Tienes cambios pendientes. Si cierras ahora se perderán.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+              >
+                Volver a editar
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowConfirm(false); onRequestClose() }}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors"
+              >
+                Descartar cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Fila de dispositivo (clicable) ────────────────────────────────────────────
+function ITDeviceRow({ device, onOpen, onDelete, onDuplicate }) {
   const { marca, modelo } = resolveBrand(device)
   const chips    = buildChips(device)
   const fInst    = fmtDate(device.install_date)
@@ -221,102 +321,87 @@ function ITDeviceRow({ device, onEdit, onDelete, onDuplicate }) {
   const warExpired = device.warranty_end && new Date(device.warranty_end) < now
   const warOk     = device.warranty_end && !warExpired
 
-  function handleEdit() {
-    const specs = device.specs || {}
-    onEdit({ ...device, specs: { ...specs, ...resolveBrand(device) } })
-  }
-
   return (
-    <div className="px-4 py-3 hover:bg-slate-50 transition-colors">
-      <div className="flex items-start gap-2">
-        <span className={`mt-[5px] shrink-0 w-2 h-2 rounded-full ${
-          device.is_viteka ? 'bg-teal-400' : 'bg-gray-300'
-        }`} />
+    <div
+      className="group relative flex items-start gap-3 px-4 py-3.5 hover:bg-teal-50/40 active:bg-teal-50/70 transition-colors cursor-pointer border-l-2 border-transparent hover:border-teal-400"
+      onClick={() => onOpen(device)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onOpen(device)}
+    >
+      {/* Indicador Viteka */}
+      <span className={`mt-[7px] shrink-0 w-2 h-2 rounded-full transition-all ${
+        device.is_viteka ? 'bg-teal-400' : 'bg-gray-300'
+      }`} />
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-              <span className="text-sm font-semibold text-gray-800 leading-snug">
-                {device.label || IT_LABEL[device.device_type] || 'Equipo'}
+      {/* Contenido */}
+      <div className="flex-1 min-w-0 pr-14">
+        <div className="flex items-start justify-between gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-sm font-semibold text-gray-800 leading-snug group-hover:text-teal-700 transition-colors">
+              {device.label || IT_LABEL[device.device_type] || 'Equipo'}
+            </span>
+            {device.is_viteka && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-teal-100 text-teal-700">Viteka</span>
+            )}
+            {warOk && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-600">
+                <ShieldCheckIcon className="w-3 h-3" /> Garantía
               </span>
-              {device.is_viteka && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-teal-100 text-teal-700">
-                  Viteka
-                </span>
-              )}
-              {warOk && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-600">
-                  <ShieldCheckIcon className="w-3 h-3" /> Garantía
-                </span>
-              )}
-              {warExpired && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-50 text-red-500">
-                  <ShieldCheckIcon className="w-3 h-3" /> Expirada
-                </span>
-              )}
-            </div>
-
-            {(fInst || fGar) && (
-              <div className="flex flex-col items-end gap-0.5 shrink-0">
-                {fInst && (
-                  <span className="flex items-center gap-1 text-[11px] text-gray-400">
-                    <CalendarDaysIcon className="w-3 h-3" /> {fInst}
-                  </span>
-                )}
-                {fGar && (
-                  <span className={`flex items-center gap-1 text-[11px] ${warExpired ? 'text-red-400' : 'text-gray-400'}`}>
-                    <ShieldCheckIcon className="w-3 h-3" /> {fGar}
-                  </span>
-                )}
-              </div>
+            )}
+            {warExpired && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-50 text-red-500">
+                <ShieldCheckIcon className="w-3 h-3" /> Expirada
+              </span>
             )}
           </div>
-
-          {chips.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1.5">
-              {chips.map((c, i) => <Chip key={i}>{c}</Chip>)}
+          {(fInst || fGar) && (
+            <div className="flex flex-col items-end gap-0.5 shrink-0">
+              {fInst && (
+                <span className="flex items-center gap-1 text-[11px] text-gray-400">
+                  <CalendarDaysIcon className="w-3 h-3" /> {fInst}
+                </span>
+              )}
+              {fGar && (
+                <span className={`flex items-center gap-1 text-[11px] ${warExpired ? 'text-red-400' : 'text-gray-400'}`}>
+                  <ShieldCheckIcon className="w-3 h-3" /> {fGar}
+                </span>
+              )}
             </div>
           )}
-
-          {(marca || modelo) && (
-            <p className="text-xs text-gray-400 mt-1 truncate">
-              {[marca, modelo].filter(Boolean).join(' · ')}
-            </p>
-          )}
-
-          {device.observations && (
-            <p className="text-xs text-gray-400 italic mt-0.5 truncate">{device.observations}</p>
-          )}
         </div>
+
+        {chips.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {chips.map((c, i) => <Chip key={i}>{c}</Chip>)}
+          </div>
+        )}
+
+        {(marca || modelo) && (
+          <p className="text-xs text-gray-400 mt-1 truncate">{[marca, modelo].filter(Boolean).join(' · ')}</p>
+        )}
       </div>
 
-      <div className="flex justify-end gap-1 mt-2">
+      {/* Acciones flotantes (aparecen en hover) */}
+      <div
+        className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={e => e.stopPropagation()}
+      >
         <button
           type="button"
           onClick={() => onDuplicate(device)}
           title="Duplicar"
-          className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 active:bg-indigo-100 transition-colors"
+          className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 bg-white shadow-sm border border-gray-100"
         >
           <DocumentDuplicateIcon className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Duplicar</span>
-        </button>
-        <button
-          type="button"
-          onClick={handleEdit}
-          title="Editar"
-          className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-gray-400 hover:text-teal-600 hover:bg-teal-50 active:bg-teal-100 transition-colors"
-        >
-          <PencilSquareIcon className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Editar</span>
         </button>
         <button
           type="button"
           onClick={() => onDelete(device)}
           title="Eliminar"
-          className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-gray-400 hover:text-red-500 hover:bg-red-50 active:bg-red-100 transition-colors"
+          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 bg-white shadow-sm border border-gray-100"
         >
           <TrashIcon className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Eliminar</span>
         </button>
       </div>
     </div>
@@ -324,16 +409,16 @@ function ITDeviceRow({ device, onEdit, onDelete, onDuplicate }) {
 }
 
 // ── Bloque colapsable por tipo ────────────────────────────────────────────────
-function ITTypeBlock({ typeKey, devices, isOpen, onToggle, onEdit, onDelete, onDuplicate, onAddSameType }) {
+function ITTypeBlock({ typeKey, devices, isOpen, onToggle, onOpen, onDelete, onDuplicate, onAddSameType }) {
   const total = devices.length
   const vitekaCount = devices.filter(d => d.is_viteka).length
   const buttonId = `it-trigger-${typeKey}`
   const panelId  = `it-panel-${typeKey}`
 
   return (
-    <section className="mb-4 break-inside-avoid-column rounded-xl border border-slate-200 bg-white overflow-hidden">
-      <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
-        <div className="flex items-start justify-between gap-3">
+    <section className="mb-4 break-inside-avoid-column rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+      <div className="px-4 py-3 bg-slate-50/80 border-b border-slate-200">
+        <div className="flex items-center justify-between gap-3">
           <button
             id={buttonId}
             type="button"
@@ -355,19 +440,15 @@ function ITTypeBlock({ typeKey, devices, isOpen, onToggle, onEdit, onDelete, onD
                 </span>
               )}
             </div>
-            {!isOpen && (
-              <p className="mt-1 text-xs text-gray-400">Grupo cerrado · pulsa para desplegar</p>
-            )}
           </button>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
               onClick={() => onAddSameType(typeKey)}
-              className="hidden sm:inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
+              className="hidden sm:inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-600 hover:bg-gray-50 hover:border-teal-300 transition-colors"
             >
-              <PlusIcon className="w-3.5 h-3.5" />
-              Añadir
+              <PlusIcon className="w-3.5 h-3.5" /> Añadir
             </button>
             <button
               type="button"
@@ -376,7 +457,7 @@ function ITTypeBlock({ typeKey, devices, isOpen, onToggle, onEdit, onDelete, onD
               className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-white transition-colors"
             >
               <ChevronDownIcon
-                className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
               />
             </button>
           </div>
@@ -387,14 +468,14 @@ function ITTypeBlock({ typeKey, devices, isOpen, onToggle, onEdit, onDelete, onD
         id={panelId}
         role="region"
         aria-labelledby={buttonId}
-        className={`overflow-hidden transition-all duration-300 ease-out ${isOpen ? 'max-h-[4000px]' : 'max-h-0'}`}
+        className={`overflow-hidden transition-all duration-300 ease-out ${isOpen ? 'max-h-[4000px] opacity-100' : 'max-h-0 opacity-0'}`}
       >
         <div className="divide-y divide-slate-100">
           {devices.map(d => (
             <ITDeviceRow
               key={d.id}
               device={d}
-              onEdit={onEdit}
+              onOpen={onOpen}
               onDelete={onDelete}
               onDuplicate={onDuplicate}
             />
@@ -432,9 +513,8 @@ function createEmptyITDevice(deviceType = 'servidor') {
   }
 }
 
-// ── Formulario de equipo ──────────────────────────────────────────────────────
-function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
-  const [form, setForm] = useState(initial || createEmptyITDevice())
+// ── Formulario de equipo (dentro del modal) ───────────────────────────────────
+function ITDeviceFormInner({ form, setForm }) {
   const set     = (k, v) => setForm(p => ({ ...p, [k]: v }))
   const setSpec = (k, v) => setForm(p => ({ ...p, specs: { ...p.specs, [k]: v } }))
 
@@ -455,9 +535,8 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
   function removeConexion(i)    { setSpec('conexiones', conexiones.filter((_, idx) => idx !== i)) }
 
   return (
-    <div className="bg-white rounded-xl border border-teal-200 p-5 space-y-4">
-      <h3 className="text-sm font-semibold text-gray-800">{initial?.id ? 'Editar equipo' : 'Nuevo equipo'}</h3>
-
+    <div className="space-y-5">
+      {/* Tipo y etiqueta */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label required>Tipo de equipo</Label>
@@ -470,21 +549,25 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
         <div><Label>Modelo</Label><Input value={form.specs.modelo || ''} onChange={e => setSpec('modelo', e.target.value)} /></div>
       </div>
 
-      <label className="flex items-center gap-2 p-3 bg-teal-50 rounded-lg cursor-pointer">
-        <input type="checkbox" checked={form.is_viteka} onChange={e => set('is_viteka', e.target.checked)} className="w-4 h-4 accent-teal-600" />
-        <span className="text-sm text-teal-800">Equipo de Viteka</span>
-      </label>
-      {form.is_viteka && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div><Label>Nº de serie</Label><Input value={form.serial_number} onChange={e => set('serial_number', e.target.value)} /></div>
-          <div><Label>Fecha instalación</Label><Input type="date" value={form.install_date} onChange={e => set('install_date', e.target.value)} /></div>
-          <div><Label>Fin garantía</Label><Input type="date" value={form.warranty_end} onChange={e => set('warranty_end', e.target.value)} /></div>
-        </div>
-      )}
+      {/* Bloque Viteka */}
+      <div className="rounded-xl border border-teal-200 bg-teal-50/40 p-4 space-y-3">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={form.is_viteka} onChange={e => set('is_viteka', e.target.checked)} className="w-4 h-4 accent-teal-600" />
+          <span className="text-sm font-medium text-teal-800">Equipo provisto / soportado por Viteka</span>
+        </label>
+        {form.is_viteka && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div><Label>Nº de serie</Label><Input value={form.serial_number || ''} onChange={e => set('serial_number', e.target.value)} /></div>
+            <div><Label>Fecha instalación</Label><Input type="date" value={form.install_date || ''} onChange={e => set('install_date', e.target.value)} /></div>
+            <div><Label>Fin garantía</Label><Input type="date" value={form.warranty_end || ''} onChange={e => set('warranty_end', e.target.value)} /></div>
+          </div>
+        )}
+      </div>
 
+      {/* Especificaciones: ordenadores */}
       {isComputer && (
         <div className="space-y-4">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Especificaciones hardware</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1.5">Hardware</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div><Label>Sistema operativo</Label><Input value={form.specs.so || ''} onChange={e => setSpec('so', e.target.value)} /></div>
             <div><Label>Antivirus</Label><Input value={form.specs.antivirus || ''} onChange={e => setSpec('antivirus', e.target.value)} /></div>
@@ -494,72 +577,84 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
             <div><Label>Fuente alimentación</Label><Input value={form.specs.psu || ''} onChange={e => setSpec('psu', e.target.value)} /></div>
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <Label>Dirección(es) IP</Label>
-              <button type="button" onClick={addIp} className="text-xs text-teal-600 hover:text-teal-800">+ Añadir IP</button>
-            </div>
-            {(form.specs.ip || ['']).map((ip, i) => (
-              <div key={i} className="flex gap-2 mb-1">
-                <Input value={ip} onChange={e => setIp(i, e.target.value)} placeholder="192.168.1.x" />
-                {i > 0 && <button type="button" onClick={() => removeIp(i)} className="text-red-400 hover:text-red-600"><XMarkIcon className="w-4 h-4" /></button>}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* IPs */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label>Dirección(es) IP</Label>
+                <button type="button" onClick={addIp} className="text-xs font-medium text-teal-600 hover:text-teal-800">+ Añadir</button>
               </div>
-            ))}
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label>Nº de conexión</Label>
-              <button type="button" onClick={addConexion} className="text-xs text-teal-600 hover:text-teal-800">+ Añadir conexión</button>
+              {(form.specs.ip || ['']).map((ip, i) => (
+                <div key={i} className="flex gap-2 mb-1.5">
+                  <Input value={ip} onChange={e => setIp(i, e.target.value)} placeholder="192.168.x.x" />
+                  {i > 0 && (
+                    <button type="button" onClick={() => removeIp(i)} className="shrink-0 p-2 text-red-400 hover:text-red-600">
+                      <XMarkIcon className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
-            <div className="space-y-2">
+
+            {/* Conexiones */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label>Nº conexión / contraseña</Label>
+                <button type="button" onClick={addConexion} className="text-xs font-medium text-teal-600 hover:text-teal-800">+ Añadir</button>
+              </div>
               {conexiones.map((c, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <div className="flex-1"><Input value={c.numero} onChange={e => setConexion(i, 'numero', e.target.value)} placeholder="Número" /></div>
-                  <div className="flex-1"><Input value={c.pass} onChange={e => setConexion(i, 'pass', e.target.value)} placeholder="Contraseña" type="password" autoComplete="new-password" /></div>
+                <div key={i} className="flex items-center gap-2 mb-1.5">
+                  <Input value={c.numero} onChange={e => setConexion(i, 'numero', e.target.value)} placeholder="Número" />
+                  <Input value={c.pass} onChange={e => setConexion(i, 'pass', e.target.value)} placeholder="Contraseña" type="password" autoComplete="new-password" />
                   {conexiones.length > 1 && (
-                    <button type="button" onClick={() => removeConexion(i)} className="shrink-0 text-red-400 hover:text-red-600"><XMarkIcon className="w-4 h-4" /></button>
+                    <button type="button" onClick={() => removeConexion(i)} className="shrink-0 p-2 text-red-400 hover:text-red-600">
+                      <XMarkIcon className="w-4 h-4" />
+                    </button>
                   )}
                 </div>
               ))}
             </div>
           </div>
 
+          {/* Discos */}
           <div>
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-1.5">
               <Label>Disco(s) duro(s)</Label>
-              <button type="button" onClick={addDisk} className="text-xs text-teal-600 hover:text-teal-800">+ Añadir disco</button>
+              <button type="button" onClick={addDisk} className="text-xs font-medium text-teal-600 hover:text-teal-800">+ Añadir disco</button>
             </div>
             {(form.specs.disks || []).map((d, i) => (
-              <div key={i} className="flex gap-2 mb-1">
+              <div key={i} className="flex gap-2 mb-1.5">
                 <Select value={d.type} onChange={e => setDisk(i, 'type', e.target.value)} className="w-28">
                   {DISK_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </Select>
                 <Input value={d.capacity} onChange={e => setDisk(i, 'capacity', e.target.value)} placeholder="p.ej. 512 GB" />
-                <button type="button" onClick={() => removeDisk(i)} className="text-red-400 hover:text-red-600"><XMarkIcon className="w-4 h-4" /></button>
+                <button type="button" onClick={() => removeDisk(i)} className="shrink-0 p-2 text-red-400 hover:text-red-600">
+                  <XMarkIcon className="w-4 h-4" />
+                </button>
               </div>
             ))}
           </div>
 
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Monitor</p>
+          {/* Monitor */}
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1.5">Monitor y periféricos</p>
           <div className="flex flex-wrap items-center gap-4">
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={!!form.specs.monitor}
                 onChange={e => setSpec('monitor', e.target.checked ? { size: '', color: '', conn: 'HDMI', tactil: false } : null)}
                 className="accent-teal-600" />
-              <span className="text-sm text-gray-700">Tiene monitor</span>
+              <span className="text-sm font-medium text-gray-700">Tiene monitor</span>
             </label>
             {form.specs.monitor && (
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={!!form.specs.monitor.tactil}
                   onChange={e => setSpec('monitor', { ...form.specs.monitor, tactil: e.target.checked })}
                   className="accent-teal-600" />
-                <span className="text-sm text-gray-700">Táctil</span>
+                <span className="text-sm font-medium text-gray-700">Táctil</span>
               </label>
             )}
           </div>
           {form.specs.monitor && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-gray-50 rounded-xl p-3">
               <div><Label>Tamaño</Label><Input value={form.specs.monitor.size || ''} onChange={e => setSpec('monitor', { ...form.specs.monitor, size: e.target.value })} placeholder='"' /></div>
               <div><Label>Color</Label><Input value={form.specs.monitor.color || ''} onChange={e => setSpec('monitor', { ...form.specs.monitor, color: e.target.value })} /></div>
               <div>
@@ -571,7 +666,6 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
             </div>
           )}
 
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Periféricos</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[['teclado', 'Teclado'], ['raton', 'Ratón']].map(([key, lbl]) => (
               <div key={key} className="space-y-1">
@@ -590,7 +684,7 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
                 <option value="SI">Sí</option>
               </Select>
               {form.specs.card_reader && form.specs.card_reader !== 'NO' && (
-                <Input value={form.specs.card_reader.modelo || ''} onChange={e => setSpec('card_reader', { ...form.specs.card_reader, modelo: e.target.value })} placeholder="Modelo" />
+                <Input className="mt-1" value={form.specs.card_reader.modelo || ''} onChange={e => setSpec('card_reader', { ...form.specs.card_reader, modelo: e.target.value })} placeholder="Modelo" />
               )}
             </div>
             <div className="space-y-1">
@@ -600,7 +694,7 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
                 <option value="SI">Sí</option>
               </Select>
               {form.specs.qr_reader && form.specs.qr_reader !== 'NO' && (
-                <div className="flex gap-2">
+                <div className="flex gap-2 mt-1">
                   <Select value={form.specs.qr_reader.tipo || 'Cable'} onChange={e => setSpec('qr_reader', { ...form.specs.qr_reader, tipo: e.target.value })}>
                     <option>Cable</option><option>Inalámbrico</option>
                   </Select>
@@ -612,6 +706,7 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
         </div>
       )}
 
+      {/* Impresoras */}
       {isPrinter && (
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -621,26 +716,28 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
               {CONNECTION_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
             </Select>
           </div>
-          <div><Label>Equipo vinculado</Label><Input value={form.specs.linked || ''} onChange={e => setSpec('linked', e.target.value)} placeholder="Nombre o IP del equipo" /></div>
+          <div><Label>Equipo vinculado</Label><Input value={form.specs.linked || ''} onChange={e => setSpec('linked', e.target.value)} placeholder="Nombre o IP" /></div>
         </div>
       )}
 
+      {/* SAI */}
       {form.device_type === 'sai' && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div><Label>Capacidad</Label><Input value={form.specs.capacity || ''} onChange={e => setSpec('capacity', e.target.value)} placeholder="p.ej. 600 VA" /></div>
+          <div><Label>Capacidad</Label><Input value={form.specs.capacity || ''} onChange={e => setSpec('capacity', e.target.value)} placeholder="600 VA" /></div>
           <div><Label>Año</Label><Input type="number" value={form.specs.year || ''} onChange={e => setSpec('year', e.target.value)} /></div>
-          <div><Label>Equipo vinculado</Label><Input value={form.specs.linked || ''} onChange={e => setSpec('linked', e.target.value)} /></div>
+          <div className="col-span-2"><Label>Equipo vinculado</Label><Input value={form.specs.linked || ''} onChange={e => setSpec('linked', e.target.value)} /></div>
         </div>
       )}
 
+      {/* Router */}
       {form.device_type === 'router' && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div><Label>Proveedor</Label><Input value={form.specs.provider || ''} onChange={e => setSpec('provider', e.target.value)} /></div>
             <div><Label>Año</Label><Input type="number" value={form.specs.year || ''} onChange={e => setSpec('year', e.target.value)} /></div>
             <div><Label>Prioridad (1=principal)</Label><Input type="number" min="1" value={form.specs.priority || ''} onChange={e => setSpec('priority', e.target.value)} /></div>
           </div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contacto del proveedor</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1.5">Contacto del proveedor</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div><Label>Nombre</Label><Input value={form.specs.contact_name || ''} onChange={e => setSpec('contact_name', e.target.value)} /></div>
             <div><Label>Cargo</Label><Input value={form.specs.contact_role || ''} onChange={e => setSpec('contact_role', e.target.value)} /></div>
@@ -650,6 +747,7 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
         </div>
       )}
 
+      {/* Switch */}
       {form.device_type === 'switch' && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div><Label>Nº salidas</Label><Input type="number" value={form.specs.ports || ''} onChange={e => setSpec('ports', e.target.value)} /></div>
@@ -665,23 +763,93 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
             <input type="checkbox" checked={!!form.specs.managed} onChange={e => setSpec('managed', e.target.checked)} className="accent-teal-600" />
             <span className="text-sm text-gray-700">Gestionable</span>
           </div>
-          <div className="flex items-center gap-2">
-            <input type="checkbox" checked={!!form.specs.poe} onChange={e => setSpec('poe', e.target.checked ? { ports: '' } : false)} className="accent-teal-600" />
-            <span className="text-sm text-gray-700">PoE</span>
+          <div className="col-span-full border-t border-gray-100 pt-3">
+            <div className="flex items-center gap-2 mb-2">
+              <input type="checkbox" checked={!!form.specs.poe} onChange={e => setSpec('poe', e.target.checked ? { ports: '' } : false)} className="accent-teal-600" />
+              <span className="text-sm text-gray-700">Soporta PoE</span>
+            </div>
+            {form.specs.poe && (
+              <div className="w-40"><Label>Puertos PoE</Label><Input type="number" value={form.specs.poe.ports || ''} onChange={e => setSpec('poe', { ports: e.target.value })} /></div>
+            )}
           </div>
-          {form.specs.poe && (
-            <div><Label>Puertos PoE</Label><Input type="number" value={form.specs.poe.ports || ''} onChange={e => setSpec('poe', { ports: e.target.value })} /></div>
-          )}
         </div>
       )}
 
-      <div><Label>Observaciones</Label><Textarea value={form.observations || ''} onChange={e => set('observations', e.target.value)} /></div>
-
-      <div className="flex gap-3 justify-end pt-2">
-        <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50">Cancelar</button>
-        <button type="button" onClick={() => onSave(form)} className="px-5 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700">Guardar equipo</button>
+      {/* Observaciones */}
+      <div>
+        <Label>Observaciones</Label>
+        <Textarea rows={3} value={form.observations || ''} onChange={e => set('observations', e.target.value)} placeholder="Notas adicionales..." />
       </div>
     </div>
+  )
+}
+
+// ── Modal unificado: ver / editar equipo ──────────────────────────────────────
+function ITDeviceModal({ device, pharmacyId, companyId, onSave, onClose }) {
+  const isNew = !device?.id
+  const baseSnapshot = useMemo(
+    () => JSON.stringify(device || createEmptyITDevice()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [device?.id]
+  )
+  const [form, setForm] = useState(device || createEmptyITDevice())
+  const [saving, setSaving] = useState(false)
+
+  // Sincronizar cuando cambia el device (al abrir otro equipo)
+  useEffect(() => {
+    setForm(device || createEmptyITDevice())
+  }, [device])
+
+  const isDirty = JSON.stringify(form) !== baseSnapshot
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      await onSave(form)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const title = isNew
+    ? `Nuevo equipo — ${IT_LABEL[form.device_type] || ''}`
+    : (form.label || IT_LABEL[form.device_type] || 'Equipo')
+
+  return (
+    <DeviceModal
+      isOpen={!!device || isNew}
+      isDirty={isDirty}
+      title={title}
+      onRequestClose={onClose}
+    >
+      <ITDeviceFormInner form={form} setForm={setForm} />
+
+      {/* Barra de acciones dentro del modal (sticky bottom) */}
+      <div className="sticky bottom-0 -mx-5 -mb-5 mt-6 px-5 py-4 bg-white border-t border-gray-100 flex items-center justify-between gap-3">
+        <span className={`text-xs font-medium transition-colors ${
+          isDirty ? 'text-amber-600' : 'text-gray-400'
+        }`}>
+          {isDirty ? '● Cambios sin guardar' : isNew ? 'Nuevo equipo' : 'Sin cambios'}
+        </span>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 font-medium transition-colors"
+          >
+            {isDirty ? 'Cancelar' : 'Cerrar'}
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!isDirty || saving}
+            className="px-5 py-2 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {saving ? 'Guardando...' : isNew ? 'Crear equipo' : 'Guardar cambios'}
+          </button>
+        </div>
+      </div>
+    </DeviceModal>
   )
 }
 
@@ -814,30 +982,41 @@ function TabIT({ pharmacyId, companyId }) {
   const { devices, loading, createDevice, updateDevice, deleteDevice } = usePharmacyIT(pharmacyId)
   const toast = useToast()
 
-  const [adding, setAdding]         = useState(false)
-  const [editing, setEditing]       = useState(null)
-  const [confirmDel, setConfirmDel] = useState(null)
-  const [showCopy, setShowCopy]     = useState(false)
-  const [search, setSearch]         = useState('')
-  const [draftType, setDraftType]   = useState('servidor')
-  const [openGroups, setOpenGroups] = useLocalStorageState(`pharmacy-it-open-${pharmacyId}`, {})
+  // null = modal cerrado | objeto = equipo a ver/editar | 'new' = alta
+  const [modalDevice, setModalDevice] = useState(null)
+  const [confirmDel, setConfirmDel]   = useState(null)
+  const [showCopy, setShowCopy]       = useState(false)
+  const [search, setSearch]           = useState('')
+  const [draftType, setDraftType]     = useState('servidor')
+  const [openGroups, setOpenGroups]   = useLocalStorageState(`pharmacy-it-open-${pharmacyId}`, {})
+
+  // Abre modal con equipo existente
+  function openDevice(device) {
+    setModalDevice({ ...device, specs: { ...device.specs, ...resolveBrand(device) } })
+  }
+
+  // Abre modal para nuevo equipo
+  function openNewForm(type = 'servidor') {
+    setDraftType(type)
+    setModalDevice(createEmptyITDevice(type))
+  }
+
+  function closeModal() {
+    setModalDevice(null)
+  }
 
   async function handleSave(form) {
-    try {
-      const { brand: _b, model: _m, ...rest } = form
-      const payload = { ...rest, pharmacy_id: pharmacyId, company_id: companyId }
-      if (editing) {
-        await updateDevice(editing.id, payload)
-        toast('Equipo actualizado', 'success')
-      } else {
-        await createDevice(payload)
-        toast('Equipo añadido', 'success')
-        setOpenGroups(prev => ({ ...prev, [form.device_type]: true }))
-      }
-      setAdding(false)
-      setEditing(null)
-      setDraftType('servidor')
-    } catch (err) { toast(err.message, 'error', 5500) }
+    const { brand: _b, model: _m, ...rest } = form
+    const payload = { ...rest, pharmacy_id: pharmacyId, company_id: companyId }
+    if (form.id) {
+      await updateDevice(form.id, payload)
+      toast('Equipo actualizado', 'success')
+    } else {
+      await createDevice(payload)
+      toast('Equipo añadido', 'success')
+      setOpenGroups(prev => ({ ...prev, [form.device_type]: true }))
+    }
+    closeModal()
   }
 
   async function handleDelete() {
@@ -881,12 +1060,6 @@ function TabIT({ pharmacyId, companyId }) {
     if (ok > 0) toast(`${ok} equipo${ok !== 1 ? 's' : ''} copiado${ok !== 1 ? 's' : ''} correctamente`, 'success')
   }
 
-  function openNewForm(type = 'servidor') {
-    setDraftType(type)
-    setEditing(null)
-    setAdding(true)
-  }
-
   function toggleGroup(typeKey) {
     setOpenGroups(prev => ({ ...prev, [typeKey]: !(prev[typeKey] ?? true) }))
   }
@@ -918,33 +1091,27 @@ function TabIT({ pharmacyId, companyId }) {
     return acc
   }, [])
 
-  const totalDevices   = devices.length
-  const totalViteka    = devices.filter(d => d.is_viteka).length
-  const withWarranty   = devices.filter(d => d.warranty_end && new Date(d.warranty_end) >= new Date()).length
+  const totalDevices    = devices.length
+  const totalViteka     = devices.filter(d => d.is_viteka).length
+  const withWarranty    = devices.filter(d => d.warranty_end && new Date(d.warranty_end) >= new Date()).length
   const expiredWarranty = devices.filter(d => d.warranty_end && new Date(d.warranty_end) < new Date()).length
-  const editingDeviceType = editing?.device_type
 
   return (
     <div className="space-y-4">
 
       {/* KPIs */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        <div className="rounded-xl border border-slate-200 bg-white p-3">
-          <p className="text-xs text-gray-400">Total equipos</p>
-          <p className="text-lg font-semibold text-gray-900">{totalDevices}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-3">
-          <p className="text-xs text-gray-400">Viteka</p>
-          <p className="text-lg font-semibold text-teal-700">{totalViteka}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-3">
-          <p className="text-xs text-gray-400">En garantía</p>
-          <p className="text-lg font-semibold text-green-600">{withWarranty}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-3">
-          <p className="text-xs text-gray-400">Garantía expirada</p>
-          <p className="text-lg font-semibold text-red-500">{expiredWarranty}</p>
-        </div>
+        {[
+          { label: 'Total equipos',      value: totalDevices,    color: 'text-gray-900' },
+          { label: 'Viteka',             value: totalViteka,     color: 'text-teal-700' },
+          { label: 'En garantía',        value: withWarranty,    color: 'text-green-600' },
+          { label: 'Garantía expirada',  value: expiredWarranty, color: 'text-red-500' },
+        ].map(({ label, value, color }) => (
+          <div key={label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+            <p className="text-xs text-gray-400">{label}</p>
+            <p className={`text-2xl font-bold mt-0.5 ${color}`}>{value}</p>
+          </div>
+        ))}
       </div>
 
       {/* Barra: búsqueda + acciones */}
@@ -961,70 +1128,53 @@ function TabIT({ pharmacyId, companyId }) {
         </div>
         <div className="flex justify-end gap-2">
           <button type="button" onClick={() => setShowCopy(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50">
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
             <ArrowsRightLeftIcon className="w-4 h-4" />
             <span className="hidden sm:inline">Copiar de otra farmacia</span>
           </button>
           <button type="button" onClick={() => openNewForm('servidor')}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700">
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition-colors">
             <PlusIcon className="w-4 h-4" /> Añadir equipo
           </button>
         </div>
       </div>
 
-      {/* Formulario nueva alta */}
-      {adding && !editing && (
-        <ITDeviceForm
-          initial={createEmptyITDevice(draftType)}
-          pharmacyId={pharmacyId}
-          companyId={companyId}
-          onSave={handleSave}
-          onCancel={() => { setAdding(false); setDraftType('servidor') }}
-        />
-      )}
-      {editing && !grouped.find(g => g.typeKey === editingDeviceType) && (
-        <ITDeviceForm initial={editing} pharmacyId={pharmacyId} companyId={companyId} onSave={handleSave} onCancel={() => setEditing(null)} />
-      )}
-
-      {filteredDevices.length === 0 && !adding && (
+      {/* Estado vacío */}
+      {filteredDevices.length === 0 && (
         <EmptyTab
           icon={ComputerDesktopIcon}
           message={search ? 'No hay resultados para la búsqueda' : 'Sin equipos registrados'}
         />
       )}
 
-      {/* Layout masonry: columnas independientes en altura */}
+      {/* Layout masonry limpio — sin formularios inline */}
       {grouped.length > 0 && (
         <div className="columns-1 xl:columns-2 gap-4">
-          {grouped.map(({ typeKey, list }) => {
-            if (editing && editingDeviceType === typeKey) {
-              return (
-                <div key={typeKey} className="mb-4 break-inside-avoid-column">
-                  <ITDeviceForm
-                    initial={editing}
-                    pharmacyId={pharmacyId}
-                    companyId={companyId}
-                    onSave={handleSave}
-                    onCancel={() => setEditing(null)}
-                  />
-                </div>
-              )
-            }
-            return (
-              <ITTypeBlock
-                key={typeKey}
-                typeKey={typeKey}
-                devices={list}
-                isOpen={openGroups[typeKey] ?? true}
-                onToggle={() => toggleGroup(typeKey)}
-                onEdit={setEditing}
-                onDelete={setConfirmDel}
-                onDuplicate={handleDuplicate}
-                onAddSameType={openNewForm}
-              />
-            )
-          })}
+          {grouped.map(({ typeKey, list }) => (
+            <ITTypeBlock
+              key={typeKey}
+              typeKey={typeKey}
+              devices={list}
+              isOpen={openGroups[typeKey] ?? true}
+              onToggle={() => toggleGroup(typeKey)}
+              onOpen={openDevice}
+              onDelete={setConfirmDel}
+              onDuplicate={handleDuplicate}
+              onAddSameType={openNewForm}
+            />
+          ))}
         </div>
+      )}
+
+      {/* Modal único de detalle/edición */}
+      {modalDevice !== null && (
+        <ITDeviceModal
+          device={modalDevice}
+          pharmacyId={pharmacyId}
+          companyId={companyId}
+          onSave={handleSave}
+          onClose={closeModal}
+        />
       )}
 
       <ConfirmDialog
