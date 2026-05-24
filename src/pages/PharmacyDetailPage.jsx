@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { usePharmacy } from '../hooks/usePharmacy'
 import { usePharmacyPersons } from '../hooks/usePharmacyPersons'
@@ -12,7 +12,7 @@ import {
   UsersIcon, FolderOpenIcon, ExclamationTriangleIcon,
   DocumentTextIcon, ComputerDesktopIcon,
   PlusIcon, TrashIcon, XMarkIcon, ArrowsRightLeftIcon,
-  DocumentDuplicateIcon,
+  DocumentDuplicateIcon, ChevronDownIcon, MagnifyingGlassIcon,
   CalendarDaysIcon, ShieldCheckIcon,
 } from '@heroicons/react/24/outline'
 import { useToast } from '../context/ToastContext'
@@ -56,6 +56,7 @@ function SectionBlock({ title, children }) {
     </div>
   )
 }
+
 function EmptyTab({ icon: Icon, message }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-gray-300">
@@ -210,7 +211,7 @@ function Chip({ children }) {
   )
 }
 
-// ── Fila de dispositivo — botones SIEMPRE visibles ──────────────────────────
+// ── Fila de dispositivo ───────────────────────────────────────────────────────
 function ITDeviceRow({ device, onEdit, onDelete, onDuplicate }) {
   const { marca, modelo } = resolveBrand(device)
   const chips    = buildChips(device)
@@ -227,22 +228,13 @@ function ITDeviceRow({ device, onEdit, onDelete, onDuplicate }) {
 
   return (
     <div className="px-4 py-3 hover:bg-slate-50 transition-colors">
-
-      {/* ─ Fila superior: dot + nombre + badges + acciones ─ */}
       <div className="flex items-start gap-2">
-
-        {/* Dot */}
         <span className={`mt-[5px] shrink-0 w-2 h-2 rounded-full ${
           device.is_viteka ? 'bg-teal-400' : 'bg-gray-300'
         }`} />
 
-        {/* Bloque central */}
         <div className="flex-1 min-w-0">
-
-          {/* Nombre + badges + fechas en misma fila */}
           <div className="flex items-start justify-between gap-2">
-
-            {/* Izquierda: nombre + badges */}
             <div className="flex flex-wrap items-center gap-1.5 min-w-0">
               <span className="text-sm font-semibold text-gray-800 leading-snug">
                 {device.label || IT_LABEL[device.device_type] || 'Equipo'}
@@ -264,7 +256,6 @@ function ITDeviceRow({ device, onEdit, onDelete, onDuplicate }) {
               )}
             </div>
 
-            {/* Derecha: fechas */}
             {(fInst || fGar) && (
               <div className="flex flex-col items-end gap-0.5 shrink-0">
                 {fInst && (
@@ -281,28 +272,24 @@ function ITDeviceRow({ device, onEdit, onDelete, onDuplicate }) {
             )}
           </div>
 
-          {/* Chips */}
           {chips.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1.5">
               {chips.map((c, i) => <Chip key={i}>{c}</Chip>)}
             </div>
           )}
 
-          {/* Marca · modelo */}
           {(marca || modelo) && (
             <p className="text-xs text-gray-400 mt-1 truncate">
               {[marca, modelo].filter(Boolean).join(' · ')}
             </p>
           )}
 
-          {/* Observaciones */}
           {device.observations && (
             <p className="text-xs text-gray-400 italic mt-0.5 truncate">{device.observations}</p>
           )}
         </div>
       </div>
 
-      {/* ─ Fila inferior: botones siempre visibles, alineados a la derecha ─ */}
       <div className="flex justify-end gap-1 mt-2">
         <button
           type="button"
@@ -336,30 +323,118 @@ function ITDeviceRow({ device, onEdit, onDelete, onDuplicate }) {
   )
 }
 
-function ITTypeBlock({ typeKey, devices, onEdit, onDelete, onDuplicate }) {
+// ── Bloque colapsable por tipo ────────────────────────────────────────────────
+function ITTypeBlock({ typeKey, devices, isOpen, onToggle, onEdit, onDelete, onDuplicate, onAddSameType }) {
+  const total = devices.length
+  const vitekaCount = devices.filter(d => d.is_viteka).length
+  const buttonId = `it-trigger-${typeKey}`
+  const panelId  = `it-panel-${typeKey}`
+
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-      <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200">
-        <span className="text-xs font-bold text-teal-600 uppercase tracking-widest">
-          {IT_LABEL[typeKey] || typeKey}
-        </span>
+    <section className="mb-4 break-inside-avoid-column rounded-xl border border-slate-200 bg-white overflow-hidden">
+      <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
+        <div className="flex items-start justify-between gap-3">
+          <button
+            id={buttonId}
+            type="button"
+            onClick={onToggle}
+            aria-expanded={isOpen}
+            aria-controls={panelId}
+            className="flex-1 text-left"
+          >
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-teal-600 uppercase tracking-widest">
+                {IT_LABEL[typeKey] || typeKey}
+              </span>
+              <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                {total} {total === 1 ? 'equipo' : 'equipos'}
+              </span>
+              {vitekaCount > 0 && (
+                <span className="inline-flex items-center rounded-full bg-teal-100 px-2 py-0.5 text-[11px] font-medium text-teal-700">
+                  {vitekaCount} Viteka
+                </span>
+              )}
+            </div>
+            {!isOpen && (
+              <p className="mt-1 text-xs text-gray-400">Grupo cerrado · pulsa para desplegar</p>
+            )}
+          </button>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => onAddSameType(typeKey)}
+              className="hidden sm:inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
+            >
+              <PlusIcon className="w-3.5 h-3.5" />
+              Añadir
+            </button>
+            <button
+              type="button"
+              onClick={onToggle}
+              aria-label={isOpen ? 'Cerrar grupo' : 'Abrir grupo'}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-white transition-colors"
+            >
+              <ChevronDownIcon
+                className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
+          </div>
+        </div>
       </div>
-      <div className="divide-y divide-slate-100">
-        {devices.map(d => (
-          <ITDeviceRow key={d.id} device={d} onEdit={onEdit} onDelete={onDelete} onDuplicate={onDuplicate} />
-        ))}
+
+      <div
+        id={panelId}
+        role="region"
+        aria-labelledby={buttonId}
+        className={`overflow-hidden transition-all duration-300 ease-out ${isOpen ? 'max-h-[4000px]' : 'max-h-0'}`}
+      >
+        <div className="divide-y divide-slate-100">
+          {devices.map(d => (
+            <ITDeviceRow
+              key={d.id}
+              device={d}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onDuplicate={onDuplicate}
+            />
+          ))}
+        </div>
       </div>
-    </div>
+    </section>
   )
 }
 
-// ── Formulario de equipo ───────────────────────────────────────────────────────────
-function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
-  const [form, setForm] = useState(initial || {
-    device_type: 'servidor', label: '', is_viteka: false,
-    serial_number: '', install_date: '', warranty_end: '', observations: '',
-    specs: {}
+// ── Hook: persistencia localStorage ──────────────────────────────────────────
+function useLocalStorageState(key, initialValue) {
+  const [state, setState] = useState(() => {
+    if (typeof window === 'undefined') return initialValue
+    try {
+      const raw = window.localStorage.getItem(key)
+      return raw ? JSON.parse(raw) : initialValue
+    } catch {
+      return initialValue
+    }
   })
+
+  useEffect(() => {
+    try { window.localStorage.setItem(key, JSON.stringify(state)) } catch {}
+  }, [key, state])
+
+  return [state, setState]
+}
+
+function createEmptyITDevice(deviceType = 'servidor') {
+  return {
+    device_type: deviceType, label: '', is_viteka: false,
+    serial_number: '', install_date: '', warranty_end: '', observations: '',
+    specs: {},
+  }
+}
+
+// ── Formulario de equipo ──────────────────────────────────────────────────────
+function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
+  const [form, setForm] = useState(initial || createEmptyITDevice())
   const set     = (k, v) => setForm(p => ({ ...p, [k]: v }))
   const setSpec = (k, v) => setForm(p => ({ ...p, specs: { ...p.specs, [k]: v } }))
 
@@ -381,7 +456,7 @@ function ITDeviceForm({ initial, pharmacyId, companyId, onSave, onCancel }) {
 
   return (
     <div className="bg-white rounded-xl border border-teal-200 p-5 space-y-4">
-      <h3 className="text-sm font-semibold text-gray-800">{initial ? 'Editar equipo' : 'Nuevo equipo'}</h3>
+      <h3 className="text-sm font-semibold text-gray-800">{initial?.id ? 'Editar equipo' : 'Nuevo equipo'}</h3>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -738,18 +813,30 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
 function TabIT({ pharmacyId, companyId }) {
   const { devices, loading, createDevice, updateDevice, deleteDevice } = usePharmacyIT(pharmacyId)
   const toast = useToast()
+
   const [adding, setAdding]         = useState(false)
   const [editing, setEditing]       = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
   const [showCopy, setShowCopy]     = useState(false)
+  const [search, setSearch]         = useState('')
+  const [draftType, setDraftType]   = useState('servidor')
+  const [openGroups, setOpenGroups] = useLocalStorageState(`pharmacy-it-open-${pharmacyId}`, {})
 
   async function handleSave(form) {
     try {
       const { brand: _b, model: _m, ...rest } = form
       const payload = { ...rest, pharmacy_id: pharmacyId, company_id: companyId }
-      if (editing) { await updateDevice(editing.id, payload); toast('Equipo actualizado', 'success') }
-      else { await createDevice(payload); toast('Equipo añadido', 'success') }
-      setAdding(false); setEditing(null)
+      if (editing) {
+        await updateDevice(editing.id, payload)
+        toast('Equipo actualizado', 'success')
+      } else {
+        await createDevice(payload)
+        toast('Equipo añadido', 'success')
+        setOpenGroups(prev => ({ ...prev, [form.device_type]: true }))
+      }
+      setAdding(false)
+      setEditing(null)
+      setDraftType('servidor')
     } catch (err) { toast(err.message, 'error', 5500) }
   }
 
@@ -770,6 +857,7 @@ function TabIT({ pharmacyId, companyId }) {
         observations: device.observations,
         is_viteka: false, serial_number: null, install_date: null, warranty_end: null,
       })
+      setOpenGroups(prev => ({ ...prev, [device.device_type]: true }))
       toast('Equipo duplicado correctamente', 'success')
     } catch (err) { toast(err.message, 'error', 5500) }
   }
@@ -787,59 +875,153 @@ function TabIT({ pharmacyId, companyId }) {
           is_viteka: false, serial_number: null, install_date: null, warranty_end: null,
         })
         ok++
+        setOpenGroups(prev => ({ ...prev, [d.device_type]: true }))
       } catch (err) { toast(err.message, 'error', 5500) }
     }
     if (ok > 0) toast(`${ok} equipo${ok !== 1 ? 's' : ''} copiado${ok !== 1 ? 's' : ''} correctamente`, 'success')
   }
 
-  if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
+  function openNewForm(type = 'servidor') {
+    setDraftType(type)
+    setEditing(null)
+    setAdding(true)
+  }
+
+  function toggleGroup(typeKey) {
+    setOpenGroups(prev => ({ ...prev, [typeKey]: !(prev[typeKey] ?? true) }))
+  }
+
+  const normalizedSearch = search.trim().toLowerCase()
+
+  const filteredDevices = useMemo(() => {
+    if (!normalizedSearch) return devices
+    return devices.filter(d => {
+      const s = d.specs || {}
+      const haystack = [
+        d.label, d.device_type, d.observations,
+        s.so, s.cpu, s.ram, s.provider, s.marca, s.modelo,
+        ...(Array.isArray(s.ip) ? s.ip : []),
+      ].filter(Boolean).join(' ').toLowerCase()
+      return haystack.includes(normalizedSearch)
+    })
+  }, [devices, normalizedSearch])
+
+  if (loading) return (
+    <div className="flex justify-center py-20">
+      <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
 
   const grouped = IT_TYPES.reduce((acc, t) => {
-    const list = devices.filter(d => d.device_type === t.value)
+    const list = filteredDevices.filter(d => d.device_type === t.value)
     if (list.length) acc.push({ typeKey: t.value, list })
     return acc
   }, [])
 
+  const totalDevices   = devices.length
+  const totalViteka    = devices.filter(d => d.is_viteka).length
+  const withWarranty   = devices.filter(d => d.warranty_end && new Date(d.warranty_end) >= new Date()).length
+  const expiredWarranty = devices.filter(d => d.warranty_end && new Date(d.warranty_end) < new Date()).length
   const editingDeviceType = editing?.device_type
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end gap-2">
-        <button type="button" onClick={() => setShowCopy(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50">
-          <ArrowsRightLeftIcon className="w-4 h-4" />
-          <span className="hidden sm:inline">Copiar de otra farmacia</span>
-        </button>
-        <button type="button" onClick={() => { setAdding(true); setEditing(null) }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700">
-          <PlusIcon className="w-4 h-4" /> Añadir equipo
-        </button>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <p className="text-xs text-gray-400">Total equipos</p>
+          <p className="text-lg font-semibold text-gray-900">{totalDevices}</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <p className="text-xs text-gray-400">Viteka</p>
+          <p className="text-lg font-semibold text-teal-700">{totalViteka}</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <p className="text-xs text-gray-400">En garantía</p>
+          <p className="text-lg font-semibold text-green-600">{withWarranty}</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <p className="text-xs text-gray-400">Garantía expirada</p>
+          <p className="text-lg font-semibold text-red-500">{expiredWarranty}</p>
+        </div>
       </div>
 
+      {/* Barra: búsqueda + acciones */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div className="relative w-full lg:max-w-sm">
+          <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar por nombre, IP, marca, CPU..."
+            className="w-full rounded-xl border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+          />
+        </div>
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={() => setShowCopy(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50">
+            <ArrowsRightLeftIcon className="w-4 h-4" />
+            <span className="hidden sm:inline">Copiar de otra farmacia</span>
+          </button>
+          <button type="button" onClick={() => openNewForm('servidor')}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700">
+            <PlusIcon className="w-4 h-4" /> Añadir equipo
+          </button>
+        </div>
+      </div>
+
+      {/* Formulario nueva alta */}
       {adding && !editing && (
-        <ITDeviceForm pharmacyId={pharmacyId} companyId={companyId} onSave={handleSave} onCancel={() => setAdding(false)} />
+        <ITDeviceForm
+          initial={createEmptyITDevice(draftType)}
+          pharmacyId={pharmacyId}
+          companyId={companyId}
+          onSave={handleSave}
+          onCancel={() => { setAdding(false); setDraftType('servidor') }}
+        />
       )}
       {editing && !grouped.find(g => g.typeKey === editingDeviceType) && (
         <ITDeviceForm initial={editing} pharmacyId={pharmacyId} companyId={companyId} onSave={handleSave} onCancel={() => setEditing(null)} />
       )}
 
-      {devices.length === 0 && !adding && (
-        <EmptyTab icon={ComputerDesktopIcon} message="Sin equipos registrados" />
+      {filteredDevices.length === 0 && !adding && (
+        <EmptyTab
+          icon={ComputerDesktopIcon}
+          message={search ? 'No hay resultados para la búsqueda' : 'Sin equipos registrados'}
+        />
       )}
 
+      {/* Layout masonry: columnas independientes en altura */}
       {grouped.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="columns-1 xl:columns-2 gap-4">
           {grouped.map(({ typeKey, list }) => {
             if (editing && editingDeviceType === typeKey) {
               return (
-                <div key={typeKey} className="lg:col-span-2">
-                  <ITDeviceForm initial={editing} pharmacyId={pharmacyId} companyId={companyId} onSave={handleSave} onCancel={() => setEditing(null)} />
+                <div key={typeKey} className="mb-4 break-inside-avoid-column">
+                  <ITDeviceForm
+                    initial={editing}
+                    pharmacyId={pharmacyId}
+                    companyId={companyId}
+                    onSave={handleSave}
+                    onCancel={() => setEditing(null)}
+                  />
                 </div>
               )
             }
             return (
-              <ITTypeBlock key={typeKey} typeKey={typeKey} devices={list}
-                onEdit={setEditing} onDelete={setConfirmDel} onDuplicate={handleDuplicate} />
+              <ITTypeBlock
+                key={typeKey}
+                typeKey={typeKey}
+                devices={list}
+                isOpen={openGroups[typeKey] ?? true}
+                onToggle={() => toggleGroup(typeKey)}
+                onEdit={setEditing}
+                onDelete={setConfirmDel}
+                onDuplicate={handleDuplicate}
+                onAddSameType={openNewForm}
+              />
             )
           })}
         </div>
