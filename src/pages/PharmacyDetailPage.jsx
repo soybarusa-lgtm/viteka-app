@@ -14,6 +14,7 @@ import {
   PlusIcon, TrashIcon, XMarkIcon, ArrowsRightLeftIcon,
   DocumentDuplicateIcon, ChevronDownIcon, MagnifyingGlassIcon,
   CalendarDaysIcon, ShieldCheckIcon, EyeIcon,
+  Squares2X2Icon, ListBulletIcon,
 } from '@heroicons/react/24/outline'
 import { useToast } from '../context/ToastContext'
 import ConfirmDialog from '../components/pharmacy/ConfirmDialog'
@@ -347,7 +348,109 @@ function DeviceModal({
   )
 }
 
-// ── Fila de dispositivo (clicable) ────────────────────────────────────────────
+// ── Card Grid (vista ⊞) ───────────────────────────────────────────────────────
+function ITDeviceCard({ device, onOpen, onDelete, onDuplicate }) {
+  const { marca, modelo } = resolveBrand(device)
+  const chips    = buildChips(device)
+  const fInst    = fmtDate(device.install_date)
+  const fGar     = fmtDate(device.warranty_end)
+  const now      = new Date()
+  const warExpired = device.warranty_end && new Date(device.warranty_end) < now
+  const warOk     = device.warranty_end && !warExpired
+
+  return (
+    <div
+      className="group relative flex flex-col gap-3 p-4 rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md hover:border-teal-300 transition-all cursor-pointer"
+      onClick={() => onOpen(device)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onOpen(device)}
+    >
+      {/* Banda superior de color */}
+      <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-2xl ${device.is_viteka ? 'bg-teal-400' : 'bg-slate-200'}`} />
+
+      {/* Cabecera */}
+      <div className="flex items-start justify-between gap-2 pt-1">
+        <div className="flex flex-col gap-1 min-w-0">
+          <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest truncate">
+            {IT_LABEL[device.device_type] || 'Equipo'}
+          </span>
+          <span className="text-sm font-semibold text-gray-800 leading-snug group-hover:text-teal-700 transition-colors truncate">
+            {device.label || IT_LABEL[device.device_type] || 'Equipo'}
+          </span>
+        </div>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          {device.is_viteka && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-teal-100 text-teal-700">Viteka</span>
+          )}
+          {warOk && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-50 text-green-600">
+              <ShieldCheckIcon className="w-3 h-3" />
+            </span>
+          )}
+          {warExpired && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-50 text-red-500">
+              <ShieldCheckIcon className="w-3 h-3" />
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Chips de specs */}
+      {chips.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {chips.slice(0, 4).map((c, i) => <Chip key={i}>{c}</Chip>)}
+        </div>
+      )}
+
+      {/* Marca / modelo */}
+      {(marca || modelo) && (
+        <p className="text-xs text-gray-400 truncate">{[marca, modelo].filter(Boolean).join(' · ')}</p>
+      )}
+
+      {/* Fechas pie */}
+      {(fInst || fGar) && (
+        <div className="flex items-center justify-between pt-2 mt-auto border-t border-slate-100">
+          {fInst && (
+            <span className="flex items-center gap-1 text-[11px] text-gray-400">
+              <CalendarDaysIcon className="w-3 h-3" /> {fInst}
+            </span>
+          )}
+          {fGar && (
+            <span className={`flex items-center gap-1 text-[11px] ${warExpired ? 'text-red-400' : 'text-gray-400'}`}>
+              <ShieldCheckIcon className="w-3 h-3" /> {fGar}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Acciones hover */}
+      <div
+        className="absolute bottom-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={e => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={() => onDuplicate(device)}
+          title="Duplicar"
+          className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 bg-white shadow-sm border border-gray-100"
+        >
+          <DocumentDuplicateIcon className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onDelete(device)}
+          title="Eliminar"
+          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 bg-white shadow-sm border border-gray-100"
+        >
+          <TrashIcon className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Fila de dispositivo (vista ≡) ─────────────────────────────────────────────
 function ITDeviceRow({ device, onOpen, onDelete, onDuplicate }) {
   const { marca, modelo } = resolveBrand(device)
   const chips    = buildChips(device)
@@ -442,7 +545,7 @@ function ITDeviceRow({ device, onOpen, onDelete, onDuplicate }) {
 }
 
 // ── Bloque colapsable por tipo ────────────────────────────────────────────────
-function ITTypeBlock({ typeKey, devices, isOpen, onToggle, onOpen, onDelete, onDuplicate, onAddSameType }) {
+function ITTypeBlock({ typeKey, devices, isOpen, onToggle, onOpen, onDelete, onDuplicate, onAddSameType, viewMode }) {
   const total = devices.length
   const vitekaCount = devices.filter(d => d.is_viteka).length
   const buttonId = `it-trigger-${typeKey}`
@@ -503,17 +606,31 @@ function ITTypeBlock({ typeKey, devices, isOpen, onToggle, onOpen, onDelete, onD
         aria-labelledby={buttonId}
         className={`overflow-hidden transition-all duration-300 ease-out ${isOpen ? 'max-h-[4000px] opacity-100' : 'max-h-0 opacity-0'}`}
       >
-        <div className="divide-y divide-slate-100">
-          {devices.map(d => (
-            <ITDeviceRow
-              key={d.id}
-              device={d}
-              onOpen={onOpen}
-              onDelete={onDelete}
-              onDuplicate={onDuplicate}
-            />
-          ))}
-        </div>
+        {viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
+            {devices.map(d => (
+              <ITDeviceCard
+                key={d.id}
+                device={d}
+                onOpen={onOpen}
+                onDelete={onDelete}
+                onDuplicate={onDuplicate}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {devices.map(d => (
+              <ITDeviceRow
+                key={d.id}
+                device={d}
+                onOpen={onOpen}
+                onDelete={onDelete}
+                onDuplicate={onDuplicate}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )
@@ -1201,6 +1318,9 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
   )
 }
 
+// ── Constante umbral auto-switch ──────────────────────────────────────────────
+const AUTO_LIST_THRESHOLD = 6
+
 // ── TabIT principal ────────────────────────────────────────────────────────────
 function TabIT({ pharmacyId, companyId }) {
   const { devices, loading, createDevice, updateDevice, deleteDevice } = usePharmacyIT(pharmacyId)
@@ -1212,6 +1332,18 @@ function TabIT({ pharmacyId, companyId }) {
   const [search, setSearch]           = useState('')
   const [draftType, setDraftType]     = useState('servidor')
   const [openGroups, setOpenGroups]   = useLocalStorageState(`pharmacy-it-open-${pharmacyId}`, {})
+  // null = automático (grid si <=6, lista si >6); 'grid' | 'list' = forzado por usuario
+  const [viewOverride, setViewOverride] = useLocalStorageState(`pharmacy-it-view-${pharmacyId}`, null)
+
+  const totalDevices = (devices || []).length
+
+  // Vista efectiva: si el usuario forzó, se respeta; si no, auto
+  const effectiveView = viewOverride ?? (totalDevices > AUTO_LIST_THRESHOLD ? 'list' : 'grid')
+
+  function handleToggleView() {
+    // Al pulsar el toggle el usuario fuerza la vista opuesta a la actual
+    setViewOverride(effectiveView === 'grid' ? 'list' : 'grid')
+  }
 
   function openDevice(device) {
     setModalDevice({ ...device, specs: { ...device.specs, ...resolveBrand(device) } })
@@ -1288,7 +1420,6 @@ function TabIT({ pharmacyId, companyId }) {
     return acc
   }, {})
 
-  const totalDevices = (devices || []).length
   const vitekaDevices = (devices || []).filter(d => d.is_viteka).length
 
   if (loading) {
@@ -1319,6 +1450,36 @@ function TabIT({ pharmacyId, companyId }) {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Toggle de vista ⊞ / ≡ */}
+          {totalDevices > 0 && (
+            <div className="flex items-center rounded-xl border border-gray-200 bg-white overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setViewOverride('grid')}
+                title="Vista tarjetas"
+                className={`p-2 transition-colors ${
+                  effectiveView === 'grid'
+                    ? 'bg-teal-600 text-white'
+                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <Squares2X2Icon className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewOverride('list')}
+                title="Vista lista"
+                className={`p-2 transition-colors ${
+                  effectiveView === 'list'
+                    ? 'bg-teal-600 text-white'
+                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <ListBulletIcon className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={() => setShowCopy(true)}
@@ -1368,6 +1529,7 @@ function TabIT({ pharmacyId, companyId }) {
               onDelete={d => setConfirmDel(d)}
               onDuplicate={handleDuplicate}
               onAddSameType={openNewForm}
+              viewMode={effectiveView}
             />
           ))}
         </div>
@@ -1672,7 +1834,6 @@ export default function PharmacyDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
-  // FIX: destructurar `equipment` directamente del hook, NO leerlo como pharmacy.equipment
   const { pharmacy, equipment, loading, error } = usePharmacy(id)
   const [activeTab, setActiveTab] = useState('general')
 
