@@ -1,45 +1,45 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
 export function usePharmacy(id) {
   const [pharmacy,  setPharmacy]  = useState(null)
   const [equipment, setEquipment] = useState(null)
   const [loading,   setLoading]   = useState(true)
+  const [error,     setError]     = useState(null)
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!id) return
-    let cancelled = false
+    setLoading(true)
+    setError(null)
+    try {
+      const { data: ph, error: phErr } = await supabase
+        .from('pharmacies')
+        .select('*')
+        .eq('id', id)
+        .single()
+      if (phErr) throw phErr
 
-    async function load() {
-      setLoading(true)
-      try {
-        const { data: ph, error: phErr } = await supabase
-          .from('pharmacies')
-          .select('*')
-          .eq('id', id)
-          .single()
-        if (phErr) throw phErr
+      const { data: eq } = await supabase
+        .from('pharmacy_equipment')
+        .select('*')
+        .eq('pharmacy_id', id)
+        .maybeSingle()
 
-        const { data: eq } = await supabase
-          .from('pharmacy_equipment')
-          .select('*')
-          .eq('pharmacy_id', id)
-          .maybeSingle()
-
-        if (!cancelled) {
-          setPharmacy(ph)
-          setEquipment(eq)
-        }
-      } catch (err) {
-        console.error('usePharmacy:', err.message)
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
+      setPharmacy(ph)
+      setEquipment(eq)
+    } catch (err) {
+      console.error('usePharmacy:', err.message)
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
-
-    load()
-    return () => { cancelled = true }
   }, [id])
 
-  return { pharmacy, equipment, loading }
+  useEffect(() => {
+    let cancelled = false
+    load().catch(() => {})
+    return () => { cancelled = true }
+  }, [load])
+
+  return { pharmacy, equipment, loading, error, refetch: load }
 }
