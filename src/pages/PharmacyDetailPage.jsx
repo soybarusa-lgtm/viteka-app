@@ -1835,7 +1835,6 @@ function TabDocuments({ pharmacyId, companyId }) {
 export default function PharmacyDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const toast = useToast()
   const { pharmacy, equipment, loading, error, refetch } = usePharmacy(id)
   const [activeTab, setActiveTab] = useState('general')
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -1852,11 +1851,8 @@ export default function PharmacyDetailPage() {
       : 'Editar'
 
   function handleEditClick() {
-    if (isEditableTab) {
-      setIsEditOpen(true)
-      return
-    }
-    toast('Esta pestaña aún no tiene edición directa', 'info')
+    if (!isEditableTab) return
+    setIsEditOpen(true)
   }
 
   async function handleSaved() {
@@ -1908,7 +1904,13 @@ export default function PharmacyDetailPage() {
             <button
               type="button"
               onClick={handleEditClick}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700 transition-colors shrink-0"
+              disabled={!isEditableTab}
+              title={isEditableTab ? editLabel : 'Edición disponible en Datos generales y Equipamiento'}
+              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-colors shrink-0 ${
+                isEditableTab
+                  ? 'bg-teal-600 text-white hover:bg-teal-700'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
             >
               <PencilSquareIcon className="w-4 h-4" />
               <span className="hidden sm:inline">{editLabel}</span>
