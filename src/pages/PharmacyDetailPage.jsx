@@ -13,7 +13,7 @@ import {
   PlusIcon, TrashIcon, XMarkIcon, ArrowsRightLeftIcon,
   DocumentDuplicateIcon, ChevronDownIcon, MagnifyingGlassIcon,
   CalendarDaysIcon, ShieldCheckIcon, EyeIcon,
-  Squares2X2Icon, ListBulletIcon,
+  Squares2X2Icon, ListBulletIcon, PhotoIcon,
 } from '@heroicons/react/24/outline'
 import { useToast } from '../context/ToastContext'
 import ConfirmDialog from '../components/pharmacy/ConfirmDialog'
@@ -36,6 +36,8 @@ const LEGAL_LABEL = {
   autonomo:'Autónomo',cb:'C.B.',sl:'S.L.',
   autonomo_sl:'Autónomo + S.L.',cb_sl:'C.B. + S.L.',
 }
+
+const DEVICE_PHOTO_BUCKET = 'task-evidence'
 
 function Field({ label, value, wide, emptyText = 'Sin informar' }) {
   const isEmpty = value === null || value === undefined || value === ''
@@ -212,6 +214,42 @@ function Chip({ children }) {
       <span className="truncate">{children}</span>
     </span>
   )
+}
+
+function getDevicePhotos(device) {
+  return Array.isArray(device?.specs?.photos) ? device.specs.photos.filter(Boolean) : []
+}
+
+function stripDevicePhotos(device) {
+  const specs = { ...(device?.specs || {}) }
+  delete specs.photos
+  return { ...device, specs }
+}
+
+function removeITDeviceRuntimeFields(device) {
+  const payload = { ...(device || {}) }
+  delete payload.id
+  delete payload.created_at
+  delete payload.updated_at
+  delete payload.brand
+  delete payload.model
+  delete payload._deleted_photo_paths
+  return payload
+}
+
+function safeStorageName(name = 'imagen.jpg') {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80) || 'imagen.jpg'
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return ''
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 // ── Modal base con guard de cambios sin guardar ───────────────────────────────
@@ -653,7 +691,11 @@ function useLocalStorageState(key, initialValue) {
   })
 
   useEffect(() => {
-    try { window.localStorage.setItem(key, JSON.stringify(state)) } catch {}
+    try {
+      window.localStorage.setItem(key, JSON.stringify(state))
+    } catch {
+      // localStorage may be unavailable in private or restricted browser contexts.
+    }
   }, [key, state])
 
   return [state, setState]
@@ -668,7 +710,176 @@ function createEmptyITDevice(deviceType = 'servidor') {
 }
 
 // ── Formulario de equipo (dentro del modal) ───────────────────────────────────
-function ITDeviceFormInner({ form, setForm }) {
+function DevicePhotosEditor({ form, setForm, pharmacyId, companyId }) {
+  const fileRef = useRef(null)
+  const toast = useToast()
+  const [uploading, setUploading] = useState(false)
+  const photos = getDevicePhotos(form)
+  const canUpload = !!form.id
+
+  function setPhotos(nextPhotos) {
+    setForm(prev => ({ ...prev, specs: { ...(prev.specs || {}), photos: nextPhotos } }))
+  }
+
+  async function handleUpload(file) {
+    if (!file || !canUpload || uploading) return
+    if (!file.type?.startsWith('image/')) {
+      toast('Selecciona una imagen', 'error')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const fileName = safeStorageName(file.name)
+      const uploadedAt = new Date().toISOString()
+      const uniqueStamp = uploadedAt.replace(/\D/g, '')
+      const path = `${companyId}/${pharmacyId}/it-devices/${form.id}/${uniqueStamp}_${fileName}`
+      const { error: uploadError } = await supabase.storage
+        .from(DEVICE_PHOTO_BUCKET)
+        .upload(path, file, { upsert: false })
+      if (uploadError) throw uploadError
+
+      const { data: urlData } = supabase.storage.from(DEVICE_PHOTO_BUCKET).getPublicUrl(path)
+      setPhotos([
+        ...photos,
+        {
+          id: `${uniqueStamp}-${fileName}`,
+          file_name: file.name,
+          file_type: file.type,
+          size_bytes: file.size,
+          storage_path: path,
+          public_url: urlData.publicUrl,
+          caption: '',
+          created_at: uploadedAt,
+        },
+      ])
+      toast('Imagen añadida. Guarda cambios para vincularla al equipo.', 'success')
+    } catch (err) {
+      toast(err.message || 'No se pudo subir la imagen', 'error')
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  function updateCaption(photoId, caption) {
+    setPhotos(photos.map(photo => photo.id === photoId ? { ...photo, caption } : photo))
+  }
+
+  function removePhoto(photo) {
+    setForm(prev => {
+      const nextPhotos = getDevicePhotos(prev).filter(item => item.id !== photo.id)
+      const deletedPaths = photo.storage_path
+        ? [...new Set([...(prev._deleted_photo_paths || []), photo.storage_path])]
+        : (prev._deleted_photo_paths || [])
+      return {
+        ...prev,
+        _deleted_photo_paths: deletedPaths,
+        specs: { ...(prev.specs || {}), photos: nextPhotos },
+      }
+    })
+    toast('Imagen marcada para eliminar. Guarda cambios para actualizar la ficha.', 'success')
+  }
+
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-teal-700">Imágenes del equipo y puesto</h3>
+          <p className="mt-1 text-xs text-gray-400">Fotos del equipo, número visible, conexiones o ubicación del puesto.</p>
+        </div>
+        <label className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
+          canUpload
+            ? 'cursor-pointer bg-teal-600 text-white hover:bg-teal-700'
+            : 'cursor-not-allowed bg-gray-100 text-gray-400'
+        }`}>
+          <PhotoIcon className="w-4 h-4" />
+          {uploading ? 'Subiendo...' : 'Añadir imagen'}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            disabled={!canUpload || uploading}
+            onChange={e => handleUpload(e.target.files?.[0])}
+          />
+        </label>
+      </div>
+
+      {!canUpload && (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          Primero guarda el equipo. Después podrás adjuntar imágenes.
+        </p>
+      )}
+
+      {photos.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-gray-400">
+          Sin imágenes adjuntas.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {photos.map(photo => (
+            <div key={photo.id || photo.storage_path} className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+              <a href={photo.public_url} target="_blank" rel="noopener noreferrer" className="block">
+                <img src={photo.public_url} alt={photo.caption || photo.file_name || 'Imagen del equipo'} className="h-36 w-full object-cover" />
+              </a>
+              <div className="space-y-2 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-semibold text-gray-700">{photo.file_name || 'Imagen'}</p>
+                    <p className="text-[11px] text-gray-400">{formatBytes(photo.size_bytes)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(photo)}
+                    className="shrink-0 rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                    title="Eliminar imagen"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
+                </div>
+                <Input
+                  value={photo.caption || ''}
+                  onChange={e => updateCaption(photo.id, e.target.value)}
+                  placeholder="Puesto, características visibles o ubicación"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function DevicePhotosReadOnly({ photos }) {
+  if (!photos.length) return null
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+      <h3 className="text-xs font-bold uppercase tracking-widest text-teal-700">Imágenes del equipo y puesto</h3>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {photos.map(photo => (
+          <a
+            key={photo.id || photo.storage_path}
+            href={photo.public_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-teal-300 hover:shadow-sm"
+          >
+            <img src={photo.public_url} alt={photo.caption || photo.file_name || 'Imagen del equipo'} className="h-36 w-full object-cover" />
+            <div className="p-3">
+              <p className="truncate text-xs font-semibold text-gray-700">{photo.caption || photo.file_name || 'Imagen'}</p>
+              {photo.caption && <p className="mt-1 truncate text-[11px] text-gray-400">{photo.file_name}</p>}
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
   const set     = (k, v) => setForm(p => ({ ...p, [k]: v }))
   const setSpec = (k, v) => setForm(p => ({ ...p, specs: { ...p.specs, [k]: v } }))
 
@@ -918,6 +1129,13 @@ function ITDeviceFormInner({ form, setForm }) {
         </div>
       )}
 
+      <DevicePhotosEditor
+        form={form}
+        setForm={setForm}
+        pharmacyId={pharmacyId}
+        companyId={companyId}
+      />
+
       <div>
         <Label>Observaciones</Label>
         <Textarea rows={3} value={form.observations || ''} onChange={e => set('observations', e.target.value)} placeholder="Notas adicionales..." />
@@ -957,6 +1175,7 @@ function ITDeviceReadView({ device }) {
   const conexiones = Array.isArray(s.conexiones) ? s.conexiones.filter(c => c?.numero || c?.pass) : []
   const monitor = s.monitor
   const { marca, modelo } = resolveBrand(device)
+  const photos = getDevicePhotos(device)
 
   return (
     <div className="space-y-4">
@@ -1073,6 +1292,8 @@ function ITDeviceReadView({ device }) {
         </ReadOnlySection>
       )}
 
+      <DevicePhotosReadOnly photos={photos} />
+
       <ReadOnlySection title="Observaciones">
         <ReadOnlyField label="Notas adicionales" value={device.observations} wide />
       </ReadOnlySection>
@@ -1140,7 +1361,7 @@ function ITDeviceModal({ device, pharmacyId, companyId, onSave, onClose }) {
       {isReadMode ? (
         <ITDeviceReadView device={form} />
       ) : (
-        <ITDeviceFormInner form={form} setForm={setForm} />
+        <ITDeviceFormInner form={form} setForm={setForm} pharmacyId={pharmacyId} companyId={companyId} />
       )}
 
       <div className="sticky bottom-0 -mx-5 -mb-5 mt-6 px-5 py-4 bg-white border-t border-gray-100 flex items-center justify-between gap-3">
@@ -1344,11 +1565,6 @@ function TabIT({ pharmacyId, companyId }) {
   // Vista efectiva: si el usuario forzó, se respeta; si no, auto
   const effectiveView = viewOverride ?? (totalDevices > AUTO_LIST_THRESHOLD ? 'list' : 'grid')
 
-  function handleToggleView() {
-    // Al pulsar el toggle el usuario fuerza la vista opuesta a la actual
-    setViewOverride(effectiveView === 'grid' ? 'list' : 'grid')
-  }
-
   function openDevice(device) {
     setModalDevice({ ...device, specs: { ...device.specs, ...resolveBrand(device) } })
   }
@@ -1363,7 +1579,10 @@ function TabIT({ pharmacyId, companyId }) {
   }
 
   async function handleSave(form) {
-    const { brand: _b, model: _m, ...rest } = form
+    const deletedPhotoPaths = Array.isArray(form._deleted_photo_paths)
+      ? [...new Set(form._deleted_photo_paths.filter(Boolean))]
+      : []
+    const rest = removeITDeviceRuntimeFields(form)
     const payload = { ...rest, pharmacy_id: pharmacyId, company_id: companyId }
     if (form.id) {
       await updateDevice(form.id, payload)
@@ -1372,14 +1591,19 @@ function TabIT({ pharmacyId, companyId }) {
       await createDevice(payload)
       toast('Equipo creado', 'success')
     }
+    if (deletedPhotoPaths.length > 0) {
+      const { error } = await supabase.storage.from(DEVICE_PHOTO_BUCKET).remove(deletedPhotoPaths)
+      if (error) toast('Ficha guardada, pero no se pudieron retirar algunas imágenes del almacenamiento', 'error')
+    }
     closeModal()
   }
 
   async function handleDuplicate(device) {
-    const { id: _id, created_at: _c, updated_at: _u, ...rest } = device
+    const rest = removeITDeviceRuntimeFields(device)
+    const cleanDevice = stripDevicePhotos(rest)
     const payload = {
-      ...rest,
-      label: rest.label ? `${rest.label} (copia)` : 'Copia',
+      ...cleanDevice,
+      label: cleanDevice.label ? `${cleanDevice.label} (copia)` : 'Copia',
       pharmacy_id: pharmacyId,
       company_id: companyId,
     }
@@ -1389,8 +1613,8 @@ function TabIT({ pharmacyId, companyId }) {
 
   async function handleCopyDevices(toCopy) {
     for (const d of toCopy) {
-      const { id: _id, created_at: _c, updated_at: _u, ...rest } = d
-      await createDevice({ ...rest, pharmacy_id: pharmacyId, company_id: companyId })
+      const rest = removeITDeviceRuntimeFields(d)
+      await createDevice({ ...stripDevicePhotos(rest), pharmacy_id: pharmacyId, company_id: companyId })
     }
     toast(`${toCopy.length} equipo${toCopy.length !== 1 ? 's' : ''} copiado${toCopy.length !== 1 ? 's' : ''}`, 'success')
   }
