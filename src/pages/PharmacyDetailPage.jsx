@@ -1,10 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { usePharmacy } from '../hooks/usePharmacy'
 import { usePharmacyPersons } from '../hooks/usePharmacyPersons'
 import { usePharmacyDocuments } from '../hooks/usePharmacyDocuments'
 import { usePharmacyIT } from '../hooks/usePharmacyIT'
-import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import {
   ArrowLeftIcon, PencilSquareIcon,
@@ -19,6 +18,9 @@ import {
 import { useToast } from '../context/ToastContext'
 import ConfirmDialog from '../components/pharmacy/ConfirmDialog'
 import EquipmentSummaryTable from '../components/pharmacy/EquipmentSummaryTable'
+import PharmacyEditDrawer from '../components/pharmacy/PharmacyEditDrawer'
+import EditGeneralModal from '../components/pharmacy/EditGeneralModal'
+import EditEquipmentModal from '../components/pharmacy/EditEquipmentModal'
 import {
   PERSON_ROLES, RESPONSIBILITY_AREAS, DOC_CATEGORIES, IT_TYPES,
   CONNECTION_OPTIONS, MONITOR_CONN, DISK_TYPES, CAPA_OPTIONS,
@@ -1833,9 +1835,34 @@ function TabDocuments({ pharmacyId, companyId }) {
 export default function PharmacyDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuth()
-  const { pharmacy, equipment, loading, error } = usePharmacy(id)
+  const toast = useToast()
+  const { pharmacy, equipment, loading, error, refetch } = usePharmacy(id)
   const [activeTab, setActiveTab] = useState('general')
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const isEditableTab = activeTab === 'general' || activeTab === 'equipment'
+  const editTitle = activeTab === 'general'
+    ? 'Editar datos generales'
+    : activeTab === 'equipment'
+      ? 'Editar equipamiento'
+      : 'Editar farmacia'
+  const editLabel = activeTab === 'general'
+    ? 'Editar datos generales'
+    : activeTab === 'equipment'
+      ? 'Editar equipamiento'
+      : 'Editar'
+
+  function handleEditClick() {
+    if (isEditableTab) {
+      setIsEditOpen(true)
+      return
+    }
+    toast('Esta pestaña aún no tiene edición directa', 'info')
+  }
+
+  async function handleSaved() {
+    await refetch()
+    setIsEditOpen(false)
+  }
 
   if (loading) {
     return (
@@ -1878,13 +1905,14 @@ export default function PharmacyDetailPage() {
               </div>
             </div>
 
-            <Link
-              to={`/pharmacies/${id}/edit`}
+            <button
+              type="button"
+              onClick={handleEditClick}
               className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700 transition-colors shrink-0"
             >
               <PencilSquareIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">Editar</span>
-            </Link>
+              <span className="hidden sm:inline">{editLabel}</span>
+            </button>
           </div>
 
           {/* Tabs */}
@@ -1921,6 +1949,29 @@ export default function PharmacyDetailPage() {
         {activeTab === 'projects'  && <EmptyTab icon={FolderOpenIcon} message="Módulo de proyectos próximamente" />}
         {activeTab === 'documents' && <TabDocuments pharmacyId={id} companyId={pharmacy.company_id} />}
       </div>
+
+      <PharmacyEditDrawer
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        title={editTitle}
+        subtitle={pharmacy.pharmacy_name}
+      >
+        {activeTab === 'general' && (
+          <EditGeneralModal
+            pharmacy={pharmacy}
+            onClose={() => setIsEditOpen(false)}
+            onSaved={handleSaved}
+          />
+        )}
+        {activeTab === 'equipment' && (
+          <EditEquipmentModal
+            pharmacy={pharmacy}
+            equipment={equipment}
+            onClose={() => setIsEditOpen(false)}
+            onSaved={handleSaved}
+          />
+        )}
+      </PharmacyEditDrawer>
     </div>
   )
 }

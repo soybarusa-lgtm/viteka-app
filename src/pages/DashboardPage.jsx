@@ -1,7 +1,6 @@
 import { useAuth } from '../hooks/useAuth'
 import { useDashboard } from '../hooks/useDashboard'
 import { usePharmacyKpis } from '../hooks/usePharmacyKpis'
-import { Link } from 'react-router-dom'
 
 const STATUS_LABEL = {
   pending: 'Pendiente', active: 'Activo', in_progress: 'En progreso',
@@ -135,7 +134,7 @@ export default function DashboardPage() {
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-gray-700">Proyectos recientes</h2>
-          <Link to="/proyectos" className="text-xs text-teal-600 hover:underline">Ver todos</Link>
+          <span className="text-xs text-gray-400">Módulo en preparación</span>
         </div>
         {(data?.recentProjects?.length === 0) ? (
           <p className="text-sm text-gray-400">No hay proyectos aún</p>

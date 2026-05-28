@@ -2,16 +2,13 @@ import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import {
-  HomeIcon, BuildingStorefrontIcon, FolderIcon,
-  ExclamationTriangleIcon, ArrowRightOnRectangleIcon,
+  HomeIcon, BuildingStorefrontIcon, ArrowRightOnRectangleIcon,
   ChevronLeftIcon, ChevronRightIcon, Bars3Icon, XMarkIcon,
 } from '@heroicons/react/24/outline'
 
 const NAV = [
   { to: '/',            label: 'Dashboard',   Icon: HomeIcon },
   { to: '/farmacias',   label: 'Farmacias',   Icon: BuildingStorefrontIcon },
-  { to: '/proyectos',   label: 'Proyectos',   Icon: FolderIcon },
-  { to: '/incidencias', label: 'Incidencias', Icon: ExclamationTriangleIcon },
 ]
 
 export default function AppLayout({ session }) {
