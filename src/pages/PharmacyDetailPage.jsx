@@ -362,14 +362,14 @@ function ITDeviceCard({ device, onOpen, onDelete, onDuplicate }) {
 
   return (
     <div
-      className="group relative flex flex-col gap-3 p-4 rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md hover:border-teal-300 transition-all cursor-pointer"
+      className="group relative flex h-full flex-col gap-3 overflow-hidden p-4 rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md hover:border-teal-300 transition-all cursor-pointer"
       onClick={() => onOpen(device)}
       role="button"
       tabIndex={0}
       onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onOpen(device)}
     >
       {/* Banda superior de color */}
-      <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-2xl ${device.is_viteka ? 'bg-teal-400' : 'bg-slate-200'}`} />
+      <div className={`absolute top-0 left-0 right-0 h-1 ${device.is_viteka ? 'bg-teal-400' : 'bg-slate-200'}`} />
 
       {/* Cabecera */}
       <div className="flex items-start justify-between gap-2 pt-1">
@@ -410,9 +410,9 @@ function ITDeviceCard({ device, onOpen, onDelete, onDuplicate }) {
         <p className="text-xs text-gray-400 truncate">{[marca, modelo].filter(Boolean).join(' · ')}</p>
       )}
 
-      {/* Fechas pie */}
-      {(fInst || fGar) && (
-        <div className="flex items-center justify-between pt-2 mt-auto border-t border-slate-100">
+      {/* Pie: fechas + acciones */}
+      <div className="mt-auto flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+        <div className="flex items-center gap-3 min-w-0">
           {fInst && (
             <span className="flex items-center gap-1 text-[11px] text-gray-400">
               <CalendarDaysIcon className="w-3 h-3" /> {fInst}
@@ -423,30 +423,32 @@ function ITDeviceCard({ device, onOpen, onDelete, onDuplicate }) {
               <ShieldCheckIcon className="w-3 h-3" /> {fGar}
             </span>
           )}
+          {!fInst && !fGar && (
+            <span className="text-[11px] text-gray-300">Sin fechas</span>
+          )}
         </div>
-      )}
 
-      {/* Acciones hover */}
-      <div
-        className="absolute bottom-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-        onClick={e => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          onClick={() => onDuplicate(device)}
-          title="Duplicar"
-          className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 bg-white shadow-sm border border-gray-100"
+        <div
+          className="flex items-center gap-1 shrink-0 opacity-60 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+          onClick={e => e.stopPropagation()}
         >
-          <DocumentDuplicateIcon className="w-3.5 h-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onDelete(device)}
-          title="Eliminar"
-          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 bg-white shadow-sm border border-gray-100"
-        >
-          <TrashIcon className="w-3.5 h-3.5" />
-        </button>
+          <button
+            type="button"
+            onClick={() => onDuplicate(device)}
+            title="Duplicar"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 transition-colors"
+          >
+            <DocumentDuplicateIcon className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(device)}
+            title="Eliminar"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100 transition-colors"
+          >
+            <TrashIcon className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </div>
   )
