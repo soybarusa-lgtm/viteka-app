@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { isActiveCommercialStatus } from '../lib/pharmacyStatus'
 
 export function usePharmacies(companyId) {
   const [pharmacies, setPharmacies] = useState([])
@@ -31,6 +32,7 @@ export function usePharmacies(companyId) {
         schedule,
         contact_phone,
         contact_email,
+        commercial_status,
         is_active,
         created_at
       `)
@@ -74,9 +76,15 @@ export function usePharmacies(companyId) {
   useEffect(() => { load() }, [load])
 
   async function createPharmacy(payload) {
+    const commercialStatus = payload.commercial_status || 'activo'
     const { data, error: err } = await supabase
       .from('pharmacies')
-      .insert({ ...payload, company_id: companyId })
+      .insert({
+        ...payload,
+        commercial_status: commercialStatus,
+        is_active: isActiveCommercialStatus(commercialStatus),
+        company_id: companyId,
+      })
       .select()
       .single()
     if (err) throw err
@@ -85,14 +93,35 @@ export function usePharmacies(companyId) {
   }
 
   async function updatePharmacy(id, payload) {
+    const nextPayload = { ...payload }
+    if (Object.prototype.hasOwnProperty.call(nextPayload, 'commercial_status')) {
+      nextPayload.is_active = isActiveCommercialStatus(nextPayload.commercial_status)
+    }
+
     const { data, error: err } = await supabase
       .from('pharmacies')
-      .update(payload)
+      .update(nextPayload)
       .eq('id', id)
       .select()
       .single()
     if (err) throw err
-    setPharmacies(prev => prev.map(p => p.id === id ? data : p))
+    setPharmacies(prev => prev.map(p => p.id === id ? { ...p, ...data, equipment: p.equipment } : p))
+    return data
+  }
+
+  async function updatePharmacyStatus(id, commercialStatus) {
+    const { data, error: err } = await supabase
+      .from('pharmacies')
+      .update({
+        commercial_status: commercialStatus,
+        is_active: isActiveCommercialStatus(commercialStatus),
+      })
+      .eq('id', id)
+      .select('id, commercial_status, is_active')
+      .single()
+
+    if (err) throw err
+    setPharmacies(prev => prev.map(p => p.id === id ? { ...p, ...data } : p))
     return data
   }
 
@@ -102,5 +131,5 @@ export function usePharmacies(companyId) {
     setPharmacies(prev => prev.filter(p => p.id !== id))
   }
 
-  return { pharmacies, loading, error, createPharmacy, updatePharmacy, deletePharmacy, reload: load }
+  return { pharmacies, loading, error, createPharmacy, updatePharmacy, updatePharmacyStatus, deletePharmacy, reload: load }
 }
