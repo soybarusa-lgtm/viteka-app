@@ -7,15 +7,67 @@ export function usePharmacies(companyId) {
   const [error, setError]           = useState(null)
 
   const load = useCallback(async () => {
-    if (!companyId) return
+    if (!companyId) {
+      setPharmacies([])
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
+    setError(null)
+
     const { data, error: err } = await supabase
       .from('pharmacies')
-      .select('id, pharmacy_name, legal_type, province, city, is_active, created_at')
+      .select(`
+        id,
+        pharmacy_name,
+        legal_type,
+        owner_name,
+        razon_social,
+        cb_owners,
+        province,
+        city,
+        postal_code,
+        schedule,
+        contact_phone,
+        contact_email,
+        is_active,
+        created_at
+      `)
       .eq('company_id', companyId)
       .order('pharmacy_name')
-    if (err) setError(err.message)
-    else setPharmacies(data || [])
+
+    if (err) {
+      setError(err.message)
+      setPharmacies([])
+      setLoading(false)
+      return
+    }
+
+    const pharmacyRows = data || []
+    const pharmacyIds = pharmacyRows.map(p => p.id)
+
+    let equipmentByPharmacy = {}
+    if (pharmacyIds.length > 0) {
+      const { data: equipmentData, error: equipmentError } = await supabase
+        .from('pharmacy_equipment')
+        .select('pharmacy_id, erp_detail')
+        .in('pharmacy_id', pharmacyIds)
+
+      if (equipmentError) {
+        setError(equipmentError.message)
+      } else {
+        equipmentByPharmacy = (equipmentData || []).reduce((acc, item) => {
+          acc[item.pharmacy_id] = item
+          return acc
+        }, {})
+      }
+    }
+
+    setPharmacies(pharmacyRows.map(pharmacy => ({
+      ...pharmacy,
+      equipment: equipmentByPharmacy[pharmacy.id] || null,
+    })))
     setLoading(false)
   }, [companyId])
 
