@@ -4,15 +4,15 @@ import { CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon, XMarkIco
 const ToastContext = createContext(null)
 
 const ICONS = {
-  success: <CheckCircleIcon className="w-5 h-5 text-green-500" />,
+  success: <CheckCircleIcon className="w-5 h-5 text-teal-600" />,
   error:   <ExclamationCircleIcon className="w-5 h-5 text-red-500" />,
-  info:    <InformationCircleIcon className="w-5 h-5 text-blue-500" />,
+  info:    <InformationCircleIcon className="w-5 h-5 text-cyan-400" />,
 }
 
 const BORDER = {
-  success: 'border-l-4 border-green-500',
+  success: 'border-l-4 border-teal-600',
   error:   'border-l-4 border-red-500',
-  info:    'border-l-4 border-blue-500',
+  info:    'border-l-4 border-cyan-400',
 }
 
 export function ToastProvider({ children }) {
@@ -34,7 +34,7 @@ export function ToastProvider({ children }) {
         {toasts.map(({ id, message, type }) => (
           <div
             key={id}
-            className={`flex items-start gap-3 bg-white rounded-xl shadow-lg px-4 py-3 ${BORDER[type]} animate-fade-in`}
+            className={`flex items-start gap-3 bg-white rounded-xl shadow-lg shadow-teal-900/10 px-4 py-3 ${BORDER[type]} animate-fade-in`}
           >
             <span className="shrink-0 mt-0.5">{ICONS[type]}</span>
             <p className="flex-1 text-sm text-gray-700">{message}</p>
@@ -48,6 +48,7 @@ export function ToastProvider({ children }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useToast() {
   const ctx = useContext(ToastContext)
   if (!ctx) throw new Error('useToast must be used inside ToastProvider')

@@ -1,30 +1,208 @@
+@import "@fontsource/inter/latin-400.css";
+@import "@fontsource/inter/latin-500.css";
+@import "@fontsource/inter/latin-600.css";
+@import "@fontsource/inter/latin-800.css";
+@import "@fontsource/manrope/latin-400.css";
+@import "@fontsource/manrope/latin-500.css";
+@import "@fontsource/manrope/latin-700.css";
+@import "@fontsource/manrope/latin-800.css";
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Manrope", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --color-teal-50: #edf9f7;
+  --color-teal-100: #d6f1ec;
+  --color-teal-200: #aee4d9;
+  --color-teal-300: #7ed2c3;
+  --color-teal-400: #45b7a7;
+  --color-teal-500: #159585;
+  --color-teal-600: #00695c;
+  --color-teal-700: #00584f;
+  --color-teal-800: #06463f;
+  --color-teal-900: #071a1d;
+
+  --color-cyan-400: #22d3ee;
+  --color-blue-600: #2563eb;
+
+  --color-green-50: #f3faeb;
+  --color-green-100: #e6f4d3;
+  --color-green-400: #8bc34a;
+  --color-green-500: #7ab238;
+  --color-green-600: #679c2f;
+  --color-green-700: #4c7823;
+
+  --color-gray-50: #f4f9f8;
+  --color-gray-100: #eaf2f0;
+  --color-gray-200: #e2e8f0;
+  --color-gray-300: #cbd5e1;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #64748b;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1f3438;
+  --color-gray-900: #071a1d;
+}
+
+:root {
+  --v-dark: #00695c;
+  --v-mid: #8bc34a;
+  --v-cyan: #22d3ee;
+  --v-blue: #2563eb;
+  --v-violet: #7c3aed;
+  --v-black: #071a1d;
+  --v-light: #f4f9f8;
+  --v-white: #ffffff;
+  --v-gray: #475569;
+  --v-border: #e2e8f0;
+  --font-primary: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-secondary: "Manrope", "Inter", ui-sans-serif, system-ui, sans-serif;
+}
 
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-primary);
 }
 
 body {
-  background-color: #f9fafb;
-  color: #111827;
+  background:
+    linear-gradient(180deg, rgba(244, 249, 248, 0.94), rgba(244, 249, 248, 1)),
+    radial-gradient(circle at 85% 0%, rgba(34, 211, 238, 0.12), transparent 32%),
+    radial-gradient(circle at 0% 15%, rgba(139, 195, 74, 0.10), transparent 28%);
+  color: var(--v-black);
 }
 
-/* ── Login: halos flotantes ──────────────────────── */
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-secondary);
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.28);
+  color: var(--v-black);
+}
+
+.brand-app-shell {
+  background:
+    linear-gradient(180deg, rgba(244, 249, 248, 0.98) 0%, #eef6f4 100%),
+    radial-gradient(circle at 90% 8%, rgba(34, 211, 238, 0.14), transparent 28%),
+    radial-gradient(circle at 12% 0%, rgba(139, 195, 74, 0.12), transparent 24%);
+}
+
+.brand-main {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(244, 249, 248, 0.72)),
+    linear-gradient(90deg, rgba(0, 105, 92, 0.035), transparent 36%);
+}
+
+.card {
+  background: var(--v-white);
+  border: 1px solid var(--v-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(7, 26, 29, 0.035);
+}
+
+:where(.btn-primary, .btn-secondary, .btn-danger, .btn-ghost) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.625rem 1rem;
+  font-family: var(--font-secondary);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+
+:where(.btn-primary) {
+  background: var(--v-dark);
+  color: var(--v-white);
+  box-shadow: 0 8px 18px rgba(0, 105, 92, 0.18);
+}
+
+:where(.btn-primary:hover) {
+  background: #00584f;
+}
+
+:where(.btn-secondary) {
+  background: #eef8e7;
+  border-color: #d6edbd;
+  color: #315f17;
+}
+
+:where(.btn-secondary:hover) {
+  background: #e2f3d3;
+}
+
+:where(.btn-danger) {
+  background: #dc2626;
+  color: var(--v-white);
+}
+
+:where(.btn-danger:hover) {
+  background: #b91c1c;
+}
+
+:where(.btn-ghost) {
+  background: transparent;
+  color: var(--v-gray);
+}
+
+:where(.btn-ghost:hover) {
+  background: rgba(0, 105, 92, 0.08);
+  color: var(--v-dark);
+}
+
+.input,
+.field {
+  width: 100%;
+  border: 1px solid var(--v-border);
+  border-radius: 8px;
+  background: var(--v-white);
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--v-black);
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+
+.input:focus,
+.field:focus {
+  border-color: var(--v-dark);
+  box-shadow: 0 0 0 3px rgba(0, 105, 92, 0.14);
+}
+
+.label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--v-gray);
+}
+
 @keyframes haloA {
-  0%   { transform: translate(0px,   0px)  scale(1);    }
-  50%  { transform: translate(-50px, 40px) scale(1.1);  }
-  100% { transform: translate(0px,   0px)  scale(1);    }
+  0%   { transform: translate(0px, 0px) scale(1); }
+  50%  { transform: translate(-50px, 40px) scale(1.1); }
+  100% { transform: translate(0px, 0px) scale(1); }
 }
+
 @keyframes haloB {
-  0%   { transform: translate(0px,  0px)   scale(1.05); }
-  50%  { transform: translate(45px, -35px) scale(1);    }
-  100% { transform: translate(0px,  0px)   scale(1.05); }
+  0%   { transform: translate(0px, 0px) scale(1.05); }
+  50%  { transform: translate(45px, -35px) scale(1); }
+  100% { transform: translate(0px, 0px) scale(1.05); }
 }
+
 @keyframes haloC {
-  0%   { transform: translate(0px,  0px)  scale(1);    }
+  0%   { transform: translate(0px, 0px) scale(1); }
   50%  { transform: translate(25px, 30px) scale(1.07); }
-  100% { transform: translate(0px,  0px)  scale(1);    }
+  100% { transform: translate(0px, 0px) scale(1); }
 }
 
 .login-halo {
@@ -32,34 +210,47 @@ body {
   border-radius: 9999px;
   filter: blur(90px);
   pointer-events: none;
+  opacity: 0.9;
 }
+
 .login-halo-1 {
   width: 560px;
   height: 560px;
   top: -160px;
   right: -160px;
-  background: rgba(52, 211, 153, 0.45);
+  background: rgba(34, 211, 238, 0.36);
   animation: haloA 16s ease-in-out infinite;
 }
+
 .login-halo-2 {
   width: 480px;
   height: 480px;
   bottom: -130px;
   left: -130px;
-  background: rgba(110, 231, 183, 0.38);
+  background: rgba(139, 195, 74, 0.34);
   animation: haloB 20s ease-in-out infinite;
 }
+
 .login-halo-3 {
   width: 380px;
   height: 380px;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(167, 243, 208, 0.28);
+  background: rgba(0, 105, 92, 0.20);
   animation: haloC 24s ease-in-out infinite;
 }
 
-/* ── Responsive tab rows: scroll horizontal en móvil ── */
+.login-brand-bg {
+  background:
+    linear-gradient(135deg, var(--v-black) 0%, var(--v-dark) 58%, #0eafbf 100%);
+}
+
+.login-panel {
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 24px 70px rgba(7, 26, 29, 0.24);
+}
+
 .tabs-scroll {
   display: flex;
   gap: 0.25rem;
@@ -68,17 +259,25 @@ body {
   scrollbar-width: none;
   padding-bottom: 2px;
 }
-.tabs-scroll::-webkit-scrollbar { display: none; }
 
-/* ── Utility: page wrapper estandarizado ── */
+.tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 .page-wrapper {
   padding: 1rem;
   max-width: 80rem;
   margin: 0 auto;
 }
+
 @media (min-width: 640px) {
-  .page-wrapper { padding: 1.5rem; }
+  .page-wrapper {
+    padding: 1.5rem;
+  }
 }
+
 @media (min-width: 1024px) {
-  .page-wrapper { padding: 2rem; }
+  .page-wrapper {
+    padding: 2rem;
+  }
 }

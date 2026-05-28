@@ -18,12 +18,12 @@ export async function getCompanyBranding(companyId) {
 export function getDefaultBranding() {
   return {
     company_name: 'Viteka',
-    primary_color: '#005643',
-    secondary_color: '#0F172A',
+    primary_color: '#00695C',
+    secondary_color: '#8BC34A',
     logo_full_color: '/brand/logo-full-color.svg',
     logo_one_color: '/brand/logo-one-color.svg',
     logo_white: '/brand/logo-white.svg',
-    logo_icon: '/brand/logo-icon.svg',
+    logo_icon: '/brand/logo-icon-colr.svg',
     favicon: '/brand/favicon.svg',
   }
 }
