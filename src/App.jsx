@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import { ToastProvider } from './context/ToastContext'
 import AppLayout from './layouts/AppLayout'
@@ -22,6 +22,17 @@ function AdminRoute({ session, profile, children }) {
   if (!session) return <Navigate to="/login" replace />
   if (profile?.role !== 'admin') return <Navigate to="/" replace />
   return children
+}
+
+// Compatibilidad con rutas antiguas en inglés (/pharmacies/*)
+function LegacyPharmacyRedirect({ toEdit = false }) {
+  const { id } = useParams()
+  return (
+    <Navigate
+      to={toEdit ? `/farmacias/${id}/editar` : `/farmacias/${id}`}
+      replace
+    />
+  )
 }
 
 export default function App() {
@@ -67,6 +78,10 @@ export default function App() {
             </PrivateRoute>
           }>
             <Route index element={<DashboardPage />} />
+            <Route path="pharmacies" element={<Navigate to="/farmacias" replace />} />
+            <Route path="pharmacies/new" element={<Navigate to="/farmacias/nueva" replace />} />
+            <Route path="pharmacies/:id" element={<LegacyPharmacyRedirect />} />
+            <Route path="pharmacies/:id/edit" element={<LegacyPharmacyRedirect toEdit />} />
             <Route path="farmacias" element={<PharmaciesPage />} />
             <Route path="farmacias/nueva" element={<NewPharmacyPage />} />
             <Route path="farmacias/:id" element={<PharmacyDetailPage />} />
