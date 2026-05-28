@@ -1921,7 +1921,7 @@ export default function PharmacyDetailPage() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1 overflow-x-auto pb-0 -mb-px scrollbar-none">
+          <div className="grid grid-cols-4 gap-1 pb-0 -mb-px sm:flex sm:overflow-x-auto sm:scrollbar-none">
             {TABS.map(tab => {
               const Icon = tab.icon
               return (
@@ -1929,14 +1929,14 @@ export default function PharmacyDetailPage() {
                   key={tab.key}
                   type="button"
                   onClick={() => setActiveTab(tab.key)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
+                  className={`inline-flex w-full min-h-[42px] items-center justify-center px-2 py-2 text-[11px] leading-tight text-center font-medium border-b-2 transition-colors sm:w-auto sm:min-h-0 sm:justify-start sm:gap-1.5 sm:px-3 sm:py-2.5 sm:text-xs sm:whitespace-nowrap ${
                     activeTab === tab.key
                       ? 'border-teal-600 text-teal-700'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
-                  {tab.label}
+                  <Icon className="hidden sm:block w-3.5 h-3.5" />
+                  <span>{tab.label}</span>
                 </button>
               )
             })}
