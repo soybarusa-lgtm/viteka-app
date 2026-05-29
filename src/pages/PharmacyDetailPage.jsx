@@ -14,6 +14,8 @@ import {
   DocumentDuplicateIcon, ChevronDownIcon, MagnifyingGlassIcon,
   CalendarDaysIcon, ShieldCheckIcon, EyeIcon,
   Squares2X2Icon, ListBulletIcon, PhotoIcon,
+  ArrowDownTrayIcon, ArrowPathIcon, ArrowTopRightOnSquareIcon,
+  ClipboardDocumentIcon,
 } from '@heroicons/react/24/outline'
 import { useToast } from '../context/ToastContext'
 import ConfirmDialog from '../components/pharmacy/ConfirmDialog'
@@ -2081,14 +2083,62 @@ function PersonModal({ person, onSave, onClose }) {
   )
 }
 
+function getDocumentName(doc) {
+  return doc?.name || doc?.file_name || 'Documento'
+}
+
+function getDocumentExt(doc) {
+  const nameExt = getDocumentName(doc).split('.').pop()
+  return String(doc?.file_ext || nameExt || '').replace(/^\./, '').toUpperCase()
+}
+
+function canPreviewInline(doc) {
+  const ext = getDocumentExt(doc).toLowerCase()
+  return ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'txt', 'csv', 'md', 'json'].includes(ext)
+}
+
 // â”€â”€ Tab: Documentos// â”€â”€ Tab: Documentos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TabDocuments({ pharmacyId, companyId }) {
-  const { documents, loading, uploadDocument, deleteDocument } = usePharmacyDocuments(pharmacyId)
+  const {
+    documents,
+    loading,
+    error,
+    uploadDocument,
+    deleteDocument,
+    getDocumentUrl,
+    reload,
+  } = usePharmacyDocuments(pharmacyId)
   const toast = useToast()
   const [uploading, setUploading] = useState(false)
   const [confirmDel, setConfirmDel] = useState(null)
+  const [deletingId, setDeletingId] = useState(null)
+  const [preview, setPreview] = useState(null)
+  const [previewLoadingId, setPreviewLoadingId] = useState(null)
+  const [query, setQuery] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
   const fileRef = useRef(null)
   const [meta, setMeta] = useState({ name: '', category: '' })
+
+  const categories = useMemo(() => {
+    return Array.from(new Set([
+      ...DOC_CATEGORIES,
+      ...(documents || []).map(d => d.category).filter(Boolean),
+    ]))
+  }, [documents])
+
+  const filteredDocuments = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return (documents || []).filter(doc => {
+      const matchesCategory = !categoryFilter || doc.category === categoryFilter
+      if (!matchesCategory) return false
+      if (!q) return true
+      return [
+        getDocumentName(doc),
+        doc.category,
+        doc.file_ext,
+      ].filter(Boolean).some(value => String(value).toLowerCase().includes(q))
+    })
+  }, [documents, query, categoryFilter])
 
   async function handleUpload(e) {
     const file = e.target.files?.[0]
@@ -2111,18 +2161,86 @@ function TabDocuments({ pharmacyId, companyId }) {
     }
   }
 
+  async function resolveUrl(doc) {
+    const url = await getDocumentUrl(doc)
+    if (!url) throw new Error('Documento sin URL')
+    return url
+  }
+
+  async function handlePreview(doc) {
+    setPreviewLoadingId(doc.id)
+    try {
+      const url = await resolveUrl(doc)
+      setPreview({ doc, url })
+    } catch {
+      toast('No se pudo abrir el documento', 'error')
+    } finally {
+      setPreviewLoadingId(null)
+    }
+  }
+
+  async function handleOpen(doc) {
+    try {
+      const url = await resolveUrl(doc)
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } catch {
+      toast('No se pudo abrir el documento', 'error')
+    }
+  }
+
+  async function handleDownload(doc) {
+    try {
+      const url = await resolveUrl(doc)
+      const link = window.document.createElement('a')
+      link.href = url
+      link.download = getDocumentName(doc)
+      link.target = '_blank'
+      window.document.body.appendChild(link)
+      link.click()
+      link.remove()
+    } catch {
+      toast('No se pudo descargar el documento', 'error')
+    }
+  }
+
+  async function handleCopyLink(doc) {
+    try {
+      const url = await resolveUrl(doc)
+      await navigator.clipboard.writeText(url)
+      toast('Enlace copiado', 'success')
+    } catch {
+      toast('No se pudo copiar el enlace', 'error')
+    }
+  }
+
   async function handleDelete(doc) {
-    await deleteDocument(doc.id, doc.file_path)
-    toast('Documento eliminado', 'success')
-    setConfirmDel(null)
+    setDeletingId(doc.id)
+    try {
+      const result = await deleteDocument(doc)
+      toast(
+        result?.storageError
+          ? 'Documento eliminado. El archivo no se pudo retirar del almacenamiento.'
+          : 'Documento eliminado',
+        result?.storageError ? 'error' : 'success'
+      )
+      setConfirmDel(null)
+      if (preview?.doc?.id === doc.id) setPreview(null)
+    } catch {
+      toast('Error al eliminar el documento', 'error')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 space-y-3">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Subir documento</p>
+      <div className="rounded-xl border border-dashed border-teal-200 bg-teal-50/50 p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-semibold text-teal-700 uppercase tracking-wide">Subir documento</p>
+          <span className="text-[11px] text-teal-700/70">{documents.length} documento{documents.length === 1 ? '' : 's'}</span>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><Label>Nombre del documento</Label><Input value={meta.name} onChange={e => setMeta(m => ({ ...m, name: e.target.value }))} placeholder="Opcional" /></div>
           <div>
@@ -2133,46 +2251,133 @@ function TabDocuments({ pharmacyId, companyId }) {
             </Select>
           </div>
         </div>
-        <input ref={fileRef} type="file" onChange={handleUpload} disabled={uploading} className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 cursor-pointer" />
+        <input ref={fileRef} type="file" onChange={handleUpload} disabled={uploading} className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-white file:text-teal-700 hover:file:bg-teal-100 cursor-pointer" />
         {uploading && <p className="text-xs text-teal-600 animate-pulse">Subiendo...</p>}
       </div>
 
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Buscar documentos..."
+            className="pl-9"
+          />
+        </div>
+        <Select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="sm:w-48">
+          <option value="">Todas las categorías</option>
+          {categories.map(c => <option key={c} value={c}>{c}</option>)}
+        </Select>
+        <button
+          type="button"
+          onClick={reload}
+          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700"
+        >
+          <ArrowPathIcon className="w-4 h-4" /> Actualizar
+        </button>
+      </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+      )}
+
       {(!documents || documents.length === 0) ? (
         <EmptyTab icon={DocumentTextIcon} message="Sin documentos adjuntos" />
+      ) : filteredDocuments.length === 0 ? (
+        <EmptyTab icon={DocumentTextIcon} message="Sin documentos con esos filtros" />
       ) : (
         <div className="space-y-2">
-          {documents.map(doc => (
+          {filteredDocuments.map(doc => {
+            const name = getDocumentName(doc)
+            const ext = getDocumentExt(doc)
+            const urlAvailable = Boolean(doc.storage_path || doc.public_url || doc.file_url)
+            return (
             <div key={doc.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:border-gray-300 transition-colors">
               <div className="min-w-0 flex items-center gap-3">
-                <DocumentTextIcon className="w-5 h-5 text-gray-400 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-gray-800 truncate">{doc.name || doc.file_name}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {doc.category && <span className="text-[11px] text-gray-400">{doc.category}</span>}
-                    <span className="text-[11px] text-gray-300">{new Date(doc.created_at).toLocaleDateString('es-ES')}</span>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[11px] font-bold text-slate-500">
+                  {ext || <DocumentTextIcon className="w-5 h-5" />}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">{name}</p>
+                  <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                    {doc.category && <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-700">{doc.category}</span>}
+                    <span className="text-[11px] text-gray-400">{new Date(doc.created_at).toLocaleDateString('es-ES')}</span>
+                    {doc.size_bytes ? <span className="text-[11px] text-gray-300">{formatBytes(doc.size_bytes)}</span> : null}
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                {doc.file_url && (
-                  <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors">
+                {urlAvailable && (
+                  <button type="button" onClick={() => handlePreview(doc)} disabled={previewLoadingId === doc.id} title="Visualizar" className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors disabled:opacity-40">
                     <EyeIcon className="w-4 h-4" />
-                  </a>
+                  </button>
                 )}
-                <button type="button" onClick={() => setConfirmDel(doc)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                {urlAvailable && (
+                  <button type="button" onClick={() => handleDownload(doc)} title="Descargar" className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors">
+                    <ArrowDownTrayIcon className="w-4 h-4" />
+                  </button>
+                )}
+                {urlAvailable && (
+                  <button type="button" onClick={() => handleCopyLink(doc)} title="Copiar enlace temporal" className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors">
+                    <ClipboardDocumentIcon className="w-4 h-4" />
+                  </button>
+                )}
+                <button type="button" onClick={() => setConfirmDel(doc)} disabled={deletingId === doc.id} title="Eliminar documento" className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40">
                   <TrashIcon className="w-4 h-4" />
                 </button>
               </div>
             </div>
-          ))}
+          )})}
+        </div>
+      )}
+
+      {preview && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/50 p-4" onClick={() => setPreview(null)}>
+          <div className="flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-4 py-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-gray-900">{getDocumentName(preview.doc)}</p>
+                <p className="text-xs text-gray-400">{[preview.doc.category, getDocumentExt(preview.doc), formatBytes(preview.doc.size_bytes)].filter(Boolean).join(' · ')}</p>
+              </div>
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => handleOpen(preview.doc)} title="Abrir en pestaña" className="rounded-lg p-2 text-gray-400 hover:bg-teal-50 hover:text-teal-700">
+                  <ArrowTopRightOnSquareIcon className="w-5 h-5" />
+                </button>
+                <button type="button" onClick={() => handleDownload(preview.doc)} title="Descargar" className="rounded-lg p-2 text-gray-400 hover:bg-teal-50 hover:text-teal-700">
+                  <ArrowDownTrayIcon className="w-5 h-5" />
+                </button>
+                <button type="button" onClick={() => setPreview(null)} title="Cerrar" className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="min-h-[55vh] overflow-auto bg-slate-50">
+              {canPreviewInline(preview.doc) ? (
+                getDocumentExt(preview.doc).toLowerCase().match(/png|jpg|jpeg|webp|gif|svg/) ? (
+                  <div className="flex min-h-[55vh] items-center justify-center p-4">
+                    <img src={preview.url} alt={getDocumentName(preview.doc)} className="max-h-[70vh] max-w-full rounded-lg object-contain shadow-sm" />
+                  </div>
+                ) : (
+                  <iframe title={getDocumentName(preview.doc)} src={preview.url} className="h-[70vh] w-full bg-white" />
+                )
+              ) : (
+                <div className="flex min-h-[55vh] flex-col items-center justify-center px-6 text-center">
+                  <DocumentTextIcon className="mb-3 h-12 w-12 text-gray-300" />
+                  <p className="text-sm font-medium text-gray-700">Vista previa no disponible para este tipo de archivo.</p>
+                  <p className="mt-1 text-xs text-gray-400">Puedes abrirlo en una pestaña nueva o descargarlo.</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
       {confirmDel && (
         <ConfirmDialog
           title="Eliminar documento"
-          message={`¿Seguro que quieres eliminar "${confirmDel.name || confirmDel.file_name}"?`}
-          confirmLabel="Eliminar"
+          message={`¿Seguro que quieres eliminar "${getDocumentName(confirmDel)}"?`}
+          confirmLabel={deletingId === confirmDel.id ? 'Eliminando...' : 'Eliminar'}
           variant="danger"
           onConfirm={() => handleDelete(confirmDel)}
           onCancel={() => setConfirmDel(null)}

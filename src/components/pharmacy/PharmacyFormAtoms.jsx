@@ -8,32 +8,32 @@ export function Label({ children, required }) {
   )
 }
 
-export function Input(props) {
+export function Input({ className = '', ...props }) {
   return (
     <input
       {...props}
-      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+      className={`w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 ${className}`}
     />
   )
 }
 
-export function Select({ children, ...props }) {
+export function Select({ children, className = '', ...props }) {
   return (
     <select
       {...props}
-      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+      className={`w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white ${className}`}
     >
       {children}
     </select>
   )
 }
 
-export function Textarea(props) {
+export function Textarea({ className = '', ...props }) {
   return (
     <textarea
       {...props}
       rows={3}
-      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
+      className={`w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none ${className}`}
     />
   )
 }
