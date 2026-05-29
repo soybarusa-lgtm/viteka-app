@@ -89,6 +89,20 @@ function getErpLabel(pharmacy) {
   return String(value)
 }
 
+function getVitekaEquipmentProducts(pharmacy) {
+  const eq = pharmacy?.equipment || {}
+  const products = []
+
+  if (eq.erp_viteka && eq.erp && eq.erp !== 'NO') products.push(eq.erp)
+  if (eq.caja_viteka && eq.caja && eq.caja !== 'NO') products.push(eq.caja)
+  if (eq.esl_viteka && eq.esl && eq.esl !== 'NO') products.push(eq.esl)
+  if (eq.bascula_viteka && eq.bascula && eq.bascula !== 'NO') products.push(eq.bascula)
+  if (eq.consultoria_viteka && eq.consultoria && eq.consultoria !== 'NO') products.push(eq.consultoria)
+  if (eq.frigorifico_viteka && eq.frigorifico_marca) products.push(eq.frigorifico_marca)
+
+  return [...new Set(products.filter(Boolean))]
+}
+
 function getColumnValue(pharmacy, key) {
   switch (key) {
     case 'pharmacy_name':
@@ -248,9 +262,9 @@ function RowActionsMenu({ pharmacy }) {
     { label: 'Editar equipamiento', icon: WrenchScrewdriverIcon, to: `/farmacias/${pharmacy.id}?tab=equipment&action=edit` },
     { label: 'Crear equipo informático', icon: ComputerDesktopIcon, to: `/farmacias/${pharmacy.id}?tab=it&action=new-it` },
     { label: 'Crear persona', icon: UsersIcon, to: `/farmacias/${pharmacy.id}?tab=people&action=new-person` },
-    { label: 'Crear ticket', icon: ExclamationTriangleIcon, to: `/farmacias/${pharmacy.id}?tab=incidents` },
-    { label: 'Crear proyecto', icon: FolderOpenIcon, to: `/farmacias/${pharmacy.id}?tab=projects` },
-    { label: 'Subir documentos', icon: DocumentTextIcon, to: `/farmacias/${pharmacy.id}?tab=documents` },
+    { label: 'Crear ticket', icon: ExclamationTriangleIcon, to: `/incidencias?pharmacy_id=${pharmacy.id}&open=1` },
+    { label: 'Crear proyecto', icon: FolderOpenIcon, to: `/proyectos?pharmacy_id=${pharmacy.id}&create=1&type=commercial` },
+    { label: 'Subir documentos', icon: DocumentTextIcon, to: `/documentos?open=1` },
   ]
 
   useEffect(() => {
@@ -538,6 +552,8 @@ export default function PharmaciesPage() {
   const { pharmacies, loading } = usePharmacies(profile?.company_id)
   const [search, setSearch] = useState('')
   const [filterProvince, setFilterProvince] = useState('')
+  const [isVitekaFilterOpen, setIsVitekaFilterOpen] = useState(false)
+  const [selectedVitekaProducts, setSelectedVitekaProducts] = useState([])
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false)
   const [isExportFieldsOpen, setIsExportFieldsOpen] = useState(false)
   const [pendingExportType, setPendingExportType] = useState(null)
@@ -545,6 +561,23 @@ export default function PharmaciesPage() {
   const [columns, setColumns] = useState(DEFAULT_COLUMNS)
   const [draggedColumnKey, setDraggedColumnKey] = useState(null)
   const [sortConfig, setSortConfig] = useState({ key: 'pharmacy_name', direction: 'asc' })
+  const vitekaFilterRef = useRef(null)
+
+  useEffect(() => {
+    function handlePointerDown(event) {
+      if (!vitekaFilterRef.current?.contains(event.target)) {
+        setIsVitekaFilterOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    return () => document.removeEventListener('mousedown', handlePointerDown)
+  }, [])
+
+  const vitekaProductOptions = useMemo(() => (
+    [...new Set(pharmacies.flatMap(pharmacy => getVitekaEquipmentProducts(pharmacy)))]
+      .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }))
+  ), [pharmacies])
 
   const filtered = useMemo(() => pharmacies.filter(p => {
     const searchValue = [
@@ -562,8 +595,10 @@ export default function PharmaciesPage() {
 
     const matchSearch = searchValue.includes(search.toLowerCase())
     const matchProv = !filterProvince || p.province === filterProvince
-    return matchSearch && matchProv
-  }), [pharmacies, search, filterProvince])
+    const vitekaProducts = getVitekaEquipmentProducts(p)
+    const matchViteka = selectedVitekaProducts.length === 0 || selectedVitekaProducts.some(product => vitekaProducts.includes(product))
+    return matchSearch && matchProv && matchViteka
+  }), [pharmacies, search, filterProvince, selectedVitekaProducts])
 
   const sorted = useMemo(() => {
     const rows = [...filtered]
@@ -578,6 +613,19 @@ export default function PharmaciesPage() {
   }, [filtered, sortConfig])
 
   const provinces = useMemo(() => [...new Set(pharmacies.map(p => p.province).filter(Boolean))].sort(), [pharmacies])
+
+  function toggleVitekaProduct(product) {
+    setSelectedVitekaProducts(prev => (
+      prev.includes(product)
+        ? prev.filter(item => item !== product)
+        : [...prev, product]
+    ))
+  }
+
+  function clearVitekaProducts() {
+    setSelectedVitekaProducts([])
+    setIsVitekaFilterOpen(false)
+  }
 
   function buildFileName(ext) {
     const parts = ['farmacias']
@@ -817,6 +865,68 @@ export default function PharmaciesPage() {
             <option key={p} value={p}>{PROVINCE_LABEL[p] || p}</option>
           ))}
         </select>
+        <div ref={vitekaFilterRef} className="relative">
+          <button
+            type="button"
+            onClick={() => setIsVitekaFilterOpen(prev => !prev)}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+              selectedVitekaProducts.length > 0
+                ? 'border-teal-300 bg-teal-50 text-teal-700'
+                : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            Viteka
+            {selectedVitekaProducts.length > 0 && (
+              <span className="rounded-full bg-white/80 px-1.5 py-0.5 text-[11px] font-semibold">
+                {selectedVitekaProducts.length}
+              </span>
+            )}
+            <ChevronDownIcon className={`w-4 h-4 transition-transform ${isVitekaFilterOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {isVitekaFilterOpen && (
+            <div className="absolute left-0 top-full z-20 mt-2 w-[300px] rounded-xl border border-gray-200 bg-white shadow-lg">
+              <div className="border-b border-gray-100 px-4 py-3">
+                <p className="text-sm font-medium text-gray-800">Equipos soportados por Viteka</p>
+                <p className="mt-0.5 text-xs text-gray-500">Marca una o varias opciones para mostrar solo farmacias con ese producto activo.</p>
+              </div>
+              <div className="max-h-64 overflow-y-auto p-2">
+                {vitekaProductOptions.length === 0 ? (
+                  <p className="px-2 py-3 text-sm text-gray-400">Todavía no hay productos Viteka detectados.</p>
+                ) : vitekaProductOptions.map(product => (
+                  <label
+                    key={product}
+                    className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedVitekaProducts.includes(product)}
+                      onChange={() => toggleVitekaProduct(product)}
+                      className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                    />
+                    <span className="min-w-0 flex-1 truncate">{product}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="flex items-center justify-between gap-2 border-t border-gray-100 px-4 py-3">
+                <button
+                  type="button"
+                  onClick={clearVitekaProducts}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Limpiar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsVitekaFilterOpen(false)}
+                  className="rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-700"
+                >
+                  Aplicar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         <div className="relative lg:ml-auto">
           <button
             type="button"

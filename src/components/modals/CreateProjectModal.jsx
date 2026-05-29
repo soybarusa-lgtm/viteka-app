@@ -16,14 +16,14 @@ const SUPPORT_STATUS = [
   { value: 'paused', label: 'Pausado' },
 ]
 
-export default function CreateProjectModal({ defaultType = 'commercial', onClose }) {
+export default function CreateProjectModal({ defaultType = 'commercial', defaultPharmacyId = '', onClose }) {
   const { createProject } = useProjects()
   const [pharmacies, setPharmacies] = useState([])
   const [users, setUsers] = useState([])
   const [form, setForm] = useState({
     name: '',
     project_type: defaultType,
-    pharmacy_id: '',
+    pharmacy_id: defaultPharmacyId,
     status: 'active',
     pipeline_stage: 'leads',
     amount: '',
@@ -48,6 +48,14 @@ export default function CreateProjectModal({ defaultType = 'commercial', onClose
     }
     loadData()
   }, [])
+
+  useEffect(() => {
+    setForm(prev => ({
+      ...prev,
+      project_type: defaultType,
+      pharmacy_id: defaultPharmacyId || prev.pharmacy_id,
+    }))
+  }, [defaultType, defaultPharmacyId])
 
   function set(f, v) { setForm(prev => ({ ...prev, [f]: v })) }
 

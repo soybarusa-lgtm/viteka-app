@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { createNotification } from '../lib/notifications'
 
@@ -46,8 +47,18 @@ export default function DocumentsPage({ profile }) {
   const [category, setCategory]   = useState('general')
   const [visibleToClient, setVisibleToClient] = useState(false)
   const [formOpen, setFormOpen]   = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const autoOpenedRef = useRef(false)
 
   useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    const shouldOpen = searchParams.get('open') === '1'
+    if (!shouldOpen || autoOpenedRef.current) return
+    setFormOpen(true)
+    setSearchParams({}, { replace: true })
+    autoOpenedRef.current = true
+  }, [searchParams, setSearchParams])
 
   async function load() {
     const { data } = await supabase.from('company_documents').select('*').order('created_at', { ascending: false })

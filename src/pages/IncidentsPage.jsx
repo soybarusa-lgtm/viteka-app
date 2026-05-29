@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 const PRIORITY = {
@@ -40,8 +41,19 @@ export default function IncidentsPage({ profile }) {
   const [priority, setPriority]               = useState('medium')
   const [visibleToClient, setVisibleToClient] = useState(false)
   const [submitting, setSubmitting]           = useState(false)
+  const [searchParams, setSearchParams]       = useSearchParams()
+  const autoOpenedRef = useRef(false)
 
   useEffect(() => { if (profile?.company_id) init() }, [profile?.company_id])
+
+  useEffect(() => {
+    const shouldOpen = searchParams.get('open') === '1'
+    if (!shouldOpen || autoOpenedRef.current) return
+    setPharmacyId(searchParams.get('pharmacy_id') || '')
+    setFormOpen(true)
+    setSearchParams({}, { replace: true })
+    autoOpenedRef.current = true
+  }, [searchParams, setSearchParams])
 
   async function init() {
     setLoading(true)

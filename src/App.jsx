@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import { ToastProvider } from './context/ToastContext'
 import AppLayout from './layouts/AppLayout'
@@ -9,6 +9,9 @@ import PharmaciesPage from './pages/PharmaciesPage'
 import PharmacyDetailPage from './pages/PharmacyDetailPage'
 import NewPharmacyPage from './pages/NewPharmacyPage'
 import PharmacyEditPage from './pages/PharmacyEditPage'
+import IncidentsPage from './pages/IncidentsPage'
+import ProjectsPage from './pages/ProjectsPage'
+import DocumentsPage from './pages/DocumentsPage'
 
 // Protege rutas autenticadas
 function PrivateRoute({ session, children }) {
@@ -33,6 +36,11 @@ function LegacyPharmacyRedirect({ toEdit = false }) {
       replace
     />
   )
+}
+
+function ProjectsRoute() {
+  const navigate = useNavigate()
+  return <ProjectsPage navigate={navigate} />
 }
 
 export default function App() {
@@ -86,6 +94,9 @@ export default function App() {
             <Route path="farmacias/nueva" element={<NewPharmacyPage />} />
             <Route path="farmacias/:id" element={<PharmacyDetailPage />} />
             <Route path="farmacias/:id/editar" element={<PharmacyEditPage />} />
+            <Route path="incidencias" element={<IncidentsPage profile={profile} />} />
+            <Route path="proyectos" element={<ProjectsRoute />} />
+            <Route path="documentos" element={<DocumentsPage profile={profile} />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

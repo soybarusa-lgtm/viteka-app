@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useProjects } from '../hooks/useProjects'
 import CreateProjectModal from '../components/modals/CreateProjectModal'
 
@@ -289,14 +290,28 @@ function SupportView({ support, navigate }) {
 }
 
 // ── Main page ───────────────────────────────────────────────────────────────
-export default function ProjectsPage({ navigate }) {
+export default function ProjectsPage({ navigate: navigateProp }) {
   const { projects, loading, error, moveStage } = useProjects()
+  const navigateHook = useNavigate()
+  const navigate = navigateProp || navigateHook
+  const [searchParams, setSearchParams] = useSearchParams()
   const [tab,        setTab]        = useState('commercial')
   const [view,       setView]       = useState('kanban')
   const [showCreate, setShowCreate] = useState(null)
+  const [defaultPharmacyId, setDefaultPharmacyId] = useState('')
+  const autoOpenRef = useRef(false)
 
   const commercial = projects.filter(p => p.project_type === 'commercial')
   const support    = projects.filter(p => p.project_type === 'support')
+
+  useEffect(() => {
+    const shouldOpen = searchParams.get('create') === '1'
+    if (!shouldOpen || autoOpenRef.current) return
+    setShowCreate(searchParams.get('type') === 'support' ? 'support' : 'commercial')
+    setDefaultPharmacyId(searchParams.get('pharmacy_id') || '')
+    setSearchParams({}, { replace: true })
+    autoOpenRef.current = true
+  }, [searchParams, setSearchParams, autoOpenRef])
 
   return (
     <div className="page-container">
@@ -386,6 +401,7 @@ export default function ProjectsPage({ navigate }) {
       {showCreate && (
         <CreateProjectModal
           defaultType={showCreate}
+          defaultPharmacyId={defaultPharmacyId}
           onClose={() => setShowCreate(null)}
         />
       )}
