@@ -34,6 +34,39 @@ const DEFAULT_COLUMNS = [
 ]
 
 const EMPTY_VALUE = '—'
+const ADVANCED_SCHEDULE_OPTIONS = [
+  { key: 'open_365', label: '365 días' },
+  { key: 'open_24h', label: '24H' },
+  { key: 'local_holidays', label: 'Abre festivos locales' },
+  { key: 'regional_holidays', label: 'Abre festivos autonómicos' },
+  { key: 'national_holidays', label: 'Abre festivos nacionales' },
+]
+const LEGAL_TYPE_OPTIONS = [
+  { value: '', label: 'Todos' },
+  { value: 'autonomo', label: 'Autónomo' },
+  { value: 'cb', label: 'C.B.' },
+  { value: 'sl', label: 'S.L.' },
+  { value: 'autonomo_sl', label: 'Autónomo + S.L.' },
+  { value: 'cb_sl', label: 'C.B. + S.L.' },
+]
+const DEFAULT_ADVANCED_FILTERS = {
+  status: '',
+  legalType: '',
+  city: '',
+  postalCode: '',
+  owner: '',
+  phone: '',
+  email: '',
+  workstations: '',
+  erp: '',
+  caja: '',
+  esl: '',
+  bascula: '',
+  consultoria: '',
+  frigorifico: '',
+  hasGuards: '',
+  scheduleOptions: [],
+}
 
 function getOwners(pharmacy) {
   const owners = []
@@ -101,6 +134,69 @@ function getVitekaEquipmentProducts(pharmacy) {
   if (eq.frigorifico_viteka && eq.frigorifico_marca) products.push(eq.frigorifico_marca)
 
   return [...new Set(products.filter(Boolean))]
+}
+
+function getEquipmentValue(pharmacy, key) {
+  const eq = pharmacy?.equipment || {}
+
+  switch (key) {
+    case 'erp':
+      return eq.erp || ''
+    case 'caja':
+      return eq.caja || ''
+    case 'esl':
+      return eq.esl || ''
+    case 'bascula':
+      return eq.bascula || ''
+    case 'consultoria':
+      return eq.consultoria || ''
+    case 'frigorifico':
+      return eq.frigorifico_marca || ''
+    default:
+      return ''
+  }
+}
+
+function buildUniqueOptions(pharmacies, getter) {
+  return [...new Set(pharmacies.map(getter).filter(value => value && value !== 'NO'))]
+    .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }))
+}
+
+function matchesSelectValue(value, filterValue) {
+  if (!filterValue) return true
+  if (filterValue === '__empty__') return !value || value === 'NO'
+  return String(value || '') === filterValue
+}
+
+function matchesTextValue(value, filterValue) {
+  if (!filterValue) return true
+  return String(value || '').toLowerCase().includes(filterValue.toLowerCase())
+}
+
+function countActiveAdvancedFilters(filters, province, selectedVitekaProducts) {
+  let count = 0
+
+  if (province) count += 1
+  if (selectedVitekaProducts.length > 0) count += 1
+
+  if (filters.status) count += 1
+  if (filters.legalType) count += 1
+  if (filters.city) count += 1
+  if (filters.postalCode) count += 1
+  if (filters.owner) count += 1
+  if (filters.phone) count += 1
+  if (filters.email) count += 1
+  if (filters.workstations) count += 1
+  if (filters.erp) count += 1
+  if (filters.caja) count += 1
+  if (filters.esl) count += 1
+  if (filters.bascula) count += 1
+  if (filters.consultoria) count += 1
+  if (filters.frigorifico) count += 1
+  if (filters.hasGuards) count += 1
+  count += filters.scheduleOptions.length
+
+  return count
 }
 
 function getColumnValue(pharmacy, key) {
@@ -477,6 +573,406 @@ function OwnerTooltip({ pharmacy }) {
   )
 }
 
+function VitekaFilterMenu({
+  options,
+  selectedProducts,
+  onToggleProduct,
+  onClear,
+}) {
+  const anchorRef = useRef(null)
+  const menuRef = useRef(null)
+  const [isOpen, setIsOpen] = useState(false)
+  const [position, setPosition] = useState({ top: 0, left: 0, ready: false })
+
+  useEffect(() => {
+    function handlePointerDown(event) {
+      if (anchorRef.current?.contains(event.target) || menuRef.current?.contains(event.target)) return
+      setIsOpen(false)
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    return () => document.removeEventListener('mousedown', handlePointerDown)
+  }, [])
+
+  useEffect(() => {
+    if (!isOpen || !anchorRef.current || !menuRef.current) return undefined
+
+    function updatePosition() {
+      if (!anchorRef.current || !menuRef.current) return
+
+      const anchorRect = anchorRef.current.getBoundingClientRect()
+      const menuRect = menuRef.current.getBoundingClientRect()
+      const viewportPadding = 16
+      const gap = 8
+
+      let left = anchorRect.left
+      if (left + menuRect.width > window.innerWidth - viewportPadding) {
+        left = window.innerWidth - menuRect.width - viewportPadding
+      }
+      left = Math.max(viewportPadding, left)
+
+      let top = anchorRect.bottom + gap
+      if (top + menuRect.height > window.innerHeight - viewportPadding) {
+        top = anchorRect.top - menuRect.height - gap
+      }
+      top = Math.max(viewportPadding, top)
+
+      setPosition({ top, left, ready: true })
+    }
+
+    const rafId = window.requestAnimationFrame(updatePosition)
+    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', updatePosition)
+
+    return () => {
+      window.cancelAnimationFrame(rafId)
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
+    }
+  }, [isOpen, options.length, selectedProducts.length])
+
+  return (
+    <div ref={anchorRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(prev => !prev)}
+        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+          selectedProducts.length > 0
+            ? 'border-teal-300 bg-teal-50 text-teal-700'
+            : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+        }`}
+      >
+        Viteka
+        {selectedProducts.length > 0 && (
+          <span className="rounded-full bg-white/80 px-1.5 py-0.5 text-[11px] font-semibold">
+            {selectedProducts.length}
+          </span>
+        )}
+        <ChevronDownIcon className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && createPortal(
+        <div
+          ref={menuRef}
+          className="fixed z-[120] w-[320px] rounded-xl border border-gray-200 bg-white shadow-2xl"
+          style={{
+            top: `${position.top}px`,
+            left: `${position.left}px`,
+            opacity: position.ready ? 1 : 0,
+          }}
+        >
+          <div className="border-b border-gray-100 px-4 py-3">
+            <p className="text-sm font-medium text-gray-800">Equipos soportados por Viteka</p>
+            <p className="mt-0.5 text-xs text-gray-500">Marca una o varias opciones para mostrar solo farmacias con ese producto activo.</p>
+          </div>
+          <div className="max-h-64 overflow-y-auto p-2">
+            {options.length === 0 ? (
+              <p className="px-2 py-3 text-sm text-gray-400">Todavía no hay productos Viteka detectados.</p>
+            ) : options.map(product => (
+              <label
+                key={product}
+                className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedProducts.includes(product)}
+                  onChange={() => onToggleProduct(product)}
+                  className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                />
+                <span className="min-w-0 flex-1 truncate">{product}</span>
+              </label>
+            ))}
+          </div>
+          <div className="flex items-center justify-between gap-2 border-t border-gray-100 px-4 py-3">
+            <button
+              type="button"
+              onClick={onClear}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Limpiar
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-700"
+            >
+              Aplicar
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  )
+}
+
+function AdvancedFiltersModal({
+  isOpen,
+  onClose,
+  filters,
+  onChange,
+  onClear,
+  provinces,
+  equipmentOptions,
+}) {
+  if (!isOpen) return null
+
+  function updateField(key, value) {
+    onChange(prev => ({ ...prev, [key]: value }))
+  }
+
+  function toggleScheduleOption(optionKey) {
+    onChange(prev => ({
+      ...prev,
+      scheduleOptions: prev.scheduleOptions.includes(optionKey)
+        ? prev.scheduleOptions.filter(item => item !== optionKey)
+        : [...prev.scheduleOptions, optionKey],
+    }))
+  }
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 py-6"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl"
+        onClick={event => event.stopPropagation()}
+      >
+        <div className="border-b border-slate-100 px-6 py-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Filtros avanzados</h2>
+              <p className="mt-1 text-sm text-slate-500">Ajusta datos generales, horario y equipamiento para reducir la lista de farmacias.</p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg px-2 py-1 text-sm text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+
+        <div className="max-h-[calc(90vh-140px)] overflow-y-auto px-6 py-5">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <section className="space-y-4 rounded-2xl border border-slate-200 p-4">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Datos generales</p>
+                <p className="mt-1 text-xs text-slate-400">Filtros rápidos sobre la ficha básica de la farmacia.</p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="space-y-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Provincia</span>
+                  <select
+                    value={provinces.value}
+                    onChange={event => provinces.onChange(event.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  >
+                    <option value="">Todas</option>
+                    {provinces.options.map(option => (
+                      <option key={option} value={option}>{PROVINCE_LABEL[option] || option}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="space-y-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Estado</span>
+                  <select
+                    value={filters.status}
+                    onChange={event => updateField('status', event.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  >
+                    <option value="">Todas</option>
+                    <option value="active">Activa</option>
+                    <option value="inactive">Inactiva</option>
+                  </select>
+                </label>
+
+                <label className="space-y-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Tipo legal</span>
+                  <select
+                    value={filters.legalType}
+                    onChange={event => updateField('legalType', event.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  >
+                    {LEGAL_TYPE_OPTIONS.map(option => (
+                      <option key={option.value || 'all'} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="space-y-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Población</span>
+                  <input
+                    value={filters.city}
+                    onChange={event => updateField('city', event.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    placeholder="Ej. Granada"
+                  />
+                </label>
+
+                <label className="space-y-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">C.P.</span>
+                  <input
+                    value={filters.postalCode}
+                    onChange={event => updateField('postalCode', event.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    placeholder="04765"
+                  />
+                </label>
+
+                <label className="space-y-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Titular</span>
+                  <input
+                    value={filters.owner}
+                    onChange={event => updateField('owner', event.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    placeholder="Nombre del titular"
+                  />
+                </label>
+
+                <label className="space-y-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Teléfono</span>
+                  <input
+                    value={filters.phone}
+                    onChange={event => updateField('phone', event.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    placeholder="Número"
+                  />
+                </label>
+
+                <label className="space-y-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Email</span>
+                  <input
+                    value={filters.email}
+                    onChange={event => updateField('email', event.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    placeholder="correo@..."
+                  />
+                </label>
+
+                <label className="space-y-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Nº puestos</span>
+                  <input
+                    value={filters.workstations}
+                    onChange={event => updateField('workstations', event.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    placeholder="8"
+                  />
+                </label>
+
+                <label className="space-y-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Guardias</span>
+                  <select
+                    value={filters.hasGuards}
+                    onChange={event => updateField('hasGuards', event.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  >
+                    <option value="">Todas</option>
+                    <option value="yes">Sí</option>
+                    <option value="no">No</option>
+                  </select>
+                </label>
+              </div>
+
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Aperturas especiales</p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {ADVANCED_SCHEDULE_OPTIONS.map(option => (
+                    <label
+                      key={option.key}
+                      className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={filters.scheduleOptions.includes(option.key)}
+                        onChange={() => toggleScheduleOption(option.key)}
+                        className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                      />
+                      <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            <section className="space-y-4 rounded-2xl border border-slate-200 p-4">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Equipamiento</p>
+                <p className="mt-1 text-xs text-slate-400">Filtra por marca o proveedor de cada bloque de equipamiento.</p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {[
+                  ['erp', 'ERP'],
+                  ['caja', 'Caja de cobro'],
+                  ['esl', 'Etiquetas ESL'],
+                  ['bascula', 'Báscula'],
+                  ['consultoria', 'Consultoría'],
+                  ['frigorifico', 'Frigorífico'],
+                ].map(([key, label]) => {
+                  const options = equipmentOptions[key] || []
+                  return (
+                    <label key={key} className="space-y-1">
+                      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</span>
+                      <select
+                        value={filters[key]}
+                        onChange={event => updateField(key, event.target.value)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      >
+                        <option value="">Todas</option>
+                        <option value="__empty__">Sin valor</option>
+                        {options.map(option => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )
+                })}
+              </div>
+
+              <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                <p className="font-medium text-slate-700">Consejo</p>
+                <p className="mt-1">Si quieres localizar solo farmacias operadas por Viteka, usa también el filtro superior de <span className="font-medium">Viteka</span>.</p>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-6 py-4">
+          <button
+            type="button"
+            onClick={onClear}
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+          >
+            Limpiar filtros
+          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+            >
+              Cerrar
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-700"
+            >
+              Aplicar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 function compareValues(a, b, direction) {
   const aEmpty = a === null || a === undefined || a === ''
   const bEmpty = b === null || b === undefined || b === ''
@@ -552,8 +1048,9 @@ export default function PharmaciesPage() {
   const { pharmacies, loading } = usePharmacies(profile?.company_id)
   const [search, setSearch] = useState('')
   const [filterProvince, setFilterProvince] = useState('')
-  const [isVitekaFilterOpen, setIsVitekaFilterOpen] = useState(false)
   const [selectedVitekaProducts, setSelectedVitekaProducts] = useState([])
+  const [isAdvancedFiltersOpen, setIsAdvancedFiltersOpen] = useState(false)
+  const [advancedFilters, setAdvancedFilters] = useState(DEFAULT_ADVANCED_FILTERS)
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false)
   const [isExportFieldsOpen, setIsExportFieldsOpen] = useState(false)
   const [pendingExportType, setPendingExportType] = useState(null)
@@ -561,23 +1058,19 @@ export default function PharmaciesPage() {
   const [columns, setColumns] = useState(DEFAULT_COLUMNS)
   const [draggedColumnKey, setDraggedColumnKey] = useState(null)
   const [sortConfig, setSortConfig] = useState({ key: 'pharmacy_name', direction: 'asc' })
-  const vitekaFilterRef = useRef(null)
-
-  useEffect(() => {
-    function handlePointerDown(event) {
-      if (!vitekaFilterRef.current?.contains(event.target)) {
-        setIsVitekaFilterOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handlePointerDown)
-    return () => document.removeEventListener('mousedown', handlePointerDown)
-  }, [])
 
   const vitekaProductOptions = useMemo(() => (
     [...new Set(pharmacies.flatMap(pharmacy => getVitekaEquipmentProducts(pharmacy)))]
       .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }))
   ), [pharmacies])
+  const equipmentOptions = useMemo(() => ({
+    erp: buildUniqueOptions(pharmacies, pharmacy => getEquipmentValue(pharmacy, 'erp')),
+    caja: buildUniqueOptions(pharmacies, pharmacy => getEquipmentValue(pharmacy, 'caja')),
+    esl: buildUniqueOptions(pharmacies, pharmacy => getEquipmentValue(pharmacy, 'esl')),
+    bascula: buildUniqueOptions(pharmacies, pharmacy => getEquipmentValue(pharmacy, 'bascula')),
+    consultoria: buildUniqueOptions(pharmacies, pharmacy => getEquipmentValue(pharmacy, 'consultoria')),
+    frigorifico: buildUniqueOptions(pharmacies, pharmacy => getEquipmentValue(pharmacy, 'frigorifico')),
+  }), [pharmacies])
 
   const filtered = useMemo(() => pharmacies.filter(p => {
     const searchValue = [
@@ -597,8 +1090,49 @@ export default function PharmaciesPage() {
     const matchProv = !filterProvince || p.province === filterProvince
     const vitekaProducts = getVitekaEquipmentProducts(p)
     const matchViteka = selectedVitekaProducts.length === 0 || selectedVitekaProducts.some(product => vitekaProducts.includes(product))
-    return matchSearch && matchProv && matchViteka
-  }), [pharmacies, search, filterProvince, selectedVitekaProducts])
+    const scheduleOptions = p.schedule_options || p.schedule_detail?.options || {}
+    const matchStatus = !advancedFilters.status
+      || (advancedFilters.status === 'active' && p.is_active)
+      || (advancedFilters.status === 'inactive' && !p.is_active)
+    const matchLegalType = !advancedFilters.legalType || p.legal_type === advancedFilters.legalType
+    const matchCity = matchesTextValue(p.city, advancedFilters.city)
+    const matchPostalCode = matchesTextValue(p.postal_code, advancedFilters.postalCode)
+    const matchOwner = matchesTextValue(getOwners(p), advancedFilters.owner)
+    const matchPhone = matchesTextValue(p.contact_phone, advancedFilters.phone)
+    const matchEmail = matchesTextValue(p.contact_email, advancedFilters.email)
+    const matchWorkstations = matchesTextValue(getWorkstations(p), advancedFilters.workstations)
+    const matchGuards = !advancedFilters.hasGuards
+      || (advancedFilters.hasGuards === 'yes' && p.has_guards)
+      || (advancedFilters.hasGuards === 'no' && !p.has_guards)
+    const matchScheduleOptions = advancedFilters.scheduleOptions.length === 0
+      || advancedFilters.scheduleOptions.some(optionKey => Boolean(scheduleOptions[optionKey]))
+    const matchErp = matchesSelectValue(getEquipmentValue(p, 'erp'), advancedFilters.erp)
+    const matchCaja = matchesSelectValue(getEquipmentValue(p, 'caja'), advancedFilters.caja)
+    const matchEsl = matchesSelectValue(getEquipmentValue(p, 'esl'), advancedFilters.esl)
+    const matchBascula = matchesSelectValue(getEquipmentValue(p, 'bascula'), advancedFilters.bascula)
+    const matchConsultoria = matchesSelectValue(getEquipmentValue(p, 'consultoria'), advancedFilters.consultoria)
+    const matchFrigorifico = matchesSelectValue(getEquipmentValue(p, 'frigorifico'), advancedFilters.frigorifico)
+
+    return matchSearch
+      && matchProv
+      && matchViteka
+      && matchStatus
+      && matchLegalType
+      && matchCity
+      && matchPostalCode
+      && matchOwner
+      && matchPhone
+      && matchEmail
+      && matchWorkstations
+      && matchGuards
+      && matchScheduleOptions
+      && matchErp
+      && matchCaja
+      && matchEsl
+      && matchBascula
+      && matchConsultoria
+      && matchFrigorifico
+  }), [pharmacies, search, filterProvince, selectedVitekaProducts, advancedFilters])
 
   const sorted = useMemo(() => {
     const rows = [...filtered]
@@ -613,6 +1147,10 @@ export default function PharmaciesPage() {
   }, [filtered, sortConfig])
 
   const provinces = useMemo(() => [...new Set(pharmacies.map(p => p.province).filter(Boolean))].sort(), [pharmacies])
+  const advancedFilterCount = useMemo(
+    () => countActiveAdvancedFilters(advancedFilters, filterProvince, selectedVitekaProducts),
+    [advancedFilters, filterProvince, selectedVitekaProducts]
+  )
 
   function toggleVitekaProduct(product) {
     setSelectedVitekaProducts(prev => (
@@ -624,7 +1162,20 @@ export default function PharmaciesPage() {
 
   function clearVitekaProducts() {
     setSelectedVitekaProducts([])
-    setIsVitekaFilterOpen(false)
+  }
+
+  function clearAdvancedFilters() {
+    setAdvancedFilters(DEFAULT_ADVANCED_FILTERS)
+    setFilterProvince('')
+  }
+
+  function resetAllFilters() {
+    setSearch('')
+    setFilterProvince('')
+    setSelectedVitekaProducts([])
+    setAdvancedFilters(DEFAULT_ADVANCED_FILTERS)
+    setIsAdvancedFiltersOpen(false)
+    setIsExportMenuOpen(false)
   }
 
   function buildFileName(ext) {
@@ -844,8 +1395,8 @@ export default function PharmaciesPage() {
         </Link>
       </div>
 
-      <div className="flex flex-col gap-2 lg:flex-row">
-        <div className="relative flex-1">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-start">
+        <div className="relative w-full lg:w-1/2">
           <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
@@ -855,79 +1406,47 @@ export default function PharmaciesPage() {
             className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
           />
         </div>
-        <select
-          value={filterProvince}
-          onChange={e => setFilterProvince(e.target.value)}
-          className="border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 max-w-[140px]"
-        >
-          <option value="">Todas</option>
-          {provinces.map(p => (
-            <option key={p} value={p}>{PROVINCE_LABEL[p] || p}</option>
-          ))}
-        </select>
-        <div ref={vitekaFilterRef} className="relative">
+        <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
+          <select
+            value={filterProvince}
+            onChange={e => setFilterProvince(e.target.value)}
+            className="border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 max-w-[140px]"
+          >
+            <option value="">Todas</option>
+            {provinces.map(p => (
+              <option key={p} value={p}>{PROVINCE_LABEL[p] || p}</option>
+            ))}
+          </select>
+          <VitekaFilterMenu
+            options={vitekaProductOptions}
+            selectedProducts={selectedVitekaProducts}
+            onToggleProduct={toggleVitekaProduct}
+            onClear={clearVitekaProducts}
+          />
           <button
             type="button"
-            onClick={() => setIsVitekaFilterOpen(prev => !prev)}
+            onClick={() => setIsAdvancedFiltersOpen(prev => !prev)}
             className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-              selectedVitekaProducts.length > 0
+              advancedFilterCount > 0
                 ? 'border-teal-300 bg-teal-50 text-teal-700'
                 : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
             }`}
           >
-            Viteka
-            {selectedVitekaProducts.length > 0 && (
+            Filtros
+            {advancedFilterCount > 0 && (
               <span className="rounded-full bg-white/80 px-1.5 py-0.5 text-[11px] font-semibold">
-                {selectedVitekaProducts.length}
+                {advancedFilterCount}
               </span>
             )}
-            <ChevronDownIcon className={`w-4 h-4 transition-transform ${isVitekaFilterOpen ? 'rotate-180' : ''}`} />
           </button>
-
-          {isVitekaFilterOpen && (
-            <div className="absolute left-0 top-full z-20 mt-2 w-[300px] rounded-xl border border-gray-200 bg-white shadow-lg">
-              <div className="border-b border-gray-100 px-4 py-3">
-                <p className="text-sm font-medium text-gray-800">Equipos soportados por Viteka</p>
-                <p className="mt-0.5 text-xs text-gray-500">Marca una o varias opciones para mostrar solo farmacias con ese producto activo.</p>
-              </div>
-              <div className="max-h-64 overflow-y-auto p-2">
-                {vitekaProductOptions.length === 0 ? (
-                  <p className="px-2 py-3 text-sm text-gray-400">Todavía no hay productos Viteka detectados.</p>
-                ) : vitekaProductOptions.map(product => (
-                  <label
-                    key={product}
-                    className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedVitekaProducts.includes(product)}
-                      onChange={() => toggleVitekaProduct(product)}
-                      className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
-                    />
-                    <span className="min-w-0 flex-1 truncate">{product}</span>
-                  </label>
-                ))}
-              </div>
-              <div className="flex items-center justify-between gap-2 border-t border-gray-100 px-4 py-3">
-                <button
-                  type="button"
-                  onClick={clearVitekaProducts}
-                  className="text-sm text-gray-500 hover:text-gray-700"
-                >
-                  Limpiar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsVitekaFilterOpen(false)}
-                  className="rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-700"
-                >
-                  Aplicar
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-        <div className="relative lg:ml-auto">
+          <button
+            type="button"
+            onClick={resetAllFilters}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+          >
+            Limpiar todo
+          </button>
+          <div className="relative">
           <button
             type="button"
             onClick={() => setIsExportMenuOpen(prev => !prev)}
@@ -974,8 +1493,23 @@ export default function PharmaciesPage() {
               </button>
             </div>
           )}
+          </div>
         </div>
       </div>
+
+      <AdvancedFiltersModal
+        isOpen={isAdvancedFiltersOpen}
+        onClose={() => setIsAdvancedFiltersOpen(false)}
+        filters={advancedFilters}
+        onChange={setAdvancedFilters}
+        onClear={clearAdvancedFilters}
+        provinces={{
+          value: filterProvince,
+          onChange: setFilterProvince,
+          options: provinces,
+        }}
+        equipmentOptions={equipmentOptions}
+      />
 
       {isExportFieldsOpen && !loading && sorted.length > 0 && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-gray-900/40 px-4" onClick={closeExportFieldSelector}>
