@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ClockIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { ClockIcon, PlusIcon, Squares2X2Icon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { Label, Input, Select, Textarea } from './PharmacyFormAtoms'
 import {
   buildEmptyScheduleDetail,
   cloneScheduleDetail,
   formatScheduleSummary,
+  getScheduleOptionLabels,
   sanitizeScheduleDetail,
   SCHEDULE_DAYS,
 } from '../../lib/pharmacySchedule'
@@ -25,6 +26,18 @@ function ScheduleEditorModal({ isOpen, value, fallbackSummary, onClose, onApply 
   }, [isOpen, value])
 
   const summary = useMemo(() => formatScheduleSummary(draft, fallbackSummary), [draft, fallbackSummary])
+
+  const filledSourcesByDay = useMemo(() => {
+    const clean = sanitizeScheduleDetail(draft)
+    return SCHEDULE_DAYS.reduce((acc, day) => {
+      acc[day.key] = SCHEDULE_DAYS.filter(sourceDay => {
+        if (sourceDay.key === day.key) return false
+        const config = clean.days[sourceDay.key]
+        return config.enabled && config.ranges.some(range => range.start && range.end)
+      })
+      return acc
+    }, {})
+  }, [draft])
 
   if (!isOpen) return null
 
@@ -94,6 +107,24 @@ function ScheduleEditorModal({ isOpen, value, fallbackSummary, onClose, onApply 
     })
   }
 
+  function copyDayFrom(targetDayKey, sourceDayKey) {
+    setDraft(prev => {
+      const sourceDay = prev.days?.[sourceDayKey]
+      if (!sourceDay) return prev
+
+      return {
+        ...prev,
+        days: {
+          ...prev.days,
+          [targetDayKey]: {
+            enabled: true,
+            ranges: (sourceDay.ranges || []).map(range => ({ ...range })),
+          },
+        },
+      }
+    })
+  }
+
   function handleApply() {
     onApply(sanitizeScheduleDetail(draft), formatScheduleSummary(draft))
   }
@@ -120,6 +151,7 @@ function ScheduleEditorModal({ isOpen, value, fallbackSummary, onClose, onApply 
           <div className="space-y-3">
             {SCHEDULE_DAYS.map(day => {
               const config = draft.days?.[day.key] || { enabled: false, ranges: [{ start: '', end: '' }] }
+              const sourceDays = filledSourcesByDay[day.key] || []
               return (
                 <div key={day.key} className="rounded-2xl border border-gray-200 p-4">
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -135,6 +167,23 @@ function ScheduleEditorModal({ isOpen, value, fallbackSummary, onClose, onApply 
 
                     {config.enabled ? (
                       <div className="w-full space-y-2 md:max-w-xl">
+                        {sourceDays.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-2 rounded-xl bg-slate-50 px-3 py-2">
+                            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Copiar de</span>
+                            {sourceDays.map(sourceDay => (
+                              <button
+                                key={`${day.key}_${sourceDay.key}`}
+                                type="button"
+                                onClick={() => copyDayFrom(day.key, sourceDay.key)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-teal-300 hover:text-teal-700"
+                              >
+                                <Squares2X2Icon className="h-3.5 w-3.5" />
+                                {sourceDay.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
                         {(config.ranges || []).map((range, index) => (
                           <div key={`${day.key}_${index}`} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto_1fr_auto] sm:items-center">
                             <input
@@ -222,6 +271,11 @@ export default function ContactBlock({ data, onChange, showGuardsAndSchedule = f
     return formatScheduleSummary(data.schedule_detail)
   }, [data.schedule, data.schedule_detail])
 
+  const optionLabels = useMemo(
+    () => getScheduleOptionLabels(data.schedule_detail),
+    [data.schedule_detail]
+  )
+
   function handleApplySchedule(scheduleDetail, summary) {
     onChange('schedule_detail', scheduleDetail)
     onChange('schedule', summary)
@@ -284,14 +338,53 @@ export default function ContactBlock({ data, onChange, showGuardsAndSchedule = f
                 onClick={() => setIsScheduleOpen(true)}
                 className="flex w-full items-center justify-between rounded-lg border border-gray-300 px-3 py-2 text-left text-sm transition-colors hover:border-teal-400 hover:bg-teal-50/40"
               >
-                <span className={scheduleSummary ? 'text-gray-700' : 'text-gray-400'}>
+                <span className={`min-w-0 truncate pr-3 ${scheduleSummary ? 'text-gray-700' : 'text-gray-400'}`}>
                   {scheduleSummary || 'Configurar horario'}
                 </span>
                 <ClockIcon className="h-4 w-4 shrink-0 text-teal-600" />
               </button>
+              {optionLabels.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {optionLabels.map(label => (
+                    <span
+                      key={label}
+                      className="inline-flex max-w-full items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600"
+                    >
+                      <span className="truncate">{label}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="sm:col-span-2 rounded-xl border border-gray-200 bg-slate-50/70 p-4">
+              <div className="mb-3 grid grid-cols-2 gap-2 lg:grid-cols-3">
+                {[
+                  ['open_365', '365 días'],
+                  ['open_24h', '24H'],
+                  ['local_holidays', 'Festivos locales'],
+                  ['regional_holidays', 'Festivos autonómicos'],
+                  ['national_holidays', 'Festivos nacionales'],
+                ].map(([key, label]) => (
+                  <label
+                    key={key}
+                    className="flex min-h-[42px] cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition-colors hover:border-teal-300 hover:bg-teal-50/40"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={Boolean(data.schedule_detail?.options?.[key])}
+                      onChange={event => {
+                        const nextDetail = sanitizeScheduleDetail(data.schedule_detail || buildEmptyScheduleDetail())
+                        nextDetail.options[key] = event.target.checked
+                        onChange('schedule_detail', nextDetail)
+                      }}
+                      className="h-4 w-4 shrink-0 accent-teal-600"
+                    />
+                    <span className="leading-tight">{label}</span>
+                  </label>
+                ))}
+              </div>
+
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                 <input
                   type="checkbox"

@@ -20,6 +20,13 @@ function buildEmptyDay() {
 export function buildEmptyScheduleDetail() {
   return {
     days: Object.fromEntries(SCHEDULE_DAYS.map(day => [day.key, buildEmptyDay()])),
+    options: {
+      open_365: false,
+      open_24h: false,
+      local_holidays: false,
+      regional_holidays: false,
+      national_holidays: false,
+    },
   }
 }
 
@@ -50,6 +57,14 @@ export function sanitizeScheduleDetail(detail) {
       enabled: Boolean(sourceDay.enabled) && ranges.length > 0,
       ranges: ranges.length > 0 ? ranges : [{ start: '', end: '' }],
     }
+  }
+
+  base.options = {
+    open_365: Boolean(detail?.options?.open_365),
+    open_24h: Boolean(detail?.options?.open_24h),
+    local_holidays: Boolean(detail?.options?.local_holidays),
+    regional_holidays: Boolean(detail?.options?.regional_holidays),
+    national_holidays: Boolean(detail?.options?.national_holidays),
   }
 
   return base
@@ -118,7 +133,7 @@ function parseStructuredPayload(value) {
   try {
     const parsed = JSON.parse(raw)
     if (!parsed || typeof parsed !== 'object') return null
-    if (!('summary' in parsed) && !('days' in parsed) && !('guard_notes' in parsed)) return null
+    if (!('summary' in parsed) && !('days' in parsed) && !('guard_notes' in parsed) && !('options' in parsed)) return null
     return parsed
   } catch {
     return null
@@ -136,11 +151,12 @@ export function parseScheduleValue(value) {
       detail: null,
       summary: rawValue.trim(),
       guardNotes: '',
+      options: buildEmptyScheduleDetail().options,
     }
   }
 
   const detail = payload.days
-    ? sanitizeScheduleDetail({ days: payload.days })
+    ? sanitizeScheduleDetail({ days: payload.days, options: payload.options })
     : null
 
   return {
@@ -149,7 +165,21 @@ export function parseScheduleValue(value) {
     detail,
     summary: (payload.summary || formatScheduleSummary(detail) || '').trim(),
     guardNotes: (payload.guard_notes || '').trim(),
+    options: detail?.options || buildEmptyScheduleDetail().options,
   }
+}
+
+export function getScheduleOptionLabels(detail) {
+  const options = sanitizeScheduleDetail(detail).options
+  const labels = []
+
+  if (options.open_365) labels.push('365 días')
+  if (options.open_24h) labels.push('24H')
+  if (options.local_holidays) labels.push('Abre festivos locales')
+  if (options.regional_holidays) labels.push('Abre festivos autonómicos')
+  if (options.national_holidays) labels.push('Abre festivos nacionales')
+
+  return labels
 }
 
 export function serializeScheduleValue({ detail, summary, rawValue = '', guardNotes = '' }) {
@@ -172,6 +202,7 @@ export function serializeScheduleValue({ detail, summary, rawValue = '', guardNo
     version: 1,
     summary: finalSummary,
     days: hasStructuredSchedule(cleanDetail) ? cleanDetail.days : null,
+    options: cleanDetail?.options || buildEmptyScheduleDetail().options,
     guard_notes: safeGuardNotes,
   })}`
 }

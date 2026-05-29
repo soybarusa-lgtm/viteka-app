@@ -90,6 +90,7 @@ export const mkContact = (key, data = {}) => ({
       schedule_detail: parsedSchedule.detail,
       schedule_raw: parsedSchedule.rawValue || '',
       guard_notes: parsedSchedule.guardNotes || '',
+      schedule_options: parsedSchedule.options,
     }
   })(),
   __key:        key,
