@@ -1569,6 +1569,7 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
 
   const [modalDevice, setModalDevice] = useState(null)
   const [confirmDel, setConfirmDel]   = useState(null)
+  const [deletingId, setDeletingId]   = useState(null)
   const [showCopy, setShowCopy]       = useState(false)
   const [search, setSearch]           = useState('')
   const [draftType, setDraftType]     = useState('servidor')
@@ -1642,9 +1643,30 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
   }
 
   async function handleDelete(device) {
-    await deleteDevice(device.id)
-    toast('Equipo eliminado', 'success')
-    setConfirmDel(null)
+    setDeletingId(device.id)
+    try {
+      const photoPaths = getDevicePhotos(device)
+        .map(photo => photo.storage_path)
+        .filter(Boolean)
+
+      await deleteDevice(device.id)
+      let storageWarning = false
+      if (photoPaths.length > 0) {
+        const { error } = await supabase.storage.from(DEVICE_PHOTO_BUCKET).remove(photoPaths)
+        storageWarning = Boolean(error)
+      }
+      toast(
+        storageWarning
+          ? 'Equipo eliminado, pero no se pudieron retirar algunas imágenes del almacenamiento'
+          : 'Equipo eliminado',
+        storageWarning ? 'error' : 'success'
+      )
+      setConfirmDel(null)
+    } catch {
+      toast('Error al eliminar el equipo', 'error')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   function toggleGroup(key) {
@@ -1812,8 +1834,9 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
         <ConfirmDialog
           title="Eliminar equipo"
           message={`¿Seguro que quieres eliminar "${confirmDel.label || IT_LABEL[confirmDel.device_type] || 'este equipo'}"? Esta acción no se puede deshacer.`}
-          confirmLabel="Eliminar"
+          confirmLabel={deletingId === confirmDel.id ? 'Eliminando...' : 'Eliminar'}
           variant="danger"
+          disabled={deletingId === confirmDel.id}
           onConfirm={() => handleDelete(confirmDel)}
           onCancel={() => setConfirmDel(null)}
         />
@@ -1828,6 +1851,7 @@ function TabPeople({ pharmacyId, companyId, initialAction, onActionHandled }) {
   const toast = useToast()
   const [editing, setEditing] = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
+  const [deletingId, setDeletingId] = useState(null)
 
   const empty = {
     name: '',
@@ -1906,9 +1930,16 @@ function TabPeople({ pharmacyId, companyId, initialAction, onActionHandled }) {
   }
 
   async function handleDelete(person) {
-    await deletePerson(person.id)
-    toast('Persona eliminada', 'success')
-    setConfirmDel(null)
+    setDeletingId(person.id)
+    try {
+      await deletePerson(person.id)
+      toast('Persona eliminada', 'success')
+      setConfirmDel(null)
+    } catch {
+      toast('Error al eliminar la persona', 'error')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   useEffect(() => {
@@ -1986,8 +2017,9 @@ function TabPeople({ pharmacyId, companyId, initialAction, onActionHandled }) {
         <ConfirmDialog
           title="Eliminar persona"
           message={`¿Seguro que quieres eliminar a \"${confirmDel.name}\"?`}
-          confirmLabel="Eliminar"
+          confirmLabel={deletingId === confirmDel.id ? 'Eliminando...' : 'Eliminar'}
           variant="danger"
+          disabled={deletingId === confirmDel.id}
           onConfirm={() => handleDelete(confirmDel)}
           onCancel={() => setConfirmDel(null)}
         />
