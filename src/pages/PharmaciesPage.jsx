@@ -49,6 +49,32 @@ function getOwners(pharmacy) {
   return [...new Set(owners.filter(Boolean))].join(', ')
 }
 
+function getOwnerSummary(pharmacy) {
+  const personalOwners = []
+
+  if (pharmacy.owner_name) personalOwners.push(pharmacy.owner_name)
+
+  if (Array.isArray(pharmacy.cb_owners)) {
+    pharmacy.cb_owners.forEach(owner => {
+      if (owner?.name) personalOwners.push(owner.name)
+    })
+  }
+
+  const uniquePersonalOwners = [...new Set(personalOwners.filter(Boolean))]
+  const legalNames = [...new Set([pharmacy.razon_social].filter(Boolean))]
+  const primaryOwner = uniquePersonalOwners[0] || legalNames[0] || ''
+  const extraOwners = uniquePersonalOwners.slice(primaryOwner === uniquePersonalOwners[0] ? 1 : 0)
+  const extraLegalNames = primaryOwner === legalNames[0] ? legalNames.slice(1) : legalNames
+  const hiddenCount = extraOwners.length + extraLegalNames.length
+
+  return {
+    primaryOwner,
+    extraOwners,
+    extraLegalNames,
+    hiddenCount,
+  }
+}
+
 function getWorkstations(pharmacy) {
   const value = pharmacy.equipment?.erp_detail?.puestos
   if (value === null || value === undefined || value === '') return ''
@@ -199,6 +225,117 @@ function ScheduleTooltip({ pharmacy }) {
           </div>
         </div>,
         document.body
+      )}
+    </div>
+  )
+}
+
+function OwnerTooltip({ pharmacy }) {
+  const anchorRef = useRef(null)
+  const tooltipRef = useRef(null)
+  const [isOpen, setIsOpen] = useState(false)
+  const [position, setPosition] = useState({ top: 0, left: 0, ready: false })
+  const ownerSummary = getOwnerSummary(pharmacy)
+  const hasExtraInfo = ownerSummary.hiddenCount > 0
+
+  useEffect(() => {
+    if (!isOpen || !anchorRef.current || !tooltipRef.current) return undefined
+
+    function updatePosition() {
+      if (!anchorRef.current || !tooltipRef.current) return
+
+      const anchorRect = anchorRef.current.getBoundingClientRect()
+      const tooltipRect = tooltipRef.current.getBoundingClientRect()
+      const viewportPadding = 16
+      const gap = 8
+
+      let left = anchorRect.left
+      if (left + tooltipRect.width > window.innerWidth - viewportPadding) {
+        left = window.innerWidth - tooltipRect.width - viewportPadding
+      }
+      left = Math.max(viewportPadding, left)
+
+      let top = anchorRect.bottom + gap
+      if (top + tooltipRect.height > window.innerHeight - viewportPadding) {
+        top = anchorRect.top - tooltipRect.height - gap
+      }
+      top = Math.max(viewportPadding, top)
+
+      setPosition({ top, left, ready: true })
+    }
+
+    const rafId = window.requestAnimationFrame(updatePosition)
+    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', updatePosition)
+
+    return () => {
+      window.cancelAnimationFrame(rafId)
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
+    }
+  }, [isOpen, pharmacy])
+
+  if (!ownerSummary.primaryOwner) {
+    return <span>{EMPTY_VALUE}</span>
+  }
+
+  return (
+    <div
+      ref={anchorRef}
+      className="flex max-w-[320px] items-start gap-2"
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+    >
+      <span className="min-w-0 flex-1 truncate text-slate-700">{ownerSummary.primaryOwner}</span>
+
+      {hasExtraInfo && (
+        <>
+          <span className="inline-flex shrink-0 items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+            +{ownerSummary.hiddenCount}
+          </span>
+
+          {isOpen && createPortal(
+            <div
+              ref={tooltipRef}
+              className="pointer-events-none fixed z-[80] w-[320px] rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-2xl"
+              style={{
+                top: `${position.top}px`,
+                left: `${position.left}px`,
+                opacity: position.ready ? 1 : 0,
+              }}
+            >
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Titular principal</p>
+                  <p className="mt-1 text-sm font-medium text-slate-700">{ownerSummary.primaryOwner}</p>
+                </div>
+
+                {ownerSummary.extraOwners.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Otros titulares</p>
+                    <div className="mt-2 space-y-1.5">
+                      {ownerSummary.extraOwners.map(owner => (
+                        <p key={owner} className="text-sm text-slate-700">{owner}</p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {ownerSummary.extraLegalNames.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Sociedad / C.B. / S.L.</p>
+                    <div className="mt-2 space-y-1.5">
+                      {ownerSummary.extraLegalNames.map(name => (
+                        <p key={name} className="text-sm text-slate-700">{name}</p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>,
+            document.body
+          )}
+        </>
       )}
     </div>
   )
@@ -815,6 +952,8 @@ export default function PharmaciesPage() {
                               <a href={`tel:${value}`} className="text-teal-700 hover:underline">{value}</a>
                             ) : column.key === 'schedule' ? (
                               <ScheduleTooltip pharmacy={ph} />
+                            ) : column.key === 'owners' ? (
+                              <OwnerTooltip pharmacy={ph} />
                             ) : (
                               value || EMPTY_VALUE
                             )}
