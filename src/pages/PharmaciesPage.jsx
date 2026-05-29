@@ -383,23 +383,46 @@ export default function PharmaciesPage() {
             <option key={p} value={p}>{PROVINCE_LABEL[p] || p}</option>
           ))}
         </select>
-        <div className="relative lg:ml-auto">
+        <div className="lg:ml-auto">
           <button
             type="button"
-            onClick={() => setIsExportMenuOpen(prev => !prev)}
+            onClick={() => setIsExportMenuOpen(true)}
             disabled={loading || sorted.length === 0}
             className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <ArrowDownTrayIcon className="w-4 h-4" />
             Extraer
-            <ChevronDownIcon className={`w-4 h-4 transition-transform ${isExportMenuOpen ? 'rotate-180' : ''}`} />
           </button>
-          {isExportMenuOpen && !loading && sorted.length > 0 && (
-            <div className="absolute right-0 top-full z-20 mt-2 min-w-[180px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+        </div>
+      </div>
+
+      {isExportMenuOpen && !loading && sorted.length > 0 && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-gray-900/40 px-4" onClick={() => setIsExportMenuOpen(false)}>
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Extraer farmacias</h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  Elige el formato que quieres descargar con los filtros actuales aplicados.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsExportMenuOpen(false)}
+                className="rounded-lg px-2 py-1 text-sm text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <button
                 type="button"
                 onClick={() => handleExport(exportExcel)}
-                className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:bg-gray-50"
+                className="flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:border-teal-300 hover:bg-teal-50"
               >
                 <ArrowDownTrayIcon className="w-4 h-4" />
                 Excel
@@ -407,7 +430,7 @@ export default function PharmaciesPage() {
               <button
                 type="button"
                 onClick={() => handleExport(exportCsv)}
-                className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:bg-gray-50"
+                className="flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:border-teal-300 hover:bg-teal-50"
               >
                 <ArrowDownTrayIcon className="w-4 h-4" />
                 CSV
@@ -415,7 +438,7 @@ export default function PharmaciesPage() {
               <button
                 type="button"
                 onClick={() => handleExport(exportTxt)}
-                className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:bg-gray-50"
+                className="flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:border-teal-300 hover:bg-teal-50"
               >
                 <ArrowDownTrayIcon className="w-4 h-4" />
                 TXT (;)
@@ -423,15 +446,15 @@ export default function PharmaciesPage() {
               <button
                 type="button"
                 onClick={() => handleExport(exportPdf)}
-                className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:bg-gray-50"
+                className="flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:border-teal-300 hover:bg-teal-50"
               >
                 <ArrowDownTrayIcon className="w-4 h-4" />
                 PDF
               </button>
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {loading ? (
         <>
