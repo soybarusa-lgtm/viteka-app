@@ -634,19 +634,21 @@ export default function PharmaciesPage() {
           <div className="md:hidden space-y-2">
             {[...Array(5)].map((_, i) => <SkeletonCard key={i} />)}
           </div>
-          <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
-            <table className="w-full min-w-[1280px] text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  {DEFAULT_COLUMNS.map(column => (
-                    <th key={column.key} className="text-left px-4 py-3 font-medium text-gray-600">{column.label}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {[...Array(5)].map((_, i) => <SkeletonRow key={i} />)}
-              </tbody>
-            </table>
+          <div className="hidden md:block rounded-xl border border-gray-200 bg-white">
+            <div className="overflow-x-auto overflow-y-visible rounded-xl">
+              <table className="w-full min-w-[1280px] text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    {DEFAULT_COLUMNS.map(column => (
+                      <th key={column.key} className="text-left px-4 py-3 font-medium text-gray-600">{column.label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {[...Array(5)].map((_, i) => <SkeletonRow key={i} />)}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       ) : sorted.length === 0 ? (
@@ -704,68 +706,70 @@ export default function PharmaciesPage() {
             ))}
           </div>
 
-          <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
-            <table className="w-full min-w-[1280px] text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  {columns.map(column => {
-                    const isActiveSort = sortConfig.key === column.key
-                    return (
-                      <th
-                        key={column.key}
-                        draggable
-                        onDragStart={() => setDraggedColumnKey(column.key)}
-                        onDragOver={e => e.preventDefault()}
-                        onDrop={() => moveColumn(draggedColumnKey, column.key)}
-                        onDragEnd={() => setDraggedColumnKey(null)}
-                        className={`group select-none whitespace-nowrap px-4 py-3 text-left font-medium text-gray-600 ${
-                          draggedColumnKey === column.key ? 'bg-teal-50' : ''
-                        }`}
-                        title="Pulsa para ordenar. Arrastra el encabezado para mover la columna."
-                      >
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleSort(column.key)}
-                            className="inline-flex items-center gap-1.5 hover:text-teal-700 focus:outline-none"
-                          >
-                            <span>{column.label}</span>
-                            <SortIcon active={isActiveSort} direction={sortConfig.direction} />
-                          </button>
-                          <Bars3Icon className="w-3.5 h-3.5 cursor-grab text-gray-300 group-hover:text-gray-500" />
-                        </div>
-                      </th>
-                    )
-                  })}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {sorted.map(ph => (
-                  <tr key={ph.id} className="hover:bg-gray-50 transition-colors">
+          <div className="hidden md:block rounded-xl border border-gray-200 bg-white">
+            <div className="overflow-x-auto overflow-y-visible rounded-xl">
+              <table className="w-full min-w-[1280px] text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
                     {columns.map(column => {
-                      const value = getColumnValue(ph, column.key)
+                      const isActiveSort = sortConfig.key === column.key
                       return (
-                        <td key={column.key} className="px-4 py-3 text-gray-500 align-top">
-                          {column.key === 'pharmacy_name' ? (
-                            <Link to={`/farmacias/${ph.id}`} className="font-medium text-teal-700 hover:underline">
-                              {value || EMPTY_VALUE}
-                            </Link>
-                          ) : column.key === 'contact_email' && value ? (
-                            <a href={`mailto:${value}`} className="text-teal-700 hover:underline">{value}</a>
-                          ) : column.key === 'contact_phone' && value ? (
-                            <a href={`tel:${value}`} className="text-teal-700 hover:underline">{value}</a>
-                          ) : column.key === 'schedule' ? (
-                            <ScheduleTooltip pharmacy={ph} />
-                          ) : (
-                            value || EMPTY_VALUE
-                          )}
-                        </td>
+                        <th
+                          key={column.key}
+                          draggable
+                          onDragStart={() => setDraggedColumnKey(column.key)}
+                          onDragOver={e => e.preventDefault()}
+                          onDrop={() => moveColumn(draggedColumnKey, column.key)}
+                          onDragEnd={() => setDraggedColumnKey(null)}
+                          className={`group select-none whitespace-nowrap px-4 py-3 text-left font-medium text-gray-600 ${
+                            draggedColumnKey === column.key ? 'bg-teal-50' : ''
+                          }`}
+                          title="Pulsa para ordenar. Arrastra el encabezado para mover la columna."
+                        >
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleSort(column.key)}
+                              className="inline-flex items-center gap-1.5 hover:text-teal-700 focus:outline-none"
+                            >
+                              <span>{column.label}</span>
+                              <SortIcon active={isActiveSort} direction={sortConfig.direction} />
+                            </button>
+                            <Bars3Icon className="w-3.5 h-3.5 cursor-grab text-gray-300 group-hover:text-gray-500" />
+                          </div>
+                        </th>
                       )
                     })}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {sorted.map(ph => (
+                    <tr key={ph.id} className="hover:bg-gray-50 transition-colors">
+                      {columns.map(column => {
+                        const value = getColumnValue(ph, column.key)
+                        return (
+                          <td key={column.key} className="px-4 py-3 text-gray-500 align-top">
+                            {column.key === 'pharmacy_name' ? (
+                              <Link to={`/farmacias/${ph.id}`} className="font-medium text-teal-700 hover:underline">
+                                {value || EMPTY_VALUE}
+                              </Link>
+                            ) : column.key === 'contact_email' && value ? (
+                              <a href={`mailto:${value}`} className="text-teal-700 hover:underline">{value}</a>
+                            ) : column.key === 'contact_phone' && value ? (
+                              <a href={`tel:${value}`} className="text-teal-700 hover:underline">{value}</a>
+                            ) : column.key === 'schedule' ? (
+                              <ScheduleTooltip pharmacy={ph} />
+                            ) : (
+                              value || EMPTY_VALUE
+                            )}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       )}
