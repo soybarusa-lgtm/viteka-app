@@ -171,7 +171,8 @@ export function parseScheduleValue(value) {
     }
   }
 
-  const detail = payload.days
+  const hasStructuredContent = Boolean(payload.days || payload.options)
+  const detail = hasStructuredContent
     ? sanitizeScheduleDetail({ days: payload.days, options: payload.options })
     : null
 
