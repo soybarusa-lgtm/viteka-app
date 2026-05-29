@@ -94,7 +94,7 @@ export function usePharmacies(companyId) {
     if (pharmacyIds.length > 0) {
       const { data: equipmentData, error: equipmentError } = await supabase
         .from('pharmacy_equipment')
-        .select('pharmacy_id, erp_detail')
+        .select('pharmacy_id, erp, erp_detail')
         .in('pharmacy_id', pharmacyIds)
 
       if (equipmentError) {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import jsPDF from 'jspdf'
 import { useAuth } from '../hooks/useAuth'
@@ -8,6 +8,8 @@ import { getScheduleDayRows, getScheduleOptionLabels } from '../lib/pharmacySche
 import {
   MagnifyingGlassIcon, PlusIcon, BuildingStorefrontIcon, MapPinIcon,
   Bars3Icon, ChevronUpDownIcon, ChevronUpIcon, ChevronDownIcon, ArrowDownTrayIcon,
+  EllipsisVerticalIcon, PencilSquareIcon, WrenchScrewdriverIcon, ComputerDesktopIcon,
+  UsersIcon, ExclamationTriangleIcon, FolderOpenIcon, DocumentTextIcon,
 } from '@heroicons/react/24/outline'
 
 const PROVINCE_LABEL = {
@@ -118,7 +120,10 @@ function ScheduleTooltip({ pharmacy }) {
   const [isOpen, setIsOpen] = useState(false)
   const [position, setPosition] = useState({ top: 0, left: 0, ready: false })
   const scheduleRows = getScheduleDayRows(pharmacy.schedule_detail)
-  const optionLabels = getScheduleOptionLabels(pharmacy.schedule_detail)
+  const optionLabels = getScheduleOptionLabels({
+    days: pharmacy.schedule_detail?.days,
+    options: pharmacy.schedule_options,
+  })
   const hasExtraInfo = scheduleRows.length > 0 || optionLabels.length > 0 || pharmacy.has_guards || pharmacy.schedule_guard_notes
 
   useEffect(() => {
@@ -180,11 +185,6 @@ function ScheduleTooltip({ pharmacy }) {
           }}
         >
           <div className="space-y-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Resumen</p>
-              <p className="mt-1 text-sm font-medium text-slate-700">{pharmacy.schedule || 'Sin horario informado'}</p>
-            </div>
-
             {scheduleRows.length > 0 && (
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Detalle</p>
@@ -228,6 +228,122 @@ function ScheduleTooltip({ pharmacy }) {
                 <p className="mt-1 text-sm leading-relaxed text-slate-700">{pharmacy.schedule_guard_notes}</p>
               </div>
             )}
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  )
+}
+
+function RowActionsMenu({ pharmacy }) {
+  const navigate = useNavigate()
+  const anchorRef = useRef(null)
+  const menuRef = useRef(null)
+  const [isOpen, setIsOpen] = useState(false)
+  const [position, setPosition] = useState({ top: 0, left: 0, ready: false })
+
+  const actions = [
+    { label: 'Editar datos', icon: PencilSquareIcon, to: `/farmacias/${pharmacy.id}?tab=general&action=edit` },
+    { label: 'Editar equipamiento', icon: WrenchScrewdriverIcon, to: `/farmacias/${pharmacy.id}?tab=equipment&action=edit` },
+    { label: 'Crear equipo informático', icon: ComputerDesktopIcon, to: `/farmacias/${pharmacy.id}?tab=it&action=new-it` },
+    { label: 'Crear persona', icon: UsersIcon, to: `/farmacias/${pharmacy.id}?tab=people&action=new-person` },
+    { label: 'Crear ticket', icon: ExclamationTriangleIcon, to: `/farmacias/${pharmacy.id}?tab=incidents` },
+    { label: 'Crear proyecto', icon: FolderOpenIcon, to: `/farmacias/${pharmacy.id}?tab=projects` },
+    { label: 'Subir documentos', icon: DocumentTextIcon, to: `/farmacias/${pharmacy.id}?tab=documents` },
+  ]
+
+  useEffect(() => {
+    if (!isOpen || !anchorRef.current || !menuRef.current) return undefined
+
+    function updatePosition() {
+      if (!anchorRef.current || !menuRef.current) return
+
+      const anchorRect = anchorRef.current.getBoundingClientRect()
+      const menuRect = menuRef.current.getBoundingClientRect()
+      const viewportPadding = 16
+      const gap = 8
+
+      let left = anchorRect.right - menuRect.width
+      if (left < viewportPadding) left = viewportPadding
+      if (left + menuRect.width > window.innerWidth - viewportPadding) {
+        left = window.innerWidth - menuRect.width - viewportPadding
+      }
+
+      let top = anchorRect.bottom + gap
+      if (top + menuRect.height > window.innerHeight - viewportPadding) {
+        top = anchorRect.top - menuRect.height - gap
+      }
+      top = Math.max(viewportPadding, top)
+
+      setPosition({ top, left, ready: true })
+    }
+
+    function handlePointerDown(event) {
+      if (
+        anchorRef.current?.contains(event.target) ||
+        menuRef.current?.contains(event.target)
+      ) {
+        return
+      }
+      setIsOpen(false)
+    }
+
+    const rafId = window.requestAnimationFrame(updatePosition)
+    document.addEventListener('mousedown', handlePointerDown)
+    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', updatePosition)
+
+    return () => {
+      window.cancelAnimationFrame(rafId)
+      document.removeEventListener('mousedown', handlePointerDown)
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
+    }
+  }, [isOpen])
+
+  function handleNavigate(to) {
+    setIsOpen(false)
+    navigate(to)
+  }
+
+  return (
+    <div className="flex justify-end">
+      <button
+        ref={anchorRef}
+        type="button"
+        onClick={() => setIsOpen(prev => !prev)}
+        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-400 transition-colors hover:border-teal-300 hover:text-teal-700"
+        aria-label={`Acciones rápidas para ${pharmacy.pharmacy_name}`}
+      >
+        <EllipsisVerticalIcon className="h-5 w-5" />
+      </button>
+
+      {isOpen && createPortal(
+        <div
+          ref={menuRef}
+          className="fixed z-[90] w-[240px] rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"
+          style={{
+            top: `${position.top}px`,
+            left: `${position.left}px`,
+            opacity: position.ready ? 1 : 0,
+          }}
+        >
+          <div className="space-y-1">
+            {actions.map(action => {
+              const Icon = action.icon
+              return (
+                <button
+                  key={action.label}
+                  type="button"
+                  onClick={() => handleNavigate(action.to)}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-slate-600 transition-colors hover:bg-teal-50 hover:text-teal-700"
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span>{action.label}</span>
+                </button>
+              )
+            })}
           </div>
         </div>,
         document.body
@@ -408,7 +524,7 @@ function SkeletonCard() {
 function SkeletonRow() {
   return (
     <tr className="animate-pulse">
-      {[...Array(DEFAULT_COLUMNS.length)].map((_, i) => (
+      {[...Array(DEFAULT_COLUMNS.length + 1)].map((_, i) => (
         <td key={i} className="px-4 py-3">
           <div className="h-3.5 bg-gray-100 rounded w-4/5" />
         </td>
@@ -843,6 +959,7 @@ export default function PharmaciesPage() {
                     {DEFAULT_COLUMNS.map(column => (
                       <th key={column.key} className="text-left px-4 py-3 font-medium text-gray-600">{column.label}</th>
                     ))}
+                    <th className="w-14 px-4 py-3" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -941,6 +1058,7 @@ export default function PharmaciesPage() {
                         </th>
                       )
                     })}
+                    <th className="w-14 px-4 py-3" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -973,6 +1091,9 @@ export default function PharmaciesPage() {
                           </td>
                         )
                       })}
+                      <td className="px-4 py-3 align-top">
+                        <RowActionsMenu pharmacy={ph} />
+                      </td>
                     </tr>
                   ))}
                 </tbody>

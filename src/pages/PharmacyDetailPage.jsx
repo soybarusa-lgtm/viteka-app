@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { usePharmacy } from '../hooks/usePharmacy'
 import { usePharmacyPersons } from '../hooks/usePharmacyPersons'
 import { usePharmacyDocuments } from '../hooks/usePharmacyDocuments'
@@ -92,7 +92,10 @@ function TabGeneral({ pharmacy }) {
   const sl = pharmacy.sl_data || {}
   const cbOwners = Array.isArray(pharmacy.cb_owners) ? pharmacy.cb_owners : []
   const mainSchedule = parseScheduleValue(pharmacy.schedule)
-  const scheduleOptions = getScheduleOptionLabels(mainSchedule.detail)
+  const scheduleOptions = getScheduleOptionLabels({
+    days: mainSchedule.detail?.days,
+    options: mainSchedule.options,
+  })
 
   const boolField = (label, val, wide) => (
     <Field label={label} value={val === true ? 'Sí' : val === false ? 'No' : null} wide={wide} />
@@ -1558,7 +1561,7 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
 const AUTO_LIST_THRESHOLD = 6
 
 // ── TabIT principal ────────────────────────────────────────────────────────────
-function TabIT({ pharmacyId, companyId }) {
+function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
   const { devices, loading, createDevice, updateDevice, deleteDevice } = usePharmacyIT(pharmacyId)
   const toast = useToast()
 
@@ -1584,6 +1587,12 @@ function TabIT({ pharmacyId, companyId }) {
     setDraftType(type)
     setModalDevice(createEmptyITDevice(type))
   }
+
+  useEffect(() => {
+    if (initialAction !== 'new-it') return
+    openNewForm(draftType)
+    onActionHandled?.()
+  }, [initialAction])
 
   function closeModal() {
     setModalDevice(null)
@@ -1812,7 +1821,7 @@ function TabIT({ pharmacyId, companyId }) {
 }
 
 // ── Tab: Personas ─────────────────────────────────────────────────────────────
-function TabPeople({ pharmacyId, companyId }) {
+function TabPeople({ pharmacyId, companyId, initialAction, onActionHandled }) {
   const { persons, loading, createPerson, updatePerson, deletePerson } = usePharmacyPersons(pharmacyId)
   const toast = useToast()
   const [editing, setEditing] = useState(null)
@@ -1836,6 +1845,12 @@ function TabPeople({ pharmacyId, companyId }) {
     toast('Persona eliminada', 'success')
     setConfirmDel(null)
   }
+
+  useEffect(() => {
+    if (initialAction !== 'new-person') return
+    setEditing(empty)
+    onActionHandled?.()
+  }, [initialAction])
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
 
@@ -2073,9 +2088,12 @@ function TabDocuments({ pharmacyId, companyId }) {
 export default function PharmacyDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { pharmacy, equipment, loading, error, refetch } = usePharmacy(id)
   const [activeTab, setActiveTab] = useState('general')
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const requestedTab = searchParams.get('tab')
+  const requestedAction = searchParams.get('action')
   const isEditableTab = activeTab === 'general' || activeTab === 'equipment'
   const editTitle = activeTab === 'general'
     ? 'Editar datos generales'
@@ -2093,10 +2111,40 @@ export default function PharmacyDetailPage() {
     setIsEditOpen(true)
   }
 
+  function setTabInUrl(tabKey) {
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.set('tab', tabKey)
+    nextParams.delete('action')
+    setSearchParams(nextParams, { replace: true })
+  }
+
+  function clearRequestedAction() {
+    if (!requestedAction) return
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.delete('action')
+    setSearchParams(nextParams, { replace: true })
+  }
+
   async function handleSaved() {
     await refetch()
     setIsEditOpen(false)
   }
+
+  useEffect(() => {
+    if (!requestedTab) return
+    const isValidTab = TABS.some(tab => tab.key === requestedTab)
+    if (isValidTab && requestedTab !== activeTab) {
+      setActiveTab(requestedTab)
+    }
+  }, [requestedTab, activeTab])
+
+  useEffect(() => {
+    if (requestedAction !== 'edit') return
+    if (requestedTab !== 'general' && requestedTab !== 'equipment') return
+    setActiveTab(requestedTab)
+    setIsEditOpen(true)
+    clearRequestedAction()
+  }, [requestedAction, requestedTab])
 
   if (loading) {
     return (
@@ -2163,7 +2211,10 @@ export default function PharmacyDetailPage() {
                 <button
                   key={tab.key}
                   type="button"
-                  onClick={() => setActiveTab(tab.key)}
+                  onClick={() => {
+                    setActiveTab(tab.key)
+                    setTabInUrl(tab.key)
+                  }}
                   className={`inline-flex w-full min-h-[42px] items-center justify-center px-2 py-2 text-[11px] leading-tight text-center font-medium border-b-2 transition-colors sm:w-auto sm:min-h-0 sm:justify-start sm:gap-1.5 sm:px-3 sm:py-2.5 sm:text-xs sm:whitespace-nowrap ${
                     activeTab === tab.key
                       ? 'border-teal-600 text-teal-700'
@@ -2183,8 +2234,22 @@ export default function PharmacyDetailPage() {
       <div className="px-4 md:px-6 py-6">
         {activeTab === 'general'   && <TabGeneral pharmacy={pharmacy} />}
         {activeTab === 'equipment' && <TabEquipment equipment={equipment} />}
-        {activeTab === 'it'        && <TabIT pharmacyId={id} companyId={pharmacy.company_id} />}
-        {activeTab === 'people'    && <TabPeople pharmacyId={id} companyId={pharmacy.company_id} />}
+        {activeTab === 'it'        && (
+          <TabIT
+            pharmacyId={id}
+            companyId={pharmacy.company_id}
+            initialAction={requestedAction}
+            onActionHandled={clearRequestedAction}
+          />
+        )}
+        {activeTab === 'people'    && (
+          <TabPeople
+            pharmacyId={id}
+            companyId={pharmacy.company_id}
+            initialAction={requestedAction}
+            onActionHandled={clearRequestedAction}
+          />
+        )}
         {activeTab === 'incidents' && <EmptyTab icon={ExclamationTriangleIcon} message="Módulo de incidencias próximamente" />}
         {activeTab === 'projects'  && <EmptyTab icon={FolderOpenIcon} message="Módulo de proyectos próximamente" />}
         {activeTab === 'documents' && <TabDocuments pharmacyId={id} companyId={pharmacy.company_id} />}
