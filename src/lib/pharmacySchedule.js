@@ -121,6 +121,22 @@ export function formatScheduleSummary(detail, fallback = '') {
     .join('; ')
 }
 
+export function getScheduleDayRows(detail) {
+  const clean = sanitizeScheduleDetail(detail)
+
+  return SCHEDULE_DAYS
+    .map(day => {
+      const config = clean.days[day.key]
+      if (!config.enabled || config.ranges.length === 0) return null
+
+      return {
+        day: day.label,
+        hours: rangesToText(config.ranges),
+      }
+    })
+    .filter(Boolean)
+}
+
 function parseStructuredPayload(value) {
   if (typeof value !== 'string' || !value) return null
 

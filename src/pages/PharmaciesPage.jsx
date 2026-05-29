@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import jsPDF from 'jspdf'
 import { useAuth } from '../hooks/useAuth'
 import { usePharmacies } from '../hooks/usePharmacies'
+import { getScheduleDayRows, getScheduleOptionLabels } from '../lib/pharmacySchedule'
 import {
   MagnifyingGlassIcon, PlusIcon, BuildingStorefrontIcon, MapPinIcon,
   Bars3Icon, ChevronUpDownIcon, ChevronUpIcon, ChevronDownIcon, ArrowDownTrayIcon,
@@ -76,6 +77,75 @@ function getColumnValue(pharmacy, key) {
     default:
       return ''
   }
+}
+
+function ScheduleTooltip({ pharmacy }) {
+  const scheduleRows = getScheduleDayRows(pharmacy.schedule_detail)
+  const optionLabels = getScheduleOptionLabels(pharmacy.schedule_detail)
+  const hasExtraInfo = scheduleRows.length > 0 || optionLabels.length > 0 || pharmacy.has_guards || pharmacy.schedule_guard_notes
+
+  return (
+    <div className="group relative max-w-[260px]">
+      <span className="block truncate text-gray-500">
+        {pharmacy.schedule || EMPTY_VALUE}
+      </span>
+
+      {hasExtraInfo && (
+        <div className="pointer-events-none absolute left-0 top-full z-30 mt-2 hidden w-[320px] rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-2xl group-hover:block">
+          <div className="space-y-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Resumen</p>
+              <p className="mt-1 text-sm font-medium text-slate-700">{pharmacy.schedule || 'Sin horario informado'}</p>
+            </div>
+
+            {scheduleRows.length > 0 && (
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Detalle</p>
+                <div className="mt-2 space-y-1.5">
+                  {scheduleRows.map(row => (
+                    <div key={row.day} className="grid grid-cols-[88px_1fr] gap-3 text-sm">
+                      <span className="font-medium text-slate-600">{row.day}</span>
+                      <span className="text-slate-700">{row.hours}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Apertura especial</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {optionLabels.length > 0 ? optionLabels.map(label => (
+                  <span
+                    key={label}
+                    className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700"
+                  >
+                    {label}
+                  </span>
+                )) : (
+                  <span className="text-sm text-slate-500">Sin aperturas especiales</span>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-[88px_1fr] gap-3 text-sm">
+              <span className="font-medium text-slate-600">Guardias</span>
+              <span className={pharmacy.has_guards ? 'text-slate-700' : 'text-slate-500'}>
+                {pharmacy.has_guards ? 'Sí' : 'No'}
+              </span>
+            </div>
+
+            {pharmacy.schedule_guard_notes && (
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Indicaciones</p>
+                <p className="mt-1 text-sm leading-relaxed text-slate-700">{pharmacy.schedule_guard_notes}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 function compareValues(a, b, direction) {
@@ -684,6 +754,8 @@ export default function PharmaciesPage() {
                             <a href={`mailto:${value}`} className="text-teal-700 hover:underline">{value}</a>
                           ) : column.key === 'contact_phone' && value ? (
                             <a href={`tel:${value}`} className="text-teal-700 hover:underline">{value}</a>
+                          ) : column.key === 'schedule' ? (
+                            <ScheduleTooltip pharmacy={ph} />
                           ) : (
                             value || EMPTY_VALUE
                           )}

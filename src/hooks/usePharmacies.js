@@ -108,7 +108,15 @@ export function usePharmacies(companyId) {
 
     setPharmacies(pharmacyRows.map(pharmacy => ({
       ...pharmacy,
-      schedule: parseScheduleValue(pharmacy.schedule).summary,
+      ...(() => {
+        const parsedSchedule = parseScheduleValue(pharmacy.schedule)
+        return {
+          schedule: parsedSchedule.summary,
+          schedule_detail: parsedSchedule.detail,
+          schedule_guard_notes: parsedSchedule.guardNotes,
+          schedule_options: parsedSchedule.options,
+        }
+      })(),
       equipment: equipmentByPharmacy[pharmacy.id] || null,
     })))
     setLoading(false)
