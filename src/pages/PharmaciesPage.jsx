@@ -153,6 +153,7 @@ export default function PharmaciesPage() {
   const { pharmacies, loading } = usePharmacies(profile?.company_id)
   const [search, setSearch] = useState('')
   const [filterProvince, setFilterProvince] = useState('')
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false)
   const [columns, setColumns] = useState(DEFAULT_COLUMNS)
   const [draggedColumnKey, setDraggedColumnKey] = useState(null)
   const [sortConfig, setSortConfig] = useState({ key: 'pharmacy_name', direction: 'asc' })
@@ -200,16 +201,30 @@ export default function PharmaciesPage() {
     return `${parts.filter(Boolean).join('-')}.${ext}`
   }
 
+  function serializeDelimitedRow(row, delimiter) {
+    return exportHeaders
+      .map(header => `"${String(row[header]).replaceAll('"', '""')}"`)
+      .join(delimiter)
+  }
+
+  function handleExport(action) {
+    setIsExportMenuOpen(false)
+    action()
+  }
+
   function exportCsv() {
     const lines = [
-      exportHeaders.join(','),
-      ...exportRows.map(row => exportHeaders.map(header => `"${String(row[header]).replaceAll('"', '""')}"`).join(',')),
+      serializeDelimitedRow(Object.fromEntries(exportHeaders.map(header => [header, header])), ','),
+      ...exportRows.map(row => serializeDelimitedRow(row, ',')),
     ]
     downloadBlob(lines.join('\n'), 'text/csv;charset=utf-8;', buildFileName('csv'))
   }
 
   function exportTxt() {
-    const lines = exportRows.map(row => exportHeaders.map(header => `${header}: ${row[header]}`).join(' | '))
+    const lines = [
+      serializeDelimitedRow(Object.fromEntries(exportHeaders.map(header => [header, header])), ';'),
+      ...exportRows.map(row => serializeDelimitedRow(row, ';')),
+    ]
     downloadBlob(lines.join('\n'), 'text/plain;charset=utf-8;', buildFileName('txt'))
   }
 
@@ -239,7 +254,9 @@ export default function PharmaciesPage() {
     const pageHeight = pdf.internal.pageSize.getHeight()
     const left = 10
     const top = 12
-    const rowHeight = 8
+    const bottom = 10
+    const cellPadding = 1.6
+    const lineHeight = 3.8
     const usableWidth = pageWidth - (left * 2)
     const colWidth = usableWidth / Math.max(exportHeaders.length, 1)
 
@@ -252,18 +269,45 @@ export default function PharmaciesPage() {
 
     let currentY = top + 8
 
-    function drawHeader() {
+    function getRowMetrics(values, fontStyle) {
+      pdf.setFont('helvetica', fontStyle)
+      const linesByCell = values.map(value => pdf.splitTextToSize(String(value), colWidth - (cellPadding * 2)))
+      const lineCount = Math.max(...linesByCell.map(lines => Math.max(lines.length, 1)))
+      const height = Math.max((lineCount * lineHeight) + (cellPadding * 2), 8)
+      return { linesByCell, height }
+    }
+
+    function drawTableRow(values, { fill = false, fontStyle = 'normal' } = {}) {
+      const { linesByCell, height } = getRowMetrics(values, fontStyle)
       let currentX = left
-      pdf.setFillColor(243, 244, 246)
-      pdf.setDrawColor(209, 213, 219)
-      pdf.setTextColor(55, 65, 81)
-      pdf.setFont('helvetica', 'bold')
-      exportHeaders.forEach(header => {
-        pdf.rect(currentX, currentY, colWidth, rowHeight, 'FD')
-        pdf.text(header, currentX + 2, currentY + 5.3, { maxWidth: colWidth - 4 })
+
+      if (currentY + height > pageHeight - bottom) {
+        pdf.addPage()
+        currentY = 12
+        drawHeader()
+      }
+
+      pdf.setFont('helvetica', fontStyle)
+      values.forEach((_, index) => {
+        if (fill) {
+          pdf.setFillColor(243, 244, 246)
+          pdf.rect(currentX, currentY, colWidth, height, 'F')
+        }
+
+        pdf.setDrawColor(209, 213, 219)
+        pdf.rect(currentX, currentY, colWidth, height)
+        pdf.text(linesByCell[index], currentX + cellPadding, currentY + cellPadding + lineHeight - 0.6)
         currentX += colWidth
       })
-      currentY += rowHeight
+
+      currentY += height
+    }
+
+    function drawHeader() {
+      let currentX = left
+      pdf.setTextColor(55, 65, 81)
+      currentX = left
+      drawTableRow(exportHeaders, { fill: true, fontStyle: 'bold' })
       pdf.setFont('helvetica', 'normal')
       pdf.setTextColor(75, 85, 99)
     }
@@ -271,19 +315,7 @@ export default function PharmaciesPage() {
     drawHeader()
 
     exportRows.forEach(row => {
-      if (currentY + rowHeight > pageHeight - 10) {
-        pdf.addPage()
-        currentY = 12
-        drawHeader()
-      }
-
-      let currentX = left
-      exportHeaders.forEach(header => {
-        pdf.rect(currentX, currentY, colWidth, rowHeight)
-        pdf.text(String(row[header]), currentX + 2, currentY + 5.3, { maxWidth: colWidth - 4 })
-        currentX += colWidth
-      })
-      currentY += rowHeight
+      drawTableRow(exportHeaders.map(header => row[header]))
     })
 
     pdf.save(buildFileName('pdf'))
@@ -351,43 +383,53 @@ export default function PharmaciesPage() {
             <option key={p} value={p}>{PROVINCE_LABEL[p] || p}</option>
           ))}
         </select>
-        <div className="flex flex-wrap gap-2 lg:ml-auto">
+        <div className="relative lg:ml-auto">
           <button
             type="button"
-            onClick={exportExcel}
+            onClick={() => setIsExportMenuOpen(prev => !prev)}
             disabled={loading || sorted.length === 0}
             className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <ArrowDownTrayIcon className="w-4 h-4" />
-            Excel
+            Extraer
+            <ChevronDownIcon className={`w-4 h-4 transition-transform ${isExportMenuOpen ? 'rotate-180' : ''}`} />
           </button>
-          <button
-            type="button"
-            onClick={exportCsv}
-            disabled={loading || sorted.length === 0}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <ArrowDownTrayIcon className="w-4 h-4" />
-            CSV
-          </button>
-          <button
-            type="button"
-            onClick={exportTxt}
-            disabled={loading || sorted.length === 0}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <ArrowDownTrayIcon className="w-4 h-4" />
-            TXT
-          </button>
-          <button
-            type="button"
-            onClick={exportPdf}
-            disabled={loading || sorted.length === 0}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <ArrowDownTrayIcon className="w-4 h-4" />
-            PDF
-          </button>
+          {isExportMenuOpen && !loading && sorted.length > 0 && (
+            <div className="absolute right-0 top-full z-20 mt-2 min-w-[180px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+              <button
+                type="button"
+                onClick={() => handleExport(exportExcel)}
+                className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:bg-gray-50"
+              >
+                <ArrowDownTrayIcon className="w-4 h-4" />
+                Excel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleExport(exportCsv)}
+                className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:bg-gray-50"
+              >
+                <ArrowDownTrayIcon className="w-4 h-4" />
+                CSV
+              </button>
+              <button
+                type="button"
+                onClick={() => handleExport(exportTxt)}
+                className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:bg-gray-50"
+              >
+                <ArrowDownTrayIcon className="w-4 h-4" />
+                TXT (;)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleExport(exportPdf)}
+                className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:bg-gray-50"
+              >
+                <ArrowDownTrayIcon className="w-4 h-4" />
+                PDF
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
