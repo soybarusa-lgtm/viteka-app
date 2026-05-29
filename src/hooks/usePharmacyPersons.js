@@ -1,5 +1,21 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+const ALLOWED_FIELDS = new Set([
+  'name',
+  'phone',
+  'email',
+  'role',
+  'is_responsible',
+  'areas',
+  'custom_area',
+  'observations',
+])
+
+function sanitizePersonPayload(payload = {}) {
+  return Object.fromEntries(
+    Object.entries(payload).filter(([key, value]) => ALLOWED_FIELDS.has(key) && value !== undefined)
+  )
+}
 
 export function usePharmacyPersons(pharmacyId) {
   const [persons, setPersons]   = useState([])
@@ -24,7 +40,7 @@ export function usePharmacyPersons(pharmacyId) {
   const createPerson = useCallback(async (payload) => {
     const { data, error } = await supabase
       .from('pharmacy_persons')
-      .insert(payload)
+      .insert(sanitizePersonPayload(payload))
       .select()
       .single()
     if (error) throw error
@@ -35,7 +51,7 @@ export function usePharmacyPersons(pharmacyId) {
   const updatePerson = useCallback(async (id, payload) => {
     const { data, error } = await supabase
       .from('pharmacy_persons')
-      .update(payload)
+      .update(sanitizePersonPayload(payload))
       .eq('id', id)
       .select()
       .single()

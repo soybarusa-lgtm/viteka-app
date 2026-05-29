@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+﻿import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { usePharmacy } from '../hooks/usePharmacy'
 import { usePharmacyPersons } from '../hooks/usePharmacyPersons'
@@ -28,14 +28,14 @@ import {
 } from '../components/pharmacy/PHARMACY_CONSTANTS'
 import { Label, Input, Select, Textarea } from '../components/pharmacy/PharmacyFormAtoms'
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const PROVINCE_LABEL = {
-  almeria:'Almería',cadiz:'Cádiz',cordoba:'Córdoba',granada:'Granada',
-  huelva:'Huelva',jaen:'Jaén',malaga:'Málaga',sevilla:'Sevilla',
+  almeria:'AlmerÃ­a',cadiz:'CÃ¡diz',cordoba:'CÃ³rdoba',granada:'Granada',
+  huelva:'Huelva',jaen:'JaÃ©n',malaga:'MÃ¡laga',sevilla:'Sevilla',
 }
 const LEGAL_LABEL = {
-  autonomo:'Autónomo',cb:'C.B.',sl:'S.L.',
-  autonomo_sl:'Autónomo + S.L.',cb_sl:'C.B. + S.L.',
+  autonomo:'AutÃ³nomo',cb:'C.B.',sl:'S.L.',
+  autonomo_sl:'AutÃ³nomo + S.L.',cb_sl:'C.B. + S.L.',
 }
 
 const DEVICE_PHOTO_BUCKET = 'task-evidence'
@@ -72,18 +72,18 @@ function EmptyTab({ icon: Icon, message }) {
   )
 }
 
-// ── Pestañas ──────────────────────────────────────────────────────────────────
+// â”€â”€ PestaÃ±as â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const TABS = [
   { key: 'general',   label: 'Datos generales',   icon: BuildingStorefrontIcon },
   { key: 'equipment', label: 'Equipamiento',       icon: WrenchScrewdriverIcon  },
-  { key: 'it',        label: 'Equip. Informático', icon: ComputerDesktopIcon    },
+  { key: 'it',        label: 'Equip. InformÃ¡tico', icon: ComputerDesktopIcon    },
   { key: 'people',    label: 'Personas',           icon: UsersIcon              },
   { key: 'incidents', label: 'Incidencias',        icon: ExclamationTriangleIcon},
   { key: 'projects',  label: 'Proyectos',          icon: FolderOpenIcon         },
   { key: 'documents', label: 'Documentos',         icon: DocumentTextIcon       },
 ]
 
-// ── Tab: Datos generales ──────────────────────────────────────────────────────
+// â”€â”€ Tab: Datos generales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TabGeneral({ pharmacy }) {
   const lType = pharmacy.legal_type || ''
   const hasAuto = lType.includes('autonomo')
@@ -98,25 +98,25 @@ function TabGeneral({ pharmacy }) {
   })
 
   const boolField = (label, val, wide) => (
-    <Field label={label} value={val === true ? 'Sí' : val === false ? 'No' : null} wide={wide} />
+    <Field label={label} value={val === true ? 'SÃ­' : val === false ? 'No' : null} wide={wide} />
   )
 
   return (
     <div className="space-y-4">
       {hasAuto && (
-        <SectionBlock title="Autónomo">
+        <SectionBlock title="AutÃ³nomo">
           <Field label="Titular"        value={pharmacy.owner_name} />
           <Field label="NIF"            value={pharmacy.nif} />
-          <Field label="Nº Colegiado"   value={pharmacy.collegiate_number} />
+          <Field label="NÂº Colegiado"   value={pharmacy.collegiate_number} />
           <Field label="SOE"            value={pharmacy.soe_number} />
-          <Field label="Teléfono"       value={pharmacy.contact_phone} />
+          <Field label="TelÃ©fono"       value={pharmacy.contact_phone} />
           <Field label="Email"          value={pharmacy.contact_email} />
-          <Field label="Dirección"      value={pharmacy.address} wide />
-          <Field label="Población"      value={pharmacy.city} />
+          <Field label="DirecciÃ³n"      value={pharmacy.address} wide />
+          <Field label="PoblaciÃ³n"      value={pharmacy.city} />
           <Field label="Provincia"      value={PROVINCE_LABEL[pharmacy.province] || pharmacy.province} />
           <Field label="C.P."           value={pharmacy.postal_code} />
           <Field label="Horario"        value={mainSchedule.summary} />
-          {scheduleOptions.length > 0 && <Field label="Aperturas especiales" value={scheduleOptions.join(' · ')} wide />}
+          {scheduleOptions.length > 0 && <Field label="Aperturas especiales" value={scheduleOptions.join(' Â· ')} wide />}
           {boolField('Guardias', pharmacy.has_guards)}
           {mainSchedule.guardNotes && <Field label="Indicaciones guardias" value={mainSchedule.guardNotes} wide />}
           <Field label="Observaciones"  value={pharmacy.observations} wide />
@@ -124,7 +124,7 @@ function TabGeneral({ pharmacy }) {
       )}
       {hasCb && (
         <SectionBlock title="Comunidad de Bienes (C.B.)">
-          <Field label="Razón social" value={pharmacy.razon_social} />
+          <Field label="RazÃ³n social" value={pharmacy.razon_social} />
           <Field label="CIF"          value={pharmacy.cif} />
           {cbOwners.length === 0 && (
             <div className="col-span-2 md:col-span-3"><p className="text-xs text-gray-300 italic">Sin titulares registrados</p></div>
@@ -136,15 +136,15 @@ function TabGeneral({ pharmacy }) {
               <div><dt className="text-xs text-gray-400">Colegiado</dt><dd className={`text-sm font-medium ${o.collegiate ? 'text-gray-800' : 'text-gray-300 italic'}`}>{o.collegiate || 'Sin informar'}</dd></div>
             </div>
           ))}
-          <Field label="Teléfono"     value={pharmacy.contact_phone} />
+          <Field label="TelÃ©fono"     value={pharmacy.contact_phone} />
           <Field label="Email"        value={pharmacy.contact_email} />
-          <Field label="Dirección"    value={pharmacy.address} wide />
-          <Field label="Población"    value={pharmacy.city} />
+          <Field label="DirecciÃ³n"    value={pharmacy.address} wide />
+          <Field label="PoblaciÃ³n"    value={pharmacy.city} />
           <Field label="Provincia"    value={PROVINCE_LABEL[pharmacy.province] || pharmacy.province} />
           <Field label="C.P."         value={pharmacy.postal_code} />
           <Field label="SOE"          value={pharmacy.soe_number} />
           <Field label="Horario"      value={mainSchedule.summary} />
-          {scheduleOptions.length > 0 && <Field label="Aperturas especiales" value={scheduleOptions.join(' · ')} wide />}
+          {scheduleOptions.length > 0 && <Field label="Aperturas especiales" value={scheduleOptions.join(' Â· ')} wide />}
           {boolField('Guardias', pharmacy.has_guards)}
           {mainSchedule.guardNotes && <Field label="Indicaciones guardias" value={mainSchedule.guardNotes} wide />}
           <Field label="Observaciones" value={pharmacy.observations} wide />
@@ -152,16 +152,16 @@ function TabGeneral({ pharmacy }) {
       )}
       {hasSl && (
         <SectionBlock title="Sociedad Limitada (S.L.)">
-          <Field label="Razón social"  value={(hasAuto || hasCb) ? sl.razon_social : pharmacy.razon_social} />
+          <Field label="RazÃ³n social"  value={(hasAuto || hasCb) ? sl.razon_social : pharmacy.razon_social} />
           <Field label="CIF"           value={(hasAuto || hasCb) ? sl.cif : pharmacy.cif} />
-          <Field label="Teléfono S.L." value={(hasAuto || hasCb) ? sl.phone : pharmacy.contact_phone} />
+          <Field label="TelÃ©fono S.L." value={(hasAuto || hasCb) ? sl.phone : pharmacy.contact_phone} />
           <Field label="Email S.L."    value={(hasAuto || hasCb) ? sl.email : pharmacy.contact_email} />
-          <Field label="Dirección"     value={(hasAuto || hasCb) ? sl.address : pharmacy.address} wide />
-          <Field label="Población"     value={(hasAuto || hasCb) ? sl.city : pharmacy.city} />
+          <Field label="DirecciÃ³n"     value={(hasAuto || hasCb) ? sl.address : pharmacy.address} wide />
+          <Field label="PoblaciÃ³n"     value={(hasAuto || hasCb) ? sl.city : pharmacy.city} />
           <Field label="Provincia"     value={PROVINCE_LABEL[(hasAuto || hasCb) ? sl.province : pharmacy.province]} />
           <Field label="C.P."          value={(hasAuto || hasCb) ? sl.postal_code : pharmacy.postal_code} />
           {!hasAuto && !hasCb && <Field label="Horario" value={mainSchedule.summary} />}
-          {!hasAuto && !hasCb && scheduleOptions.length > 0 && <Field label="Aperturas especiales" value={scheduleOptions.join(' · ')} wide />}
+          {!hasAuto && !hasCb && scheduleOptions.length > 0 && <Field label="Aperturas especiales" value={scheduleOptions.join(' Â· ')} wide />}
           {!hasAuto && !hasCb && boolField('Guardias', pharmacy.has_guards)}
           {!hasAuto && !hasCb && mainSchedule.guardNotes && <Field label="Indicaciones guardias" value={mainSchedule.guardNotes} wide />}
           <Field label="Observaciones" value={(hasAuto || hasCb) ? sl.observations : pharmacy.observations} wide />
@@ -171,13 +171,13 @@ function TabGeneral({ pharmacy }) {
   )
 }
 
-// ── Tab: Equipamiento ─────────────────────────────────────────────────────────
+// â”€â”€ Tab: Equipamiento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TabEquipment({ equipment }) {
   if (!equipment) return <EmptyTab icon={WrenchScrewdriverIcon} message="Sin equipamiento registrado" />
   return <EquipmentSummaryTable equipment={equipment} />
 }
 
-// ── Tab: Equipamiento Informático ─────────────────────────────────────────────
+// â”€â”€ Tab: Equipamiento InformÃ¡tico â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const IT_LABEL = Object.fromEntries(IT_TYPES.map(t => [t.value, t.label]))
 
 function resolveBrand(device) {
@@ -202,7 +202,7 @@ function buildChips(device) {
   }
 
   const ip = Array.isArray(s.ip) && s.ip.filter(Boolean).length > 0
-    ? `IP · ${s.ip.filter(Boolean)[0]}`
+    ? `IP Â· ${s.ip.filter(Boolean)[0]}`
     : null
   const disk = Array.isArray(s.disks) && s.disks.length > 0 && s.disks[0].capacity
     ? `${s.disks[0].type} ${s.disks[0].capacity}`
@@ -266,7 +266,7 @@ function formatBytes(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-// ── Modal base con guard de cambios sin guardar ───────────────────────────────
+// â”€â”€ Modal base con guard de cambios sin guardar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function DeviceModal({
   isOpen,
   isDirty,
@@ -363,7 +363,7 @@ function DeviceModal({
 
             <h3 className="text-base font-bold text-gray-900 mb-1">Hay cambios pendientes</h3>
             <p className="text-sm text-gray-500 mb-6">
-              ¿Quieres guardar antes de cerrar esta ventana?
+              Â¿Quieres guardar antes de cerrar esta ventana?
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -402,7 +402,7 @@ function DeviceModal({
   )
 }
 
-// ── Card Grid (vista ⊞) ───────────────────────────────────────────────────────
+// â”€â”€ Card Grid (vista âŠž) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ITDeviceCard({ device, onOpen, onDelete, onDuplicate }) {
   const { marca, modelo } = resolveBrand(device)
   const chips    = buildChips(device)
@@ -459,7 +459,7 @@ function ITDeviceCard({ device, onOpen, onDelete, onDuplicate }) {
 
       {/* Marca / modelo */}
       {(marca || modelo) && (
-        <p className="text-xs text-gray-400 truncate">{[marca, modelo].filter(Boolean).join(' · ')}</p>
+        <p className="text-xs text-gray-400 truncate">{[marca, modelo].filter(Boolean).join(' Â· ')}</p>
       )}
 
       {/* Pie: fechas + acciones */}
@@ -506,7 +506,7 @@ function ITDeviceCard({ device, onOpen, onDelete, onDuplicate }) {
   )
 }
 
-// ── Fila de dispositivo (vista ≡) ─────────────────────────────────────────────
+// â”€â”€ Fila de dispositivo (vista â‰¡) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ITDeviceRow({ device, onOpen, onDelete, onDuplicate }) {
   const { marca, modelo } = resolveBrand(device)
   const chips    = buildChips(device)
@@ -539,7 +539,7 @@ function ITDeviceRow({ device, onOpen, onDelete, onDuplicate }) {
             )}
             {warOk && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-600">
-                <ShieldCheckIcon className="w-3 h-3" /> Garantía
+                <ShieldCheckIcon className="w-3 h-3" /> GarantÃ­a
               </span>
             )}
             {warExpired && (
@@ -571,7 +571,7 @@ function ITDeviceRow({ device, onOpen, onDelete, onDuplicate }) {
         )}
 
         {(marca || modelo) && (
-          <p className="text-xs text-gray-400 mt-1 truncate">{[marca, modelo].filter(Boolean).join(' · ')}</p>
+          <p className="text-xs text-gray-400 mt-1 truncate">{[marca, modelo].filter(Boolean).join(' Â· ')}</p>
         )}
       </div>
 
@@ -600,7 +600,7 @@ function ITDeviceRow({ device, onOpen, onDelete, onDuplicate }) {
   )
 }
 
-// ── Bloque colapsable por tipo ────────────────────────────────────────────────
+// â”€â”€ Bloque colapsable por tipo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ITTypeBlock({ typeKey, devices, isOpen, onToggle, onOpen, onDelete, onDuplicate, onAddSameType, viewMode }) {
   const total = devices.length
   const vitekaCount = devices.filter(d => d.is_viteka).length
@@ -640,7 +640,7 @@ function ITTypeBlock({ typeKey, devices, isOpen, onToggle, onOpen, onDelete, onD
               onClick={() => onAddSameType(typeKey)}
               className="hidden sm:inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-600 hover:bg-gray-50 hover:border-teal-300 transition-colors"
             >
-              <PlusIcon className="w-3.5 h-3.5" /> Añadir
+              <PlusIcon className="w-3.5 h-3.5" /> AÃ±adir
             </button>
             <button
               type="button"
@@ -692,7 +692,7 @@ function ITTypeBlock({ typeKey, devices, isOpen, onToggle, onOpen, onDelete, onD
   )
 }
 
-// ── Hook: persistencia localStorage ──────────────────────────────────────────
+// â”€â”€ Hook: persistencia localStorage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function useLocalStorageState(key, initialValue) {
   const [state, setState] = useState(() => {
     if (typeof window === 'undefined') return initialValue
@@ -723,7 +723,7 @@ function createEmptyITDevice(deviceType = 'servidor') {
   }
 }
 
-// ── Formulario de equipo (dentro del modal) ───────────────────────────────────
+// â”€â”€ Formulario de equipo (dentro del modal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function DevicePhotosEditor({ form, setForm, pharmacyId, companyId }) {
   const fileRef = useRef(null)
   const toast = useToast()
@@ -767,7 +767,7 @@ function DevicePhotosEditor({ form, setForm, pharmacyId, companyId }) {
           created_at: uploadedAt,
         },
       ])
-      toast('Imagen añadida. Guarda cambios para vincularla al equipo.', 'success')
+      toast('Imagen aÃ±adida. Guarda cambios para vincularla al equipo.', 'success')
     } catch (err) {
       toast(err.message || 'No se pudo subir la imagen', 'error')
     } finally {
@@ -799,8 +799,8 @@ function DevicePhotosEditor({ form, setForm, pharmacyId, companyId }) {
     <section className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-teal-700">Imágenes del equipo y puesto</h3>
-          <p className="mt-1 text-xs text-gray-400">Fotos del equipo, número visible, conexiones o ubicación del puesto.</p>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-teal-700">ImÃ¡genes del equipo y puesto</h3>
+          <p className="mt-1 text-xs text-gray-400">Fotos del equipo, nÃºmero visible, conexiones o ubicaciÃ³n del puesto.</p>
         </div>
         <label className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
           canUpload
@@ -808,7 +808,7 @@ function DevicePhotosEditor({ form, setForm, pharmacyId, companyId }) {
             : 'cursor-not-allowed bg-gray-100 text-gray-400'
         }`}>
           <PhotoIcon className="w-4 h-4" />
-          {uploading ? 'Subiendo...' : 'Añadir imagen'}
+          {uploading ? 'Subiendo...' : 'AÃ±adir imagen'}
           <input
             ref={fileRef}
             type="file"
@@ -823,13 +823,13 @@ function DevicePhotosEditor({ form, setForm, pharmacyId, companyId }) {
 
       {!canUpload && (
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
-          Primero guarda el equipo. Después podrás adjuntar imágenes.
+          Primero guarda el equipo. DespuÃ©s podrÃ¡s adjuntar imÃ¡genes.
         </p>
       )}
 
       {photos.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-gray-400">
-          Sin imágenes adjuntas.
+          Sin imÃ¡genes adjuntas.
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -856,7 +856,7 @@ function DevicePhotosEditor({ form, setForm, pharmacyId, companyId }) {
                 <Input
                   value={photo.caption || ''}
                   onChange={e => updateCaption(photo.id, e.target.value)}
-                  placeholder="Puesto, características visibles o ubicación"
+                  placeholder="Puesto, caracterÃ­sticas visibles o ubicaciÃ³n"
                 />
               </div>
             </div>
@@ -871,7 +871,7 @@ function DevicePhotosReadOnly({ photos }) {
   if (!photos.length) return null
   return (
     <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
-      <h3 className="text-xs font-bold uppercase tracking-widest text-teal-700">Imágenes del equipo y puesto</h3>
+      <h3 className="text-xs font-bold uppercase tracking-widest text-teal-700">ImÃ¡genes del equipo y puesto</h3>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {photos.map(photo => (
           <a
@@ -934,9 +934,9 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
         </label>
         {form.is_viteka && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div><Label>Nº de serie</Label><Input value={form.serial_number || ''} onChange={e => set('serial_number', e.target.value)} /></div>
-            <div><Label>Fecha instalación</Label><Input type="date" value={form.install_date || ''} onChange={e => set('install_date', e.target.value)} /></div>
-            <div><Label>Fin garantía</Label><Input type="date" value={form.warranty_end || ''} onChange={e => set('warranty_end', e.target.value)} /></div>
+            <div><Label>NÂº de serie</Label><Input value={form.serial_number || ''} onChange={e => set('serial_number', e.target.value)} /></div>
+            <div><Label>Fecha instalaciÃ³n</Label><Input type="date" value={form.install_date || ''} onChange={e => set('install_date', e.target.value)} /></div>
+            <div><Label>Fin garantÃ­a</Label><Input type="date" value={form.warranty_end || ''} onChange={e => set('warranty_end', e.target.value)} /></div>
           </div>
         )}
       </div>
@@ -949,15 +949,15 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
             <div><Label>Antivirus</Label><Input value={form.specs.antivirus || ''} onChange={e => setSpec('antivirus', e.target.value)} /></div>
             <div><Label>Procesador</Label><Input value={form.specs.cpu || ''} onChange={e => setSpec('cpu', e.target.value)} /></div>
             <div><Label>RAM</Label><Input value={form.specs.ram || ''} onChange={e => setSpec('ram', e.target.value)} placeholder="p.ej. 16 GB" /></div>
-            <div><Label>Gráfica</Label><Input value={form.specs.gpu || ''} onChange={e => setSpec('gpu', e.target.value)} /></div>
-            <div><Label>Fuente alimentación</Label><Input value={form.specs.psu || ''} onChange={e => setSpec('psu', e.target.value)} /></div>
+            <div><Label>GrÃ¡fica</Label><Input value={form.specs.gpu || ''} onChange={e => setSpec('gpu', e.target.value)} /></div>
+            <div><Label>Fuente alimentaciÃ³n</Label><Input value={form.specs.psu || ''} onChange={e => setSpec('psu', e.target.value)} /></div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <Label>Dirección(es) IP</Label>
-                <button type="button" onClick={addIp} className="text-xs font-medium text-teal-600 hover:text-teal-800">+ Añadir</button>
+                <Label>DirecciÃ³n(es) IP</Label>
+                <button type="button" onClick={addIp} className="text-xs font-medium text-teal-600 hover:text-teal-800">+ AÃ±adir</button>
               </div>
               {(form.specs.ip || ['']).map((ip, i) => (
                 <div key={i} className="flex gap-2 mb-1.5">
@@ -973,13 +973,13 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <Label>Nº conexión / contraseña</Label>
-                <button type="button" onClick={addConexion} className="text-xs font-medium text-teal-600 hover:text-teal-800">+ Añadir</button>
+                <Label>NÂº conexiÃ³n / contraseÃ±a</Label>
+                <button type="button" onClick={addConexion} className="text-xs font-medium text-teal-600 hover:text-teal-800">+ AÃ±adir</button>
               </div>
               {conexiones.map((c, i) => (
                 <div key={i} className="flex items-center gap-2 mb-1.5">
-                  <Input value={c.numero} onChange={e => setConexion(i, 'numero', e.target.value)} placeholder="Número" />
-                  <Input value={c.pass} onChange={e => setConexion(i, 'pass', e.target.value)} placeholder="Contraseña" type="password" autoComplete="new-password" />
+                  <Input value={c.numero} onChange={e => setConexion(i, 'numero', e.target.value)} placeholder="NÃºmero" />
+                  <Input value={c.pass} onChange={e => setConexion(i, 'pass', e.target.value)} placeholder="ContraseÃ±a" type="password" autoComplete="new-password" />
                   {conexiones.length > 1 && (
                     <button type="button" onClick={() => removeConexion(i)} className="shrink-0 p-2 text-red-400 hover:text-red-600">
                       <XMarkIcon className="w-4 h-4" />
@@ -993,7 +993,7 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <Label>Disco(s) duro(s)</Label>
-              <button type="button" onClick={addDisk} className="text-xs font-medium text-teal-600 hover:text-teal-800">+ Añadir disco</button>
+              <button type="button" onClick={addDisk} className="text-xs font-medium text-teal-600 hover:text-teal-800">+ AÃ±adir disco</button>
             </div>
             {(form.specs.disks || []).map((d, i) => (
               <div key={i} className="flex gap-2 mb-1.5">
@@ -1008,7 +1008,7 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
             ))}
           </div>
 
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1.5">Monitor y periféricos</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1.5">Monitor y perifÃ©ricos</p>
           <div className="flex flex-wrap items-center gap-4">
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={!!form.specs.monitor}
@@ -1021,16 +1021,16 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
                 <input type="checkbox" checked={!!form.specs.monitor.tactil}
                   onChange={e => setSpec('monitor', { ...form.specs.monitor, tactil: e.target.checked })}
                   className="accent-teal-600" />
-                <span className="text-sm font-medium text-gray-700">Táctil</span>
+                <span className="text-sm font-medium text-gray-700">TÃ¡ctil</span>
               </label>
             )}
           </div>
           {form.specs.monitor && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-gray-50 rounded-xl p-3">
-              <div><Label>Tamaño</Label><Input value={form.specs.monitor.size || ''} onChange={e => setSpec('monitor', { ...form.specs.monitor, size: e.target.value })} placeholder='"' /></div>
+              <div><Label>TamaÃ±o</Label><Input value={form.specs.monitor.size || ''} onChange={e => setSpec('monitor', { ...form.specs.monitor, size: e.target.value })} placeholder='"' /></div>
               <div><Label>Color</Label><Input value={form.specs.monitor.color || ''} onChange={e => setSpec('monitor', { ...form.specs.monitor, color: e.target.value })} /></div>
               <div>
-                <Label>Conexión</Label>
+                <Label>ConexiÃ³n</Label>
                 <Select value={form.specs.monitor.conn || ''} onChange={e => setSpec('monitor', { ...form.specs.monitor, conn: e.target.value })}>
                   {MONITOR_CONN.map(c => <option key={c} value={c}>{c}</option>)}
                 </Select>
@@ -1039,21 +1039,21 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
           )}
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[['teclado', 'Teclado'], ['raton', 'Ratón']].map(([key, lbl]) => (
+            {[['teclado', 'Teclado'], ['raton', 'RatÃ³n']].map(([key, lbl]) => (
               <div key={key} className="space-y-1">
                 <Label>{lbl}</Label>
                 <Select value={form.specs[key] || 'NO'} onChange={e => setSpec(key, e.target.value)}>
                   <option value="NO">No</option>
                   <option value="Cable">Cable</option>
-                  <option value="Inalámbrico">Inalámbrico</option>
+                  <option value="InalÃ¡mbrico">InalÃ¡mbrico</option>
                 </Select>
               </div>
             ))}
             <div className="space-y-1">
               <Label>Lector tarjetas</Label>
-              <Select value={form.specs.card_reader || 'NO'} onChange={e => setSpec('card_reader', e.target.value === 'NO' ? 'NO' : { modelo: '', año: '' })}>
+              <Select value={form.specs.card_reader || 'NO'} onChange={e => setSpec('card_reader', e.target.value === 'NO' ? 'NO' : { modelo: '', ano: '' })}>
                 <option value="NO">No</option>
-                <option value="SI">Sí</option>
+                <option value="SI">SÃ­</option>
               </Select>
               {form.specs.card_reader && form.specs.card_reader !== 'NO' && (
                 <Input className="mt-1" value={form.specs.card_reader.modelo || ''} onChange={e => setSpec('card_reader', { ...form.specs.card_reader, modelo: e.target.value })} placeholder="Modelo" />
@@ -1063,12 +1063,12 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
               <Label>Lector QR 2D</Label>
               <Select value={form.specs.qr_reader || 'NO'} onChange={e => setSpec('qr_reader', e.target.value === 'NO' ? 'NO' : { tipo: 'Cable', modelo: '' })}>
                 <option value="NO">No</option>
-                <option value="SI">Sí</option>
+                <option value="SI">SÃ­</option>
               </Select>
               {form.specs.qr_reader && form.specs.qr_reader !== 'NO' && (
                 <div className="flex gap-2 mt-1">
                   <Select value={form.specs.qr_reader.tipo || 'Cable'} onChange={e => setSpec('qr_reader', { ...form.specs.qr_reader, tipo: e.target.value })}>
-                    <option>Cable</option><option>Inalámbrico</option>
+                    <option>Cable</option><option>InalÃ¡mbrico</option>
                   </Select>
                   <Input value={form.specs.qr_reader.modelo || ''} onChange={e => setSpec('qr_reader', { ...form.specs.qr_reader, modelo: e.target.value })} placeholder="Modelo" />
                 </div>
@@ -1081,7 +1081,7 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
       {isPrinter && (
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>Conexión</Label>
+            <Label>ConexiÃ³n</Label>
             <Select value={form.specs.conn || ''} onChange={e => setSpec('conn', e.target.value)}>
               <option value="">Seleccionar</option>
               {CONNECTION_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
@@ -1094,7 +1094,7 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
       {form.device_type === 'sai' && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div><Label>Capacidad</Label><Input value={form.specs.capacity || ''} onChange={e => setSpec('capacity', e.target.value)} placeholder="600 VA" /></div>
-          <div><Label>Año</Label><Input type="number" value={form.specs.year || ''} onChange={e => setSpec('year', e.target.value)} /></div>
+          <div><Label>AÃ±o</Label><Input type="number" value={form.specs.year || ''} onChange={e => setSpec('year', e.target.value)} /></div>
           <div className="col-span-2"><Label>Equipo vinculado</Label><Input value={form.specs.linked || ''} onChange={e => setSpec('linked', e.target.value)} /></div>
         </div>
       )}
@@ -1103,14 +1103,14 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
         <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div><Label>Proveedor</Label><Input value={form.specs.provider || ''} onChange={e => setSpec('provider', e.target.value)} /></div>
-            <div><Label>Año</Label><Input type="number" value={form.specs.year || ''} onChange={e => setSpec('year', e.target.value)} /></div>
+            <div><Label>AÃ±o</Label><Input type="number" value={form.specs.year || ''} onChange={e => setSpec('year', e.target.value)} /></div>
             <div><Label>Prioridad (1=principal)</Label><Input type="number" min="1" value={form.specs.priority || ''} onChange={e => setSpec('priority', e.target.value)} /></div>
           </div>
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1.5">Contacto del proveedor</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div><Label>Nombre</Label><Input value={form.specs.contact_name || ''} onChange={e => setSpec('contact_name', e.target.value)} /></div>
             <div><Label>Cargo</Label><Input value={form.specs.contact_role || ''} onChange={e => setSpec('contact_role', e.target.value)} /></div>
-            <div><Label>Teléfono</Label><Input value={form.specs.contact_phone || ''} onChange={e => setSpec('contact_phone', e.target.value)} /></div>
+            <div><Label>TelÃ©fono</Label><Input value={form.specs.contact_phone || ''} onChange={e => setSpec('contact_phone', e.target.value)} /></div>
             <div><Label>Email</Label><Input type="email" value={form.specs.contact_email || ''} onChange={e => setSpec('contact_email', e.target.value)} /></div>
           </div>
         </div>
@@ -1118,8 +1118,8 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
 
       {form.device_type === 'switch' && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div><Label>Nº salidas</Label><Input type="number" value={form.specs.ports || ''} onChange={e => setSpec('ports', e.target.value)} /></div>
-          <div><Label>Año</Label><Input type="number" value={form.specs.year || ''} onChange={e => setSpec('year', e.target.value)} /></div>
+          <div><Label>NÂº salidas</Label><Input type="number" value={form.specs.ports || ''} onChange={e => setSpec('ports', e.target.value)} /></div>
+          <div><Label>AÃ±o</Label><Input type="number" value={form.specs.year || ''} onChange={e => setSpec('year', e.target.value)} /></div>
           <div>
             <Label>Capa</Label>
             <Select value={form.specs.layer || ''} onChange={e => setSpec('layer', e.target.value)}>
@@ -1158,7 +1158,7 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
   )
 }
 
-// ── Vistas de solo lectura ────────────────────────────────────────────────────
+// â”€â”€ Vistas de solo lectura â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ReadOnlyField({ label, value, wide = false }) {
   const isEmpty = value === null || value === undefined || value === ''
   return (
@@ -1198,10 +1198,10 @@ function ITDeviceReadView({ device }) {
         <ReadOnlyField label="Etiqueta / Nombre" value={device.label} />
         <ReadOnlyField label="Marca" value={marca} />
         <ReadOnlyField label="Modelo" value={modelo} />
-        <ReadOnlyField label="Viteka" value={device.is_viteka ? 'Sí' : 'No'} />
-        <ReadOnlyField label="Nº serie" value={device.serial_number} />
-        <ReadOnlyField label="Fecha instalación" value={fmtDate(device.install_date)} />
-        <ReadOnlyField label="Fin garantía" value={fmtDate(device.warranty_end)} />
+        <ReadOnlyField label="Viteka" value={device.is_viteka ? 'SÃ­' : 'No'} />
+        <ReadOnlyField label="NÂº serie" value={device.serial_number} />
+        <ReadOnlyField label="Fecha instalaciÃ³n" value={fmtDate(device.install_date)} />
+        <ReadOnlyField label="Fin garantÃ­a" value={fmtDate(device.warranty_end)} />
       </ReadOnlySection>
 
       {['servidor', 'estacion'].includes(device.device_type) && (
@@ -1211,18 +1211,18 @@ function ITDeviceReadView({ device }) {
             <ReadOnlyField label="Antivirus" value={s.antivirus} />
             <ReadOnlyField label="Procesador" value={s.cpu} />
             <ReadOnlyField label="RAM" value={s.ram} />
-            <ReadOnlyField label="Gráfica" value={s.gpu} />
-            <ReadOnlyField label="Fuente de alimentación" value={s.psu} />
-            <ReadOnlyField label="Direcciones IP" value={ips.join(' · ')} wide />
+            <ReadOnlyField label="GrÃ¡fica" value={s.gpu} />
+            <ReadOnlyField label="Fuente de alimentaciÃ³n" value={s.psu} />
+            <ReadOnlyField label="Direcciones IP" value={ips.join(' Â· ')} wide />
             <ReadOnlyField
               label="Discos duros"
-              value={disks.map(d => `${d.type || ''} ${d.capacity || ''}`.trim()).join(' · ')}
+              value={disks.map(d => `${d.type || ''} ${d.capacity || ''}`.trim()).join(' Â· ')}
               wide
             />
           </ReadOnlySection>
 
-          <ReadOnlySection title="Monitor y Periféricos">
-            <ReadOnlyField label="Tiene monitor" value={monitor ? 'Sí' : 'No'} />
+          <ReadOnlySection title="Monitor y PerifÃ©ricos">
+            <ReadOnlyField label="Tiene monitor" value={monitor ? 'SÃ­' : 'No'} />
             <ReadOnlyField
               label="Detalle monitor"
               value={
@@ -1231,18 +1231,18 @@ function ITDeviceReadView({ device }) {
                       monitor.size && `${monitor.size}"`,
                       monitor.color,
                       monitor.conn,
-                      monitor.tactil ? 'Táctil' : null,
-                    ].filter(Boolean).join(' · ')
+                      monitor.tactil ? 'TÃ¡ctil' : null,
+                    ].filter(Boolean).join(' Â· ')
                   : ''
               }
             />
             <ReadOnlyField label="Teclado" value={s.teclado} />
-            <ReadOnlyField label="Ratón" value={s.raton} />
+            <ReadOnlyField label="RatÃ³n" value={s.raton} />
             <ReadOnlyField
               label="Lector tarjetas"
               value={
                 s.card_reader && s.card_reader !== 'NO'
-                  ? [s.card_reader.modelo, s.card_reader.año].filter(Boolean).join(' · ')
+                  ? [s.card_reader.modelo, s.card_reader.ano].filter(Boolean).join(' · ')
                   : s.card_reader === 'NO' ? 'No' : ''
               }
             />
@@ -1250,7 +1250,7 @@ function ITDeviceReadView({ device }) {
               label="Lector QR 2D"
               value={
                 s.qr_reader && s.qr_reader !== 'NO'
-                  ? [s.qr_reader.tipo, s.qr_reader.modelo].filter(Boolean).join(' · ')
+                  ? [s.qr_reader.tipo, s.qr_reader.modelo].filter(Boolean).join(' Â· ')
                   : s.qr_reader === 'NO' ? 'No' : ''
               }
             />
@@ -1259,8 +1259,8 @@ function ITDeviceReadView({ device }) {
           {conexiones.length > 0 && (
             <ReadOnlySection title="Conexiones Remotas">
               <ReadOnlyField
-                label="Nº Conexión"
-                value={conexiones.map(c => c.numero).filter(Boolean).join(' · ')}
+                label="NÂº ConexiÃ³n"
+                value={conexiones.map(c => c.numero).filter(Boolean).join(' Â· ')}
                 wide
               />
             </ReadOnlySection>
@@ -1269,39 +1269,39 @@ function ITDeviceReadView({ device }) {
       )}
 
       {['impresora_documentos', 'impresora_tickets', 'impresora_etiquetas'].includes(device.device_type) && (
-        <ReadOnlySection title="Configuración de Impresión">
-          <ReadOnlyField label="Conexión" value={s.conn} />
+        <ReadOnlySection title="ConfiguraciÃ³n de ImpresiÃ³n">
+          <ReadOnlyField label="ConexiÃ³n" value={s.conn} />
           <ReadOnlyField label="Equipo vinculado" value={s.linked} />
         </ReadOnlySection>
       )}
 
       {device.device_type === 'router' && (
-        <ReadOnlySection title="Configuración de Router">
+        <ReadOnlySection title="ConfiguraciÃ³n de Router">
           <ReadOnlyField label="Proveedor" value={s.provider} />
-          <ReadOnlyField label="Año" value={s.year} />
+          <ReadOnlyField label="AÃ±o" value={s.year} />
           <ReadOnlyField label="Prioridad" value={s.priority} />
           <ReadOnlyField
             label="Contacto del proveedor"
-            value={[s.contact_name, s.contact_role, s.contact_phone, s.contact_email].filter(Boolean).join(' · ')}
+            value={[s.contact_name, s.contact_role, s.contact_phone, s.contact_email].filter(Boolean).join(' Â· ')}
             wide
           />
         </ReadOnlySection>
       )}
 
       {device.device_type === 'switch' && (
-        <ReadOnlySection title="Configuración de Switch">
-          <ReadOnlyField label="Nº de salidas" value={s.ports} />
-          <ReadOnlyField label="Año" value={s.year} />
+        <ReadOnlySection title="ConfiguraciÃ³n de Switch">
+          <ReadOnlyField label="NÂº de salidas" value={s.ports} />
+          <ReadOnlyField label="AÃ±o" value={s.year} />
           <ReadOnlyField label="Capa" value={s.layer} />
-          <ReadOnlyField label="Gestionable" value={s.managed ? 'Sí' : 'No'} />
-          <ReadOnlyField label="Soporta PoE" value={s.poe ? `Sí · ${s.poe.ports || 'Sin indicar'} puertos` : 'No'} />
+          <ReadOnlyField label="Gestionable" value={s.managed ? 'SÃ­' : 'No'} />
+          <ReadOnlyField label="Soporta PoE" value={s.poe ? `SÃ­ Â· ${s.poe.ports || 'Sin indicar'} puertos` : 'No'} />
         </ReadOnlySection>
       )}
 
       {device.device_type === 'sai' && (
-        <ReadOnlySection title="Configuración de SAI">
+        <ReadOnlySection title="ConfiguraciÃ³n de SAI">
           <ReadOnlyField label="Capacidad" value={s.capacity} />
-          <ReadOnlyField label="Año" value={s.year} />
+          <ReadOnlyField label="AÃ±o" value={s.year} />
           <ReadOnlyField label="Equipo vinculado" value={s.linked} wide />
         </ReadOnlySection>
       )}
@@ -1315,7 +1315,7 @@ function ITDeviceReadView({ device }) {
   )
 }
 
-// ── Modal unificado: ver / editar equipo ──────────────────────────────────────
+// â”€â”€ Modal unificado: ver / editar equipo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ITDeviceModal({ device, pharmacyId, companyId, onSave, onClose }) {
   const isNew = !device?.id
   const [form, setForm] = useState(device || createEmptyITDevice())
@@ -1345,7 +1345,7 @@ function ITDeviceModal({ device, pharmacyId, companyId, onSave, onClose }) {
   }
 
   const title = isNew
-    ? `Nuevo equipo — ${IT_LABEL[form.device_type] || ''}`
+    ? `Nuevo equipo â€” ${IT_LABEL[form.device_type] || ''}`
     : (form.label || IT_LABEL[form.device_type] || 'Equipo')
 
   const isReadMode = !isNew && mode === 'view'
@@ -1382,7 +1382,7 @@ function ITDeviceModal({ device, pharmacyId, companyId, onSave, onClose }) {
         <span className={`text-xs font-medium transition-colors ${
           isDirty ? 'text-amber-600' : 'text-gray-400'
         }`}>
-          {isDirty ? '● Cambios sin guardar' : isReadMode ? 'Modo lectura' : isNew ? 'Nuevo equipo' : 'Sin cambios'}
+          {isDirty ? 'â— Cambios sin guardar' : isReadMode ? 'Modo lectura' : isNew ? 'Nuevo equipo' : 'Sin cambios'}
         </span>
 
         <div className="flex gap-2">
@@ -1433,7 +1433,7 @@ function ITDeviceModal({ device, pharmacyId, companyId, onSave, onClose }) {
   )
 }
 
-// ── Modal: Copiar equipos de otra farmacia ─────────────────────────────────────
+// â”€â”€ Modal: Copiar equipos de otra farmacia â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }) {
   const [pharmacies, setPharmacies] = useState([])
   const [sourceId, setSourceId]     = useState('')
@@ -1501,7 +1501,7 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
               <Select value={sourceId} onChange={e => setSourceId(e.target.value)}>
                 <option value="">Selecciona una farmacia</option>
                 {pharmacies.map(p => (
-                  <option key={p.id} value={p.id}>{p.pharmacy_name}{p.city ? ` — ${p.city}` : ''}</option>
+                  <option key={p.id} value={p.id}>{p.pharmacy_name}{p.city ? ` â€” ${p.city}` : ''}</option>
                 ))}
               </Select>
             )}
@@ -1511,7 +1511,7 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
               {loadingDev ? (
                 <div className="flex justify-center py-6"><div className="w-6 h-6 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
               ) : sourceDevices.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">Esta farmacia no tiene equipos informáticos</p>
+                <p className="text-sm text-gray-400 text-center py-4">Esta farmacia no tiene equipos informÃ¡ticos</p>
               ) : (
                 <>
                   <div className="flex items-center justify-between">
@@ -1530,7 +1530,7 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
                         <div className="min-w-0">
                           <p className="text-xs font-semibold text-teal-600 uppercase tracking-wide">{IT_LABEL[d.device_type] || d.device_type}</p>
                           {d.label && <p className="text-sm text-gray-800">{d.label}</p>}
-                          {(marca || modelo) && <p className="text-xs text-gray-400">{marca}{modelo ? ` — ${modelo}` : ''}</p>}
+                          {(marca || modelo) && <p className="text-xs text-gray-400">{marca}{modelo ? ` â€” ${modelo}` : ''}</p>}
                         </div>
                       </label>
                     )
@@ -1557,10 +1557,10 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
   )
 }
 
-// ── Constante umbral auto-switch ──────────────────────────────────────────────
+// â”€â”€ Constante umbral auto-switch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const AUTO_LIST_THRESHOLD = 6
 
-// ── TabIT principal ────────────────────────────────────────────────────────────
+// â”€â”€ TabIT principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
   const { devices, loading, createDevice, updateDevice, deleteDevice } = usePharmacyIT(pharmacyId)
   const toast = useToast()
@@ -1571,12 +1571,12 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
   const [search, setSearch]           = useState('')
   const [draftType, setDraftType]     = useState('servidor')
   const [openGroups, setOpenGroups]   = useLocalStorageState(`pharmacy-it-open-${pharmacyId}`, {})
-  // null = automático (grid si <=6, lista si >6); 'grid' | 'list' = forzado por usuario
+  // null = automÃ¡tico (grid si <=6, lista si >6); 'grid' | 'list' = forzado por usuario
   const [viewOverride, setViewOverride] = useLocalStorageState(`pharmacy-it-view-${pharmacyId}`, null)
 
   const totalDevices = (devices || []).length
 
-  // Vista efectiva: si el usuario forzó, se respeta; si no, auto
+  // Vista efectiva: si el usuario forzÃ³, se respeta; si no, auto
   const effectiveView = viewOverride ?? (totalDevices > AUTO_LIST_THRESHOLD ? 'list' : 'grid')
 
   function openDevice(device) {
@@ -1613,7 +1613,7 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
     }
     if (deletedPhotoPaths.length > 0) {
       const { error } = await supabase.storage.from(DEVICE_PHOTO_BUCKET).remove(deletedPhotoPaths)
-      if (error) toast('Ficha guardada, pero no se pudieron retirar algunas imágenes del almacenamiento', 'error')
+      if (error) toast('Ficha guardada, pero no se pudieron retirar algunas imÃ¡genes del almacenamiento', 'error')
     }
     closeModal()
   }
@@ -1698,7 +1698,7 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
         </div>
 
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-          {/* Toggle de vista ⊞ / ≡ */}
+          {/* Toggle de vista âŠž / â‰¡ */}
           {totalDevices > 0 && (
             <div className="flex w-full items-center justify-center rounded-xl border border-gray-200 bg-white overflow-hidden sm:w-auto">
               <button
@@ -1743,7 +1743,7 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
             className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700 transition-colors sm:w-auto"
           >
             <PlusIcon className="w-4 h-4" />
-            Añadir equipo
+            AÃ±adir equipo
           </button>
         </div>
       </div>
@@ -1764,7 +1764,7 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
 
       {/* Lista agrupada */}
       {Object.keys(grouped).length === 0 ? (
-        <EmptyTab icon={ComputerDesktopIcon} message={search ? 'Sin resultados para esa búsqueda' : 'Sin equipos informáticos registrados'} />
+        <EmptyTab icon={ComputerDesktopIcon} message={search ? 'Sin resultados para esa bÃºsqueda' : 'Sin equipos informÃ¡ticos registrados'} />
       ) : (
         <div>
           {IT_TYPES.filter(t => grouped[t.value]).map(t => (
@@ -1809,7 +1809,7 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
       {confirmDel && (
         <ConfirmDialog
           title="Eliminar equipo"
-          message={`¿Seguro que quieres eliminar "${confirmDel.label || IT_LABEL[confirmDel.device_type] || 'este equipo'}"? Esta acción no se puede deshacer.`}
+          message={`Â¿Seguro que quieres eliminar "${confirmDel.label || IT_LABEL[confirmDel.device_type] || 'este equipo'}"? Esta acciÃ³n no se puede deshacer.`}
           confirmLabel="Eliminar"
           variant="danger"
           onConfirm={() => handleDelete(confirmDel)}
@@ -1820,21 +1820,84 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
   )
 }
 
-// ── Tab: Personas ─────────────────────────────────────────────────────────────
+// â”€â”€ Tab: Personas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TabPeople({ pharmacyId, companyId, initialAction, onActionHandled }) {
   const { persons, loading, createPerson, updatePerson, deletePerson } = usePharmacyPersons(pharmacyId)
   const toast = useToast()
   const [editing, setEditing] = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
 
-  const empty = { name: '', role: '', phone: '', email: '', responsibility_areas: [], notes: '' }
+  const empty = {
+    name: '',
+    role: '',
+    phone: '',
+    email: '',
+    is_responsible: false,
+    responsible_priority: '1',
+    areas: [],
+    custom_area: '',
+    observations: '',
+  }
+
+  function parsePersonObservations(observations = '') {
+    const raw = String(observations || '')
+    const prefix = '__VITEKA_PERSON_META__:'
+    if (!raw.startsWith(prefix)) return { notes: raw, responsiblePriority: '' }
+
+    const newlineIndex = raw.indexOf('\n')
+    const metaRaw = newlineIndex === -1 ? raw.slice(prefix.length) : raw.slice(prefix.length, newlineIndex)
+    const notes = newlineIndex === -1 ? '' : raw.slice(newlineIndex + 1)
+
+    try {
+      const meta = JSON.parse(metaRaw)
+      return {
+        notes,
+        responsiblePriority: String(meta?.responsiblePriority || ''),
+      }
+    } catch {
+      return { notes: raw, responsiblePriority: '' }
+    }
+  }
+
+  function serializePersonObservations(notes = '', responsiblePriority = '') {
+    const cleanNotes = String(notes || '').trim()
+    const cleanPriority = String(responsiblePriority || '').trim()
+    if (!cleanPriority) return cleanNotes
+
+    const meta = '__VITEKA_PERSON_META__:' + JSON.stringify({ responsiblePriority: cleanPriority })
+    return cleanNotes ? `${meta}\n${cleanNotes}` : meta
+  }
+
+  function normalizePersonForm(personLike) {
+    const parsed = parsePersonObservations(personLike?.observations)
+    return {
+      ...empty,
+      ...personLike,
+      is_responsible: Boolean(personLike?.is_responsible),
+      responsible_priority: parsed.responsiblePriority || personLike?.responsible_priority || '1',
+      areas: Array.isArray(personLike?.areas) ? personLike.areas : [],
+      custom_area: personLike?.custom_area || '',
+      observations: parsed.notes,
+    }
+  }
 
   async function handleSave(form) {
+    const payload = {
+      name: form.name?.trim(),
+      role: form.role || 'Titular',
+      phone: form.phone || '',
+      email: form.email || '',
+      is_responsible: Boolean(form.is_responsible),
+      areas: Array.isArray(form.areas) ? form.areas : [],
+      custom_area: form.areas?.includes('Categoría') ? (form.custom_area || '').trim() : '',
+      observations: serializePersonObservations(form.observations, form.is_responsible ? form.responsible_priority : ''),
+    }
+
     if (form.id) {
-      await updatePerson(form.id, form)
+      await updatePerson(form.id, payload)
       toast('Persona actualizada', 'success')
     } else {
-      await createPerson({ ...form, pharmacy_id: pharmacyId, company_id: companyId })
+      await createPerson({ ...payload, pharmacy_id: pharmacyId, company_id: companyId })
       toast('Persona añadida', 'success')
     }
     setEditing(null)
@@ -1848,7 +1911,7 @@ function TabPeople({ pharmacyId, companyId, initialAction, onActionHandled }) {
 
   useEffect(() => {
     if (initialAction !== 'new-person') return
-    setEditing(empty)
+    setEditing(normalizePersonForm(empty))
     onActionHandled?.()
   }, [initialAction])
 
@@ -1859,7 +1922,7 @@ function TabPeople({ pharmacyId, companyId, initialAction, onActionHandled }) {
       <div className="flex justify-end">
         <button
           type="button"
-          onClick={() => setEditing(empty)}
+          onClick={() => setEditing(normalizePersonForm(empty))}
           className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700 transition-colors"
         >
           <PlusIcon className="w-4 h-4" /> Añadir persona
@@ -1870,35 +1933,46 @@ function TabPeople({ pharmacyId, companyId, initialAction, onActionHandled }) {
         <EmptyTab icon={UsersIcon} message="Sin personas registradas" />
       ) : (
         <div className="space-y-2">
-          {persons.map(p => (
-            <div key={p.id} className="flex items-start justify-between gap-3 p-4 rounded-xl border border-gray-200 bg-white hover:border-gray-300 transition-colors">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-semibold text-gray-800">{p.name}</span>
-                  {p.role && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700">{p.role}</span>}
-                </div>
-                <div className="flex flex-wrap gap-3 mt-1">
-                  {p.phone && <span className="text-xs text-gray-500">{p.phone}</span>}
-                  {p.email && <span className="text-xs text-gray-500">{p.email}</span>}
-                </div>
-                {Array.isArray(p.responsibility_areas) && p.responsibility_areas.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1.5">
-                    {p.responsibility_areas.map(a => (
-                      <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-gray-600">{a}</span>
-                    ))}
+          {persons.map(p => {
+            const parsed = parsePersonObservations(p.observations)
+            return (
+              <div key={p.id} className="flex items-start justify-between gap-3 p-4 rounded-xl border border-gray-200 bg-white hover:border-gray-300 transition-colors">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold text-gray-800">{p.name}</span>
+                    {p.role && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700">{p.role}</span>}
+                    {p.is_responsible && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-teal-50 text-teal-700">
+                        Responsable{parsed.responsiblePriority ? ` #${parsed.responsiblePriority}` : ''}
+                      </span>
+                    )}
                   </div>
-                )}
+                  <div className="flex flex-wrap gap-3 mt-1">
+                    {p.phone && <span className="text-xs text-gray-500">{p.phone}</span>}
+                    {p.email && <span className="text-xs text-gray-500">{p.email}</span>}
+                  </div>
+                  {Array.isArray(p.areas) && p.areas.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {p.areas.map(a => (
+                        <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-gray-600">{a}</span>
+                      ))}
+                    </div>
+                  )}
+                  {parsed.notes && (
+                    <p className="text-xs text-gray-400 mt-1">{parsed.notes}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button type="button" onClick={() => setEditing(normalizePersonForm(p))} className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors">
+                    <PencilSquareIcon className="w-4 h-4" />
+                  </button>
+                  <button type="button" onClick={() => setConfirmDel(p)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <button type="button" onClick={() => setEditing(p)} className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors">
-                  <PencilSquareIcon className="w-4 h-4" />
-                </button>
-                <button type="button" onClick={() => setConfirmDel(p)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
-                  <TrashIcon className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
@@ -1909,7 +1983,7 @@ function TabPeople({ pharmacyId, companyId, initialAction, onActionHandled }) {
       {confirmDel && (
         <ConfirmDialog
           title="Eliminar persona"
-          message={`¿Seguro que quieres eliminar a "${confirmDel.name}"?`}
+          message={`¿Seguro que quieres eliminar a \"${confirmDel.name}\"?`}
           confirmLabel="Eliminar"
           variant="danger"
           onConfirm={() => handleDelete(confirmDel)}
@@ -1925,8 +1999,8 @@ function PersonModal({ person, onSave, onClose }) {
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
 
   function toggleArea(area) {
-    const current = form.responsibility_areas || []
-    set('responsibility_areas', current.includes(area) ? current.filter(a => a !== area) : [...current, area])
+    const current = form.areas || []
+    set('areas', current.includes(area) ? current.filter(a => a !== area) : [...current, area])
   }
 
   return (
@@ -1951,6 +2025,30 @@ function PersonModal({ person, onSave, onClose }) {
             <div><Label>Teléfono</Label><Input value={form.phone || ''} onChange={e => set('phone', e.target.value)} /></div>
             <div><Label>Email</Label><Input type="email" value={form.email || ''} onChange={e => set('email', e.target.value)} /></div>
           </div>
+          <div className="rounded-xl border border-teal-100 bg-teal-50/60 p-3 space-y-3">
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <input
+                type="checkbox"
+                checked={Boolean(form.is_responsible)}
+                onChange={e => set('is_responsible', e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+              />
+              Es responsable de la farmacia
+            </label>
+
+            {form.is_responsible && (
+              <div>
+                <Label>Prioridad de responsable</Label>
+                <Select value={form.responsible_priority || '1'} onChange={e => set('responsible_priority', e.target.value)}>
+                  {[1, 2, 3, 4, 5].map(n => (
+                    <option key={n} value={String(n)}>
+                      {n} - {n === 1 ? '1er responsable' : n === 2 ? '2º responsable' : n === 3 ? '3er responsable' : n === 4 ? '4º responsable' : '5º responsable'}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            )}
+          </div>
           <div>
             <Label>Áreas de responsabilidad</Label>
             <div className="flex flex-wrap gap-2 mt-1">
@@ -1959,7 +2057,7 @@ function PersonModal({ person, onSave, onClose }) {
                   key={a} type="button"
                   onClick={() => toggleArea(a)}
                   className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
-                    (form.responsibility_areas || []).includes(a)
+                    (form.areas || []).includes(a)
                       ? 'bg-teal-600 text-white border-teal-600'
                       : 'bg-white text-gray-600 border-gray-200 hover:border-teal-300'
                   }`}
@@ -1969,7 +2067,7 @@ function PersonModal({ person, onSave, onClose }) {
               ))}
             </div>
           </div>
-          <div><Label>Notas</Label><Textarea rows={2} value={form.notes || ''} onChange={e => set('notes', e.target.value)} /></div>
+          <div><Label>Observaciones</Label><Textarea rows={2} value={form.observations || ''} onChange={e => set('observations', e.target.value)} /></div>
         </div>
         <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-200">
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50">Cancelar</button>
@@ -1983,7 +2081,7 @@ function PersonModal({ person, onSave, onClose }) {
   )
 }
 
-// ── Tab: Documentos ───────────────────────────────────────────────────────────
+// â”€â”€ Tab: Documentos// â”€â”€ Tab: Documentos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TabDocuments({ pharmacyId, companyId }) {
   const { documents, loading, uploadDocument, deleteDocument } = usePharmacyDocuments(pharmacyId)
   const toast = useToast()
@@ -2028,9 +2126,9 @@ function TabDocuments({ pharmacyId, companyId }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><Label>Nombre del documento</Label><Input value={meta.name} onChange={e => setMeta(m => ({ ...m, name: e.target.value }))} placeholder="Opcional" /></div>
           <div>
-            <Label>Categoría</Label>
+            <Label>CategorÃ­a</Label>
             <Select value={meta.category} onChange={e => setMeta(m => ({ ...m, category: e.target.value }))}>
-              <option value="">Sin categoría</option>
+              <option value="">Sin categorÃ­a</option>
               {DOC_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </Select>
           </div>
@@ -2073,7 +2171,7 @@ function TabDocuments({ pharmacyId, companyId }) {
       {confirmDel && (
         <ConfirmDialog
           title="Eliminar documento"
-          message={`¿Seguro que quieres eliminar "${confirmDel.name || confirmDel.file_name}"?`}
+          message={`Â¿Seguro que quieres eliminar "${confirmDel.name || confirmDel.file_name}"?`}
           confirmLabel="Eliminar"
           variant="danger"
           onConfirm={() => handleDelete(confirmDel)}
@@ -2084,7 +2182,7 @@ function TabDocuments({ pharmacyId, companyId }) {
   )
 }
 
-// ── Página principal ──────────────────────────────────────────────────────────
+// â”€â”€ PÃ¡gina principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function PharmacyDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -2182,7 +2280,7 @@ export default function PharmacyDetailPage() {
                 <h1 className="text-base font-bold text-gray-900 truncate">{pharmacy.pharmacy_name}</h1>
                 <p className="text-xs text-gray-400 truncate">
                   {[pharmacy.city, PROVINCE_LABEL[pharmacy.province] || pharmacy.province].filter(Boolean).join(', ')}
-                  {pharmacy.legal_type && ` · ${LEGAL_LABEL[pharmacy.legal_type] || pharmacy.legal_type}`}
+                  {pharmacy.legal_type && ` Â· ${LEGAL_LABEL[pharmacy.legal_type] || pharmacy.legal_type}`}
                 </p>
               </div>
             </div>
@@ -2191,7 +2289,7 @@ export default function PharmacyDetailPage() {
               type="button"
               onClick={handleEditClick}
               disabled={!isEditableTab}
-              title={isEditableTab ? editLabel : 'Edición disponible en Datos generales y Equipamiento'}
+              title={isEditableTab ? editLabel : 'EdiciÃ³n disponible en Datos generales y Equipamiento'}
               className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-colors shrink-0 ${
                 isEditableTab
                   ? 'bg-teal-600 text-white hover:bg-teal-700'
@@ -2250,8 +2348,8 @@ export default function PharmacyDetailPage() {
             onActionHandled={clearRequestedAction}
           />
         )}
-        {activeTab === 'incidents' && <EmptyTab icon={ExclamationTriangleIcon} message="Módulo de incidencias próximamente" />}
-        {activeTab === 'projects'  && <EmptyTab icon={FolderOpenIcon} message="Módulo de proyectos próximamente" />}
+        {activeTab === 'incidents' && <EmptyTab icon={ExclamationTriangleIcon} message="MÃ³dulo de incidencias prÃ³ximamente" />}
+        {activeTab === 'projects'  && <EmptyTab icon={FolderOpenIcon} message="MÃ³dulo de proyectos prÃ³ximamente" />}
         {activeTab === 'documents' && <TabDocuments pharmacyId={id} companyId={pharmacy.company_id} />}
       </div>
 
@@ -2280,3 +2378,4 @@ export default function PharmacyDetailPage() {
     </div>
   )
 }
+
