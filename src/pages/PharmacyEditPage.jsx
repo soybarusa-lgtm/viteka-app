@@ -421,13 +421,13 @@ export default function PharmacyEditPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {ERP_OPTIONS.map(opt => <ChipBtn key={opt} active={form.erp===opt} onClick={() => set('erp',opt)}>{opt}</ChipBtn>)}
           </div>
-          {form.erp === 'Nixfarma' && (
-            <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {form.erp === 'Nixfarma' && (
               <div><Label>Licencia</Label><Input value={form.erp_license} onChange={e => set('erp_license',e.target.value)} /></div>
-              <div><Label>Nº puestos</Label><Input type="number" min="1" value={form.erp_seats} onChange={e => set('erp_seats',e.target.value)} /></div>
-              <div><Label>Año inicio</Label><YearSelect value={form.erp_start_year} onChange={e => set('erp_start_year',e.target.value)} /></div>
-            </div>
-          )}
+            )}
+            <div><Label>N? puestos</Label><Input type="number" min="1" value={form.erp_seats} onChange={e => set('erp_seats',e.target.value)} /></div>
+            <div><Label>A?o inicio</Label><YearSelect value={form.erp_start_year} onChange={e => set('erp_start_year',e.target.value)} /></div>
+          </div>
           <VitekaCheck value={form.erp_viteka} onChange={v => set('erp_viteka',v)} />
           {!form.erp_viteka && <div><Label>Grado de satisfacción</Label><SatisfactionSelect value={form.erp_satisfaction} onChange={e => set('erp_satisfaction',e.target.value)} /></div>}
           <DistribuidorBlock viteka={form.erp_viteka} detail={form.erp_detail} onChange={(k,v) => setDetail('erp_detail',k,v)} />

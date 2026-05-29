@@ -24,7 +24,7 @@ const DEFAULT_COLUMNS = [
   { key: 'owners', label: 'Nombre del titular/es' },
   { key: 'province', label: 'Provincia' },
   { key: 'city', label: 'Población' },
-  { key: 'postal_code', label: 'Código postal' },
+  { key: 'postal_code', label: 'C.P.' },
   { key: 'workstations', label: 'Nº puestos' },
   { key: 'schedule', label: 'Horario' },
   { key: 'contact_phone', label: 'Teléfono' },
@@ -78,6 +78,12 @@ function getOwnerSummary(pharmacy) {
 function getWorkstations(pharmacy) {
   const value = pharmacy.equipment?.erp_detail?.puestos
   if (value === null || value === undefined || value === '') return ''
+  return String(value)
+}
+
+function getErpLabel(pharmacy) {
+  const value = pharmacy.equipment?.erp
+  if (!value || value === 'NO') return ''
   return String(value)
 }
 
@@ -431,6 +437,8 @@ export default function PharmaciesPage() {
       PROVINCE_LABEL[p.province] || p.province,
       p.city,
       p.postal_code,
+      getErpLabel(p),
+      getWorkstations(p),
       p.schedule,
       p.contact_phone,
       p.contact_email,
@@ -952,6 +960,11 @@ export default function PharmaciesPage() {
                               <a href={`tel:${value}`} className="text-teal-700 hover:underline">{value}</a>
                             ) : column.key === 'schedule' ? (
                               <ScheduleTooltip pharmacy={ph} />
+                            ) : column.key === 'workstations' ? (
+                              <div className="min-w-[96px]">
+                                <p className="font-medium text-slate-700">{value || EMPTY_VALUE}</p>
+                                <p className="truncate text-xs text-slate-400">{getErpLabel(ph) || 'Sin ERP'}</p>
+                              </div>
                             ) : column.key === 'owners' ? (
                               <OwnerTooltip pharmacy={ph} />
                             ) : (

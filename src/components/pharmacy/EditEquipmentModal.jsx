@@ -323,22 +323,22 @@ export default function EditEquipmentModal({ pharmacy, equipment, onClose, onSav
             ))}
           </div>
 
-          {form.erp === 'Nixfarma' && (
-            <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {form.erp === 'Nixfarma' && (
               <div>
                 <Label>Licencia</Label>
                 <Input value={form.erp_license} onChange={event => set('erp_license', event.target.value)} />
               </div>
-              <div>
-                <Label>Nº puestos</Label>
-                <Input type="number" min="1" value={form.erp_seats} onChange={event => set('erp_seats', event.target.value)} />
-              </div>
-              <div>
-                <Label>Año inicio</Label>
-                <YearSelect value={form.erp_start_year} onChange={event => set('erp_start_year', event.target.value)} />
-              </div>
+            )}
+            <div>
+              <Label>N? puestos</Label>
+              <Input type="number" min="1" value={form.erp_seats} onChange={event => set('erp_seats', event.target.value)} />
             </div>
-          )}
+            <div>
+              <Label>A?o inicio</Label>
+              <YearSelect value={form.erp_start_year} onChange={event => set('erp_start_year', event.target.value)} />
+            </div>
+          </div>
 
           <VitekaCheck value={form.erp_viteka} onChange={value => set('erp_viteka', value)} />
 
