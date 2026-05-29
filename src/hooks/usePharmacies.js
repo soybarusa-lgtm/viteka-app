@@ -14,6 +14,7 @@ const BASE_SELECT = `
   city,
   postal_code,
   schedule,
+  has_guards,
   contact_phone,
   contact_email,
   is_active,

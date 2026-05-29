@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { createPortal } from 'react-dom'
 import jsPDF from 'jspdf'
 import { useAuth } from '../hooks/useAuth'
 import { usePharmacies } from '../hooks/usePharmacies'
@@ -80,18 +81,72 @@ function getColumnValue(pharmacy, key) {
 }
 
 function ScheduleTooltip({ pharmacy }) {
+  const anchorRef = useRef(null)
+  const tooltipRef = useRef(null)
+  const [isOpen, setIsOpen] = useState(false)
+  const [position, setPosition] = useState({ top: 0, left: 0, ready: false })
   const scheduleRows = getScheduleDayRows(pharmacy.schedule_detail)
   const optionLabels = getScheduleOptionLabels(pharmacy.schedule_detail)
   const hasExtraInfo = scheduleRows.length > 0 || optionLabels.length > 0 || pharmacy.has_guards || pharmacy.schedule_guard_notes
 
+  useEffect(() => {
+    if (!isOpen || !anchorRef.current || !tooltipRef.current) return undefined
+
+    function updatePosition() {
+      if (!anchorRef.current || !tooltipRef.current) return
+
+      const anchorRect = anchorRef.current.getBoundingClientRect()
+      const tooltipRect = tooltipRef.current.getBoundingClientRect()
+      const viewportPadding = 16
+      const gap = 8
+
+      let left = anchorRect.left
+      if (left + tooltipRect.width > window.innerWidth - viewportPadding) {
+        left = window.innerWidth - tooltipRect.width - viewportPadding
+      }
+      left = Math.max(viewportPadding, left)
+
+      let top = anchorRect.bottom + gap
+      if (top + tooltipRect.height > window.innerHeight - viewportPadding) {
+        top = anchorRect.top - tooltipRect.height - gap
+      }
+      top = Math.max(viewportPadding, top)
+
+      setPosition({ top, left, ready: true })
+    }
+
+    const rafId = window.requestAnimationFrame(updatePosition)
+    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', updatePosition)
+
+    return () => {
+      window.cancelAnimationFrame(rafId)
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
+    }
+  }, [isOpen, pharmacy])
+
   return (
-    <div className="group relative max-w-[260px]">
+    <div
+      ref={anchorRef}
+      className="max-w-[260px]"
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+    >
       <span className="block truncate text-gray-500">
         {pharmacy.schedule || EMPTY_VALUE}
       </span>
 
-      {hasExtraInfo && (
-        <div className="pointer-events-none absolute left-0 top-full z-30 mt-2 hidden w-[320px] rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-2xl group-hover:block">
+      {hasExtraInfo && isOpen && createPortal(
+        <div
+          ref={tooltipRef}
+          className="pointer-events-none fixed z-[80] w-[320px] rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-2xl"
+          style={{
+            top: `${position.top}px`,
+            left: `${position.left}px`,
+            opacity: position.ready ? 1 : 0,
+          }}
+        >
           <div className="space-y-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Resumen</p>
@@ -142,7 +197,8 @@ function ScheduleTooltip({ pharmacy }) {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
