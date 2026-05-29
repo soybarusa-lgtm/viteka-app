@@ -154,6 +154,9 @@ export default function PharmaciesPage() {
   const [search, setSearch] = useState('')
   const [filterProvince, setFilterProvince] = useState('')
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false)
+  const [isExportFieldsOpen, setIsExportFieldsOpen] = useState(false)
+  const [pendingExportType, setPendingExportType] = useState(null)
+  const [selectedExportColumnKeys, setSelectedExportColumnKeys] = useState(DEFAULT_COLUMNS.map(column => column.key))
   const [columns, setColumns] = useState(DEFAULT_COLUMNS)
   const [draggedColumnKey, setDraggedColumnKey] = useState(null)
   const [sortConfig, setSortConfig] = useState({ key: 'pharmacy_name', direction: 'asc' })
@@ -189,11 +192,6 @@ export default function PharmaciesPage() {
 
   const provinces = useMemo(() => [...new Set(pharmacies.map(p => p.province).filter(Boolean))].sort(), [pharmacies])
 
-  const exportHeaders = columns.map(column => column.label)
-  const exportRows = useMemo(() => sorted.map(pharmacy => (
-    Object.fromEntries(columns.map(column => [column.label, getColumnValue(pharmacy, column.key) || EMPTY_VALUE]))
-  )), [sorted, columns])
-
   function buildFileName(ext) {
     const parts = ['farmacias']
     if (search.trim()) parts.push(search.trim().toLowerCase().replace(/[^a-z0-9]+/gi, '-'))
@@ -201,34 +199,67 @@ export default function PharmaciesPage() {
     return `${parts.filter(Boolean).join('-')}.${ext}`
   }
 
-  function serializeDelimitedRow(row, delimiter) {
-    return exportHeaders
+  function getSelectedExportColumns(columnKeys = columns.map(column => column.key)) {
+    const keySet = new Set(columnKeys)
+    return columns.filter(column => keySet.has(column.key))
+  }
+
+  function buildExportDataset(columnKeys = columns.map(column => column.key)) {
+    const selectedColumns = getSelectedExportColumns(columnKeys)
+    const exportHeaders = selectedColumns.map(column => column.label)
+    const exportRows = sorted.map(pharmacy => (
+      Object.fromEntries(selectedColumns.map(column => [column.label, getColumnValue(pharmacy, column.key) || EMPTY_VALUE]))
+    ))
+
+    return { selectedColumns, exportHeaders, exportRows }
+  }
+
+  function serializeDelimitedRow(headers, row, delimiter) {
+    return headers
       .map(header => `"${String(row[header]).replaceAll('"', '""')}"`)
       .join(delimiter)
   }
 
-  function handleExport(action) {
+  function openExportFieldSelector(format) {
     setIsExportMenuOpen(false)
-    action()
+    setPendingExportType(format)
+    setSelectedExportColumnKeys(columns.map(column => column.key))
+    setIsExportFieldsOpen(true)
   }
 
-  function exportCsv() {
+  function closeExportFieldSelector() {
+    setIsExportFieldsOpen(false)
+    setPendingExportType(null)
+  }
+
+  function toggleExportColumn(columnKey) {
+    setSelectedExportColumnKeys(prev => (
+      prev.includes(columnKey)
+        ? prev.filter(key => key !== columnKey)
+        : [...prev, columnKey]
+    ))
+  }
+
+  function exportCsv(columnKeys) {
+    const { exportHeaders, exportRows } = buildExportDataset(columnKeys)
     const lines = [
-      serializeDelimitedRow(Object.fromEntries(exportHeaders.map(header => [header, header])), ','),
-      ...exportRows.map(row => serializeDelimitedRow(row, ',')),
+      serializeDelimitedRow(exportHeaders, Object.fromEntries(exportHeaders.map(header => [header, header])), ','),
+      ...exportRows.map(row => serializeDelimitedRow(exportHeaders, row, ',')),
     ]
     downloadBlob(lines.join('\n'), 'text/csv;charset=utf-8;', buildFileName('csv'))
   }
 
-  function exportTxt() {
+  function exportTxt(columnKeys) {
+    const { exportHeaders, exportRows } = buildExportDataset(columnKeys)
     const lines = [
-      serializeDelimitedRow(Object.fromEntries(exportHeaders.map(header => [header, header])), ';'),
-      ...exportRows.map(row => serializeDelimitedRow(row, ';')),
+      serializeDelimitedRow(exportHeaders, Object.fromEntries(exportHeaders.map(header => [header, header])), ';'),
+      ...exportRows.map(row => serializeDelimitedRow(exportHeaders, row, ';')),
     ]
     downloadBlob(lines.join('\n'), 'text/plain;charset=utf-8;', buildFileName('txt'))
   }
 
-  function exportExcel() {
+  function exportExcel(columnKeys) {
+    const { exportHeaders, exportRows } = buildExportDataset(columnKeys)
     const table = `
       <table>
         <thead>
@@ -248,7 +279,8 @@ export default function PharmaciesPage() {
     downloadBlob(html, 'application/vnd.ms-excel;charset=utf-8;', buildFileName('xls'))
   }
 
-  function exportPdf() {
+  function exportPdf(columnKeys) {
+    const { exportHeaders, exportRows } = buildExportDataset(columnKeys)
     const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
     const pageWidth = pdf.internal.pageSize.getWidth()
     const pageHeight = pdf.internal.pageSize.getHeight()
@@ -321,6 +353,21 @@ export default function PharmaciesPage() {
     pdf.save(buildFileName('pdf'))
   }
 
+  function confirmExport() {
+    if (!pendingExportType || selectedExportColumnKeys.length === 0) return
+
+    const actions = {
+      excel: exportExcel,
+      csv: exportCsv,
+      txt: exportTxt,
+      pdf: exportPdf,
+    }
+
+    const exportAction = actions[pendingExportType]
+    closeExportFieldSelector()
+    exportAction(selectedExportColumnKeys)
+  }
+
   function handleSort(columnKey) {
     setSortConfig(prev => {
       if (prev.key !== columnKey) return { key: columnKey, direction: 'asc' }
@@ -383,21 +430,58 @@ export default function PharmaciesPage() {
             <option key={p} value={p}>{PROVINCE_LABEL[p] || p}</option>
           ))}
         </select>
-        <div className="lg:ml-auto">
+        <div className="relative lg:ml-auto">
           <button
             type="button"
-            onClick={() => setIsExportMenuOpen(true)}
+            onClick={() => setIsExportMenuOpen(prev => !prev)}
             disabled={loading || sorted.length === 0}
             className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <ArrowDownTrayIcon className="w-4 h-4" />
             Extraer
+            <ChevronDownIcon className={`w-4 h-4 transition-transform ${isExportMenuOpen ? 'rotate-180' : ''}`} />
           </button>
+          {isExportMenuOpen && !loading && sorted.length > 0 && (
+            <div className="absolute right-0 top-full z-20 mt-2 min-w-[180px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+              <button
+                type="button"
+                onClick={() => openExportFieldSelector('excel')}
+                className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:bg-gray-50"
+              >
+                <ArrowDownTrayIcon className="w-4 h-4" />
+                Excel
+              </button>
+              <button
+                type="button"
+                onClick={() => openExportFieldSelector('csv')}
+                className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:bg-gray-50"
+              >
+                <ArrowDownTrayIcon className="w-4 h-4" />
+                CSV
+              </button>
+              <button
+                type="button"
+                onClick={() => openExportFieldSelector('txt')}
+                className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:bg-gray-50"
+              >
+                <ArrowDownTrayIcon className="w-4 h-4" />
+                TXT (;)
+              </button>
+              <button
+                type="button"
+                onClick={() => openExportFieldSelector('pdf')}
+                className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:bg-gray-50"
+              >
+                <ArrowDownTrayIcon className="w-4 h-4" />
+                PDF
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {isExportMenuOpen && !loading && sorted.length > 0 && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-gray-900/40 px-4" onClick={() => setIsExportMenuOpen(false)}>
+      {isExportFieldsOpen && !loading && sorted.length > 0 && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-gray-900/40 px-4" onClick={closeExportFieldSelector}>
           <div
             className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
             onClick={e => e.stopPropagation()}
@@ -406,51 +490,70 @@ export default function PharmaciesPage() {
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Extraer farmacias</h2>
                 <p className="mt-1 text-sm text-gray-500">
-                  Elige el formato que quieres descargar con los filtros actuales aplicados.
+                  Selecciona si quieres exportar todas las columnas o solo algunas en formato <span className="font-medium text-gray-700">{pendingExportType?.toUpperCase()}</span>.
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => setIsExportMenuOpen(false)}
+                onClick={closeExportFieldSelector}
                 className="rounded-lg px-2 py-1 text-sm text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
               >
                 Cerrar
               </button>
             </div>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="mt-5 flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => handleExport(exportExcel)}
-                className="flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:border-teal-300 hover:bg-teal-50"
+                onClick={() => setSelectedExportColumnKeys(columns.map(column => column.key))}
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 transition-colors hover:border-teal-300 hover:bg-teal-50"
               >
-                <ArrowDownTrayIcon className="w-4 h-4" />
-                Excel
+                Todas las columnas
               </button>
               <button
                 type="button"
-                onClick={() => handleExport(exportCsv)}
-                className="flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:border-teal-300 hover:bg-teal-50"
+                onClick={() => setSelectedExportColumnKeys([])}
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 transition-colors hover:border-teal-300 hover:bg-teal-50"
               >
-                <ArrowDownTrayIcon className="w-4 h-4" />
-                CSV
+                Limpiar selección
               </button>
-              <button
-                type="button"
-                onClick={() => handleExport(exportTxt)}
-                className="flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:border-teal-300 hover:bg-teal-50"
-              >
-                <ArrowDownTrayIcon className="w-4 h-4" />
-                TXT (;)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleExport(exportPdf)}
-                className="flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:border-teal-300 hover:bg-teal-50"
-              >
-                <ArrowDownTrayIcon className="w-4 h-4" />
-                PDF
-              </button>
+            </div>
+
+            <div className="mt-4 max-h-[320px] space-y-2 overflow-y-auto rounded-xl border border-gray-200 p-3">
+              {columns.map(column => (
+                <label key={column.key} className="flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50">
+                  <input
+                    type="checkbox"
+                    checked={selectedExportColumnKeys.includes(column.key)}
+                    onChange={() => toggleExportColumn(column.key)}
+                    className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                  />
+                  <span>{column.label}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="mt-5 flex items-center justify-between gap-3">
+              <p className="text-sm text-gray-500">
+                {selectedExportColumnKeys.length} campo(s) seleccionado(s)
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={closeExportFieldSelector}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmExport}
+                  disabled={selectedExportColumnKeys.length === 0}
+                  className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Extraer
+                </button>
+              </div>
             </div>
           </div>
         </div>
