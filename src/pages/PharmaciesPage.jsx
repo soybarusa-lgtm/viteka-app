@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import jsPDF from 'jspdf'
 import { useAuth } from '../hooks/useAuth'
 import { usePharmacies } from '../hooks/usePharmacies'
 import {
   MagnifyingGlassIcon, PlusIcon, BuildingStorefrontIcon, MapPinIcon,
-  Bars3Icon, ChevronUpDownIcon, ChevronUpIcon, ChevronDownIcon,
+  Bars3Icon, ChevronUpDownIcon, ChevronUpIcon, ChevronDownIcon, ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline'
 
 const PROVINCE_LABEL = {
@@ -95,6 +96,26 @@ function compareValues(a, b, direction) {
   return direction === 'asc' ? result : -result
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+}
+
+function downloadBlob(content, mimeType, fileName) {
+  const blob = new Blob([content], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
 function SortIcon({ active, direction }) {
   if (!active) return <ChevronUpDownIcon className="w-3.5 h-3.5 text-gray-300" />
   return direction === 'asc'
@@ -102,7 +123,6 @@ function SortIcon({ active, direction }) {
     : <ChevronDownIcon className="w-3.5 h-3.5 text-teal-600" />
 }
 
-// ── Skeleton row ────────────────────────────────────────────
 function SkeletonCard() {
   return (
     <div className="flex items-start gap-3 bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
@@ -115,6 +135,7 @@ function SkeletonCard() {
     </div>
   )
 }
+
 function SkeletonRow() {
   return (
     <tr className="animate-pulse">
@@ -149,7 +170,7 @@ export default function PharmaciesPage() {
     ].filter(Boolean).join(' ').toLowerCase()
 
     const matchSearch = searchValue.includes(search.toLowerCase())
-    const matchProv   = !filterProvince || p.province === filterProvince
+    const matchProv = !filterProvince || p.province === filterProvince
     return matchSearch && matchProv
   }), [pharmacies, search, filterProvince])
 
@@ -166,6 +187,107 @@ export default function PharmaciesPage() {
   }, [filtered, sortConfig])
 
   const provinces = useMemo(() => [...new Set(pharmacies.map(p => p.province).filter(Boolean))].sort(), [pharmacies])
+
+  const exportHeaders = columns.map(column => column.label)
+  const exportRows = useMemo(() => sorted.map(pharmacy => (
+    Object.fromEntries(columns.map(column => [column.label, getColumnValue(pharmacy, column.key) || EMPTY_VALUE]))
+  )), [sorted, columns])
+
+  function buildFileName(ext) {
+    const parts = ['farmacias']
+    if (search.trim()) parts.push(search.trim().toLowerCase().replace(/[^a-z0-9]+/gi, '-'))
+    if (filterProvince) parts.push(filterProvince)
+    return `${parts.filter(Boolean).join('-')}.${ext}`
+  }
+
+  function exportCsv() {
+    const lines = [
+      exportHeaders.join(','),
+      ...exportRows.map(row => exportHeaders.map(header => `"${String(row[header]).replaceAll('"', '""')}"`).join(',')),
+    ]
+    downloadBlob(lines.join('\n'), 'text/csv;charset=utf-8;', buildFileName('csv'))
+  }
+
+  function exportTxt() {
+    const lines = exportRows.map(row => exportHeaders.map(header => `${header}: ${row[header]}`).join(' | '))
+    downloadBlob(lines.join('\n'), 'text/plain;charset=utf-8;', buildFileName('txt'))
+  }
+
+  function exportExcel() {
+    const table = `
+      <table>
+        <thead>
+          <tr>${exportHeaders.map(header => `<th>${escapeHtml(header)}</th>`).join('')}</tr>
+        </thead>
+        <tbody>
+          ${exportRows.map(row => `<tr>${exportHeaders.map(header => `<td>${escapeHtml(row[header])}</td>`).join('')}</tr>`).join('')}
+        </tbody>
+      </table>
+    `
+    const html = `
+      <html>
+        <head><meta charset="utf-8" /></head>
+        <body>${table}</body>
+      </html>
+    `
+    downloadBlob(html, 'application/vnd.ms-excel;charset=utf-8;', buildFileName('xls'))
+  }
+
+  function exportPdf() {
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    const pageHeight = pdf.internal.pageSize.getHeight()
+    const left = 10
+    const top = 12
+    const rowHeight = 8
+    const usableWidth = pageWidth - (left * 2)
+    const colWidth = usableWidth / Math.max(exportHeaders.length, 1)
+
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(14)
+    pdf.text('Listado de farmacias', left, top)
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(9)
+    pdf.text(`Registros exportados: ${exportRows.length}`, pageWidth - 60, top)
+
+    let currentY = top + 8
+
+    function drawHeader() {
+      let currentX = left
+      pdf.setFillColor(243, 244, 246)
+      pdf.setDrawColor(209, 213, 219)
+      pdf.setTextColor(55, 65, 81)
+      pdf.setFont('helvetica', 'bold')
+      exportHeaders.forEach(header => {
+        pdf.rect(currentX, currentY, colWidth, rowHeight, 'FD')
+        pdf.text(header, currentX + 2, currentY + 5.3, { maxWidth: colWidth - 4 })
+        currentX += colWidth
+      })
+      currentY += rowHeight
+      pdf.setFont('helvetica', 'normal')
+      pdf.setTextColor(75, 85, 99)
+    }
+
+    drawHeader()
+
+    exportRows.forEach(row => {
+      if (currentY + rowHeight > pageHeight - 10) {
+        pdf.addPage()
+        currentY = 12
+        drawHeader()
+      }
+
+      let currentX = left
+      exportHeaders.forEach(header => {
+        pdf.rect(currentX, currentY, colWidth, rowHeight)
+        pdf.text(String(row[header]), currentX + 2, currentY + 5.3, { maxWidth: colWidth - 4 })
+        currentX += colWidth
+      })
+      currentY += rowHeight
+    })
+
+    pdf.save(buildFileName('pdf'))
+  }
 
   function handleSort(columnKey) {
     setSortConfig(prev => {
@@ -191,8 +313,6 @@ export default function PharmaciesPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-4">
-
-      {/* Cabecera */}
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-gray-900">Farmacias</h1>
@@ -210,8 +330,7 @@ export default function PharmaciesPage() {
         </Link>
       </div>
 
-      {/* Filtros */}
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2 lg:flex-row">
         <div className="relative flex-1">
           <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
@@ -232,16 +351,51 @@ export default function PharmaciesPage() {
             <option key={p} value={p}>{PROVINCE_LABEL[p] || p}</option>
           ))}
         </select>
+        <div className="flex flex-wrap gap-2 lg:ml-auto">
+          <button
+            type="button"
+            onClick={exportExcel}
+            disabled={loading || sorted.length === 0}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <ArrowDownTrayIcon className="w-4 h-4" />
+            Excel
+          </button>
+          <button
+            type="button"
+            onClick={exportCsv}
+            disabled={loading || sorted.length === 0}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <ArrowDownTrayIcon className="w-4 h-4" />
+            CSV
+          </button>
+          <button
+            type="button"
+            onClick={exportTxt}
+            disabled={loading || sorted.length === 0}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <ArrowDownTrayIcon className="w-4 h-4" />
+            TXT
+          </button>
+          <button
+            type="button"
+            onClick={exportPdf}
+            disabled={loading || sorted.length === 0}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <ArrowDownTrayIcon className="w-4 h-4" />
+            PDF
+          </button>
+        </div>
       </div>
 
-      {/* Contenido */}
       {loading ? (
         <>
-          {/* Skeleton móvil */}
           <div className="md:hidden space-y-2">
             {[...Array(5)].map((_, i) => <SkeletonCard key={i} />)}
           </div>
-          {/* Skeleton desktop */}
           <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
             <table className="w-full min-w-[1280px] text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
@@ -258,7 +412,6 @@ export default function PharmaciesPage() {
           </div>
         </>
       ) : sorted.length === 0 ? (
-        /* Empty state accionable */
         <div className="text-center py-16 space-y-4">
           <div className="w-16 h-16 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto">
             <BuildingStorefrontIcon className="w-8 h-8 text-teal-400" />
@@ -285,7 +438,6 @@ export default function PharmaciesPage() {
         </div>
       ) : (
         <>
-          {/* MÓVIL — cards */}
           <div className="md:hidden space-y-2">
             {sorted.map(ph => (
               <Link
@@ -314,7 +466,6 @@ export default function PharmaciesPage() {
             ))}
           </div>
 
-          {/* DESKTOP — tabla */}
           <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
             <table className="w-full min-w-[1280px] text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">

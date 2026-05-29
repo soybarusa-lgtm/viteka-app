@@ -4,8 +4,8 @@ import { isActiveCommercialStatus } from '../lib/pharmacyStatus'
 
 export function usePharmacies(companyId) {
   const [pharmacies, setPharmacies] = useState([])
-  const [loading, setLoading]       = useState(true)
-  const [error, setError]           = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   const load = useCallback(async () => {
     if (!companyId) {
