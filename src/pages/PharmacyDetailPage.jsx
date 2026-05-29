@@ -30,12 +30,12 @@ import { Label, Input, Select, Textarea } from '../components/pharmacy/PharmacyF
 
 // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const PROVINCE_LABEL = {
-  almeria:'AlmerÃ­a',cadiz:'CÃ¡diz',cordoba:'CÃ³rdoba',granada:'Granada',
-  huelva:'Huelva',jaen:'JaÃ©n',malaga:'MÃ¡laga',sevilla:'Sevilla',
+  almeria:'Almería',cadiz:'Cádiz',cordoba:'Córdoba',granada:'Granada',
+  huelva:'Huelva',jaen:'Jaén',malaga:'Málaga',sevilla:'Sevilla',
 }
 const LEGAL_LABEL = {
-  autonomo:'AutÃ³nomo',cb:'C.B.',sl:'S.L.',
-  autonomo_sl:'AutÃ³nomo + S.L.',cb_sl:'C.B. + S.L.',
+  autonomo:'Autónomo',cb:'C.B.',sl:'S.L.',
+  autonomo_sl:'Autónomo + S.L.',cb_sl:'C.B. + S.L.',
 }
 
 const DEVICE_PHOTO_BUCKET = 'task-evidence'
@@ -72,11 +72,11 @@ function EmptyTab({ icon: Icon, message }) {
   )
 }
 
-// â”€â”€ PestaÃ±as â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ Pestañas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const TABS = [
   { key: 'general',   label: 'Datos generales',   icon: BuildingStorefrontIcon },
   { key: 'equipment', label: 'Equipamiento',       icon: WrenchScrewdriverIcon  },
-  { key: 'it',        label: 'Equip. InformÃ¡tico', icon: ComputerDesktopIcon    },
+  { key: 'it',        label: 'Equip. Informático', icon: ComputerDesktopIcon    },
   { key: 'people',    label: 'Personas',           icon: UsersIcon              },
   { key: 'incidents', label: 'Incidencias',        icon: ExclamationTriangleIcon},
   { key: 'projects',  label: 'Proyectos',          icon: FolderOpenIcon         },
@@ -98,25 +98,25 @@ function TabGeneral({ pharmacy }) {
   })
 
   const boolField = (label, val, wide) => (
-    <Field label={label} value={val === true ? 'SÃ­' : val === false ? 'No' : null} wide={wide} />
+    <Field label={label} value={val === true ? 'Sí' : val === false ? 'No' : null} wide={wide} />
   )
 
   return (
     <div className="space-y-4">
       {hasAuto && (
-        <SectionBlock title="AutÃ³nomo">
+        <SectionBlock title="Autónomo">
           <Field label="Titular"        value={pharmacy.owner_name} />
           <Field label="NIF"            value={pharmacy.nif} />
-          <Field label="NÂº Colegiado"   value={pharmacy.collegiate_number} />
+          <Field label="Nº Colegiado"   value={pharmacy.collegiate_number} />
           <Field label="SOE"            value={pharmacy.soe_number} />
-          <Field label="TelÃ©fono"       value={pharmacy.contact_phone} />
+          <Field label="Teléfono"       value={pharmacy.contact_phone} />
           <Field label="Email"          value={pharmacy.contact_email} />
-          <Field label="DirecciÃ³n"      value={pharmacy.address} wide />
-          <Field label="PoblaciÃ³n"      value={pharmacy.city} />
+          <Field label="Dirección"      value={pharmacy.address} wide />
+          <Field label="Población"      value={pharmacy.city} />
           <Field label="Provincia"      value={PROVINCE_LABEL[pharmacy.province] || pharmacy.province} />
           <Field label="C.P."           value={pharmacy.postal_code} />
           <Field label="Horario"        value={mainSchedule.summary} />
-          {scheduleOptions.length > 0 && <Field label="Aperturas especiales" value={scheduleOptions.join(' Â· ')} wide />}
+          {scheduleOptions.length > 0 && <Field label="Aperturas especiales" value={scheduleOptions.join(' · ')} wide />}
           {boolField('Guardias', pharmacy.has_guards)}
           {mainSchedule.guardNotes && <Field label="Indicaciones guardias" value={mainSchedule.guardNotes} wide />}
           <Field label="Observaciones"  value={pharmacy.observations} wide />
@@ -124,7 +124,7 @@ function TabGeneral({ pharmacy }) {
       )}
       {hasCb && (
         <SectionBlock title="Comunidad de Bienes (C.B.)">
-          <Field label="RazÃ³n social" value={pharmacy.razon_social} />
+          <Field label="Razón social" value={pharmacy.razon_social} />
           <Field label="CIF"          value={pharmacy.cif} />
           {cbOwners.length === 0 && (
             <div className="col-span-2 md:col-span-3"><p className="text-xs text-gray-300 italic">Sin titulares registrados</p></div>
@@ -136,15 +136,15 @@ function TabGeneral({ pharmacy }) {
               <div><dt className="text-xs text-gray-400">Colegiado</dt><dd className={`text-sm font-medium ${o.collegiate ? 'text-gray-800' : 'text-gray-300 italic'}`}>{o.collegiate || 'Sin informar'}</dd></div>
             </div>
           ))}
-          <Field label="TelÃ©fono"     value={pharmacy.contact_phone} />
+          <Field label="Teléfono"     value={pharmacy.contact_phone} />
           <Field label="Email"        value={pharmacy.contact_email} />
-          <Field label="DirecciÃ³n"    value={pharmacy.address} wide />
-          <Field label="PoblaciÃ³n"    value={pharmacy.city} />
+          <Field label="Dirección"    value={pharmacy.address} wide />
+          <Field label="Población"    value={pharmacy.city} />
           <Field label="Provincia"    value={PROVINCE_LABEL[pharmacy.province] || pharmacy.province} />
           <Field label="C.P."         value={pharmacy.postal_code} />
           <Field label="SOE"          value={pharmacy.soe_number} />
           <Field label="Horario"      value={mainSchedule.summary} />
-          {scheduleOptions.length > 0 && <Field label="Aperturas especiales" value={scheduleOptions.join(' Â· ')} wide />}
+          {scheduleOptions.length > 0 && <Field label="Aperturas especiales" value={scheduleOptions.join(' · ')} wide />}
           {boolField('Guardias', pharmacy.has_guards)}
           {mainSchedule.guardNotes && <Field label="Indicaciones guardias" value={mainSchedule.guardNotes} wide />}
           <Field label="Observaciones" value={pharmacy.observations} wide />
@@ -152,16 +152,16 @@ function TabGeneral({ pharmacy }) {
       )}
       {hasSl && (
         <SectionBlock title="Sociedad Limitada (S.L.)">
-          <Field label="RazÃ³n social"  value={(hasAuto || hasCb) ? sl.razon_social : pharmacy.razon_social} />
+          <Field label="Razón social"  value={(hasAuto || hasCb) ? sl.razon_social : pharmacy.razon_social} />
           <Field label="CIF"           value={(hasAuto || hasCb) ? sl.cif : pharmacy.cif} />
-          <Field label="TelÃ©fono S.L." value={(hasAuto || hasCb) ? sl.phone : pharmacy.contact_phone} />
+          <Field label="Teléfono S.L." value={(hasAuto || hasCb) ? sl.phone : pharmacy.contact_phone} />
           <Field label="Email S.L."    value={(hasAuto || hasCb) ? sl.email : pharmacy.contact_email} />
-          <Field label="DirecciÃ³n"     value={(hasAuto || hasCb) ? sl.address : pharmacy.address} wide />
-          <Field label="PoblaciÃ³n"     value={(hasAuto || hasCb) ? sl.city : pharmacy.city} />
+          <Field label="Dirección"     value={(hasAuto || hasCb) ? sl.address : pharmacy.address} wide />
+          <Field label="Población"     value={(hasAuto || hasCb) ? sl.city : pharmacy.city} />
           <Field label="Provincia"     value={PROVINCE_LABEL[(hasAuto || hasCb) ? sl.province : pharmacy.province]} />
           <Field label="C.P."          value={(hasAuto || hasCb) ? sl.postal_code : pharmacy.postal_code} />
           {!hasAuto && !hasCb && <Field label="Horario" value={mainSchedule.summary} />}
-          {!hasAuto && !hasCb && scheduleOptions.length > 0 && <Field label="Aperturas especiales" value={scheduleOptions.join(' Â· ')} wide />}
+          {!hasAuto && !hasCb && scheduleOptions.length > 0 && <Field label="Aperturas especiales" value={scheduleOptions.join(' · ')} wide />}
           {!hasAuto && !hasCb && boolField('Guardias', pharmacy.has_guards)}
           {!hasAuto && !hasCb && mainSchedule.guardNotes && <Field label="Indicaciones guardias" value={mainSchedule.guardNotes} wide />}
           <Field label="Observaciones" value={(hasAuto || hasCb) ? sl.observations : pharmacy.observations} wide />
@@ -177,7 +177,7 @@ function TabEquipment({ equipment }) {
   return <EquipmentSummaryTable equipment={equipment} />
 }
 
-// â”€â”€ Tab: Equipamiento InformÃ¡tico â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ Tab: Equipamiento Informático â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const IT_LABEL = Object.fromEntries(IT_TYPES.map(t => [t.value, t.label]))
 
 function resolveBrand(device) {
@@ -202,7 +202,7 @@ function buildChips(device) {
   }
 
   const ip = Array.isArray(s.ip) && s.ip.filter(Boolean).length > 0
-    ? `IP Â· ${s.ip.filter(Boolean)[0]}`
+    ? `IP · ${s.ip.filter(Boolean)[0]}`
     : null
   const disk = Array.isArray(s.disks) && s.disks.length > 0 && s.disks[0].capacity
     ? `${s.disks[0].type} ${s.disks[0].capacity}`
@@ -363,7 +363,7 @@ function DeviceModal({
 
             <h3 className="text-base font-bold text-gray-900 mb-1">Hay cambios pendientes</h3>
             <p className="text-sm text-gray-500 mb-6">
-              Â¿Quieres guardar antes de cerrar esta ventana?
+              ¿Quieres guardar antes de cerrar esta ventana?
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -459,7 +459,7 @@ function ITDeviceCard({ device, onOpen, onDelete, onDuplicate }) {
 
       {/* Marca / modelo */}
       {(marca || modelo) && (
-        <p className="text-xs text-gray-400 truncate">{[marca, modelo].filter(Boolean).join(' Â· ')}</p>
+        <p className="text-xs text-gray-400 truncate">{[marca, modelo].filter(Boolean).join(' · ')}</p>
       )}
 
       {/* Pie: fechas + acciones */}
@@ -539,7 +539,7 @@ function ITDeviceRow({ device, onOpen, onDelete, onDuplicate }) {
             )}
             {warOk && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-600">
-                <ShieldCheckIcon className="w-3 h-3" /> GarantÃ­a
+                <ShieldCheckIcon className="w-3 h-3" /> Garantía
               </span>
             )}
             {warExpired && (
@@ -571,7 +571,7 @@ function ITDeviceRow({ device, onOpen, onDelete, onDuplicate }) {
         )}
 
         {(marca || modelo) && (
-          <p className="text-xs text-gray-400 mt-1 truncate">{[marca, modelo].filter(Boolean).join(' Â· ')}</p>
+          <p className="text-xs text-gray-400 mt-1 truncate">{[marca, modelo].filter(Boolean).join(' · ')}</p>
         )}
       </div>
 
@@ -640,7 +640,7 @@ function ITTypeBlock({ typeKey, devices, isOpen, onToggle, onOpen, onDelete, onD
               onClick={() => onAddSameType(typeKey)}
               className="hidden sm:inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-600 hover:bg-gray-50 hover:border-teal-300 transition-colors"
             >
-              <PlusIcon className="w-3.5 h-3.5" /> AÃ±adir
+              <PlusIcon className="w-3.5 h-3.5" /> Añadir
             </button>
             <button
               type="button"
@@ -767,7 +767,7 @@ function DevicePhotosEditor({ form, setForm, pharmacyId, companyId }) {
           created_at: uploadedAt,
         },
       ])
-      toast('Imagen aÃ±adida. Guarda cambios para vincularla al equipo.', 'success')
+      toast('Imagen añadida. Guarda cambios para vincularla al equipo.', 'success')
     } catch (err) {
       toast(err.message || 'No se pudo subir la imagen', 'error')
     } finally {
@@ -799,8 +799,8 @@ function DevicePhotosEditor({ form, setForm, pharmacyId, companyId }) {
     <section className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-teal-700">ImÃ¡genes del equipo y puesto</h3>
-          <p className="mt-1 text-xs text-gray-400">Fotos del equipo, nÃºmero visible, conexiones o ubicaciÃ³n del puesto.</p>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-teal-700">Imágenes del equipo y puesto</h3>
+          <p className="mt-1 text-xs text-gray-400">Fotos del equipo, número visible, conexiones o ubicación del puesto.</p>
         </div>
         <label className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
           canUpload
@@ -808,7 +808,7 @@ function DevicePhotosEditor({ form, setForm, pharmacyId, companyId }) {
             : 'cursor-not-allowed bg-gray-100 text-gray-400'
         }`}>
           <PhotoIcon className="w-4 h-4" />
-          {uploading ? 'Subiendo...' : 'AÃ±adir imagen'}
+          {uploading ? 'Subiendo...' : 'Añadir imagen'}
           <input
             ref={fileRef}
             type="file"
@@ -823,13 +823,13 @@ function DevicePhotosEditor({ form, setForm, pharmacyId, companyId }) {
 
       {!canUpload && (
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
-          Primero guarda el equipo. DespuÃ©s podrÃ¡s adjuntar imÃ¡genes.
+          Primero guarda el equipo. Después podrás adjuntar imágenes.
         </p>
       )}
 
       {photos.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-gray-400">
-          Sin imÃ¡genes adjuntas.
+          Sin imágenes adjuntas.
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -856,7 +856,7 @@ function DevicePhotosEditor({ form, setForm, pharmacyId, companyId }) {
                 <Input
                   value={photo.caption || ''}
                   onChange={e => updateCaption(photo.id, e.target.value)}
-                  placeholder="Puesto, caracterÃ­sticas visibles o ubicaciÃ³n"
+                  placeholder="Puesto, características visibles o ubicación"
                 />
               </div>
             </div>
@@ -871,7 +871,7 @@ function DevicePhotosReadOnly({ photos }) {
   if (!photos.length) return null
   return (
     <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
-      <h3 className="text-xs font-bold uppercase tracking-widest text-teal-700">ImÃ¡genes del equipo y puesto</h3>
+      <h3 className="text-xs font-bold uppercase tracking-widest text-teal-700">Imágenes del equipo y puesto</h3>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {photos.map(photo => (
           <a
@@ -934,9 +934,9 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
         </label>
         {form.is_viteka && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div><Label>NÂº de serie</Label><Input value={form.serial_number || ''} onChange={e => set('serial_number', e.target.value)} /></div>
-            <div><Label>Fecha instalaciÃ³n</Label><Input type="date" value={form.install_date || ''} onChange={e => set('install_date', e.target.value)} /></div>
-            <div><Label>Fin garantÃ­a</Label><Input type="date" value={form.warranty_end || ''} onChange={e => set('warranty_end', e.target.value)} /></div>
+            <div><Label>Nº de serie</Label><Input value={form.serial_number || ''} onChange={e => set('serial_number', e.target.value)} /></div>
+            <div><Label>Fecha instalación</Label><Input type="date" value={form.install_date || ''} onChange={e => set('install_date', e.target.value)} /></div>
+            <div><Label>Fin garantía</Label><Input type="date" value={form.warranty_end || ''} onChange={e => set('warranty_end', e.target.value)} /></div>
           </div>
         )}
       </div>
@@ -949,15 +949,15 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
             <div><Label>Antivirus</Label><Input value={form.specs.antivirus || ''} onChange={e => setSpec('antivirus', e.target.value)} /></div>
             <div><Label>Procesador</Label><Input value={form.specs.cpu || ''} onChange={e => setSpec('cpu', e.target.value)} /></div>
             <div><Label>RAM</Label><Input value={form.specs.ram || ''} onChange={e => setSpec('ram', e.target.value)} placeholder="p.ej. 16 GB" /></div>
-            <div><Label>GrÃ¡fica</Label><Input value={form.specs.gpu || ''} onChange={e => setSpec('gpu', e.target.value)} /></div>
-            <div><Label>Fuente alimentaciÃ³n</Label><Input value={form.specs.psu || ''} onChange={e => setSpec('psu', e.target.value)} /></div>
+            <div><Label>Gráfica</Label><Input value={form.specs.gpu || ''} onChange={e => setSpec('gpu', e.target.value)} /></div>
+            <div><Label>Fuente alimentación</Label><Input value={form.specs.psu || ''} onChange={e => setSpec('psu', e.target.value)} /></div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <Label>DirecciÃ³n(es) IP</Label>
-                <button type="button" onClick={addIp} className="text-xs font-medium text-teal-600 hover:text-teal-800">+ AÃ±adir</button>
+                <Label>Dirección(es) IP</Label>
+                <button type="button" onClick={addIp} className="text-xs font-medium text-teal-600 hover:text-teal-800">+ Añadir</button>
               </div>
               {(form.specs.ip || ['']).map((ip, i) => (
                 <div key={i} className="flex gap-2 mb-1.5">
@@ -973,13 +973,13 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <Label>NÂº conexiÃ³n / contraseÃ±a</Label>
-                <button type="button" onClick={addConexion} className="text-xs font-medium text-teal-600 hover:text-teal-800">+ AÃ±adir</button>
+                <Label>Nº conexión / contraseña</Label>
+                <button type="button" onClick={addConexion} className="text-xs font-medium text-teal-600 hover:text-teal-800">+ Añadir</button>
               </div>
               {conexiones.map((c, i) => (
                 <div key={i} className="flex items-center gap-2 mb-1.5">
-                  <Input value={c.numero} onChange={e => setConexion(i, 'numero', e.target.value)} placeholder="NÃºmero" />
-                  <Input value={c.pass} onChange={e => setConexion(i, 'pass', e.target.value)} placeholder="ContraseÃ±a" type="password" autoComplete="new-password" />
+                  <Input value={c.numero} onChange={e => setConexion(i, 'numero', e.target.value)} placeholder="Número" />
+                  <Input value={c.pass} onChange={e => setConexion(i, 'pass', e.target.value)} placeholder="Contraseña" type="password" autoComplete="new-password" />
                   {conexiones.length > 1 && (
                     <button type="button" onClick={() => removeConexion(i)} className="shrink-0 p-2 text-red-400 hover:text-red-600">
                       <XMarkIcon className="w-4 h-4" />
@@ -993,7 +993,7 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <Label>Disco(s) duro(s)</Label>
-              <button type="button" onClick={addDisk} className="text-xs font-medium text-teal-600 hover:text-teal-800">+ AÃ±adir disco</button>
+              <button type="button" onClick={addDisk} className="text-xs font-medium text-teal-600 hover:text-teal-800">+ Añadir disco</button>
             </div>
             {(form.specs.disks || []).map((d, i) => (
               <div key={i} className="flex gap-2 mb-1.5">
@@ -1008,7 +1008,7 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
             ))}
           </div>
 
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1.5">Monitor y perifÃ©ricos</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1.5">Monitor y periféricos</p>
           <div className="flex flex-wrap items-center gap-4">
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={!!form.specs.monitor}
@@ -1021,16 +1021,16 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
                 <input type="checkbox" checked={!!form.specs.monitor.tactil}
                   onChange={e => setSpec('monitor', { ...form.specs.monitor, tactil: e.target.checked })}
                   className="accent-teal-600" />
-                <span className="text-sm font-medium text-gray-700">TÃ¡ctil</span>
+                <span className="text-sm font-medium text-gray-700">Táctil</span>
               </label>
             )}
           </div>
           {form.specs.monitor && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-gray-50 rounded-xl p-3">
-              <div><Label>TamaÃ±o</Label><Input value={form.specs.monitor.size || ''} onChange={e => setSpec('monitor', { ...form.specs.monitor, size: e.target.value })} placeholder='"' /></div>
+              <div><Label>Tamaño</Label><Input value={form.specs.monitor.size || ''} onChange={e => setSpec('monitor', { ...form.specs.monitor, size: e.target.value })} placeholder='"' /></div>
               <div><Label>Color</Label><Input value={form.specs.monitor.color || ''} onChange={e => setSpec('monitor', { ...form.specs.monitor, color: e.target.value })} /></div>
               <div>
-                <Label>ConexiÃ³n</Label>
+                <Label>Conexión</Label>
                 <Select value={form.specs.monitor.conn || ''} onChange={e => setSpec('monitor', { ...form.specs.monitor, conn: e.target.value })}>
                   {MONITOR_CONN.map(c => <option key={c} value={c}>{c}</option>)}
                 </Select>
@@ -1039,13 +1039,13 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
           )}
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[['teclado', 'Teclado'], ['raton', 'RatÃ³n']].map(([key, lbl]) => (
+            {[['teclado', 'Teclado'], ['raton', 'Ratón']].map(([key, lbl]) => (
               <div key={key} className="space-y-1">
                 <Label>{lbl}</Label>
                 <Select value={form.specs[key] || 'NO'} onChange={e => setSpec(key, e.target.value)}>
                   <option value="NO">No</option>
                   <option value="Cable">Cable</option>
-                  <option value="InalÃ¡mbrico">InalÃ¡mbrico</option>
+                  <option value="Inalámbrico">Inalámbrico</option>
                 </Select>
               </div>
             ))}
@@ -1053,7 +1053,7 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
               <Label>Lector tarjetas</Label>
               <Select value={form.specs.card_reader || 'NO'} onChange={e => setSpec('card_reader', e.target.value === 'NO' ? 'NO' : { modelo: '', ano: '' })}>
                 <option value="NO">No</option>
-                <option value="SI">SÃ­</option>
+                <option value="SI">Sí</option>
               </Select>
               {form.specs.card_reader && form.specs.card_reader !== 'NO' && (
                 <Input className="mt-1" value={form.specs.card_reader.modelo || ''} onChange={e => setSpec('card_reader', { ...form.specs.card_reader, modelo: e.target.value })} placeholder="Modelo" />
@@ -1063,12 +1063,12 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
               <Label>Lector QR 2D</Label>
               <Select value={form.specs.qr_reader || 'NO'} onChange={e => setSpec('qr_reader', e.target.value === 'NO' ? 'NO' : { tipo: 'Cable', modelo: '' })}>
                 <option value="NO">No</option>
-                <option value="SI">SÃ­</option>
+                <option value="SI">Sí</option>
               </Select>
               {form.specs.qr_reader && form.specs.qr_reader !== 'NO' && (
                 <div className="flex gap-2 mt-1">
                   <Select value={form.specs.qr_reader.tipo || 'Cable'} onChange={e => setSpec('qr_reader', { ...form.specs.qr_reader, tipo: e.target.value })}>
-                    <option>Cable</option><option>InalÃ¡mbrico</option>
+                    <option>Cable</option><option>Inalámbrico</option>
                   </Select>
                   <Input value={form.specs.qr_reader.modelo || ''} onChange={e => setSpec('qr_reader', { ...form.specs.qr_reader, modelo: e.target.value })} placeholder="Modelo" />
                 </div>
@@ -1081,7 +1081,7 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
       {isPrinter && (
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>ConexiÃ³n</Label>
+            <Label>Conexión</Label>
             <Select value={form.specs.conn || ''} onChange={e => setSpec('conn', e.target.value)}>
               <option value="">Seleccionar</option>
               {CONNECTION_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
@@ -1094,7 +1094,7 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
       {form.device_type === 'sai' && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div><Label>Capacidad</Label><Input value={form.specs.capacity || ''} onChange={e => setSpec('capacity', e.target.value)} placeholder="600 VA" /></div>
-          <div><Label>AÃ±o</Label><Input type="number" value={form.specs.year || ''} onChange={e => setSpec('year', e.target.value)} /></div>
+          <div><Label>Año</Label><Input type="number" value={form.specs.year || ''} onChange={e => setSpec('year', e.target.value)} /></div>
           <div className="col-span-2"><Label>Equipo vinculado</Label><Input value={form.specs.linked || ''} onChange={e => setSpec('linked', e.target.value)} /></div>
         </div>
       )}
@@ -1103,14 +1103,14 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
         <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div><Label>Proveedor</Label><Input value={form.specs.provider || ''} onChange={e => setSpec('provider', e.target.value)} /></div>
-            <div><Label>AÃ±o</Label><Input type="number" value={form.specs.year || ''} onChange={e => setSpec('year', e.target.value)} /></div>
+            <div><Label>Año</Label><Input type="number" value={form.specs.year || ''} onChange={e => setSpec('year', e.target.value)} /></div>
             <div><Label>Prioridad (1=principal)</Label><Input type="number" min="1" value={form.specs.priority || ''} onChange={e => setSpec('priority', e.target.value)} /></div>
           </div>
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1.5">Contacto del proveedor</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div><Label>Nombre</Label><Input value={form.specs.contact_name || ''} onChange={e => setSpec('contact_name', e.target.value)} /></div>
             <div><Label>Cargo</Label><Input value={form.specs.contact_role || ''} onChange={e => setSpec('contact_role', e.target.value)} /></div>
-            <div><Label>TelÃ©fono</Label><Input value={form.specs.contact_phone || ''} onChange={e => setSpec('contact_phone', e.target.value)} /></div>
+            <div><Label>Teléfono</Label><Input value={form.specs.contact_phone || ''} onChange={e => setSpec('contact_phone', e.target.value)} /></div>
             <div><Label>Email</Label><Input type="email" value={form.specs.contact_email || ''} onChange={e => setSpec('contact_email', e.target.value)} /></div>
           </div>
         </div>
@@ -1118,8 +1118,8 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
 
       {form.device_type === 'switch' && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div><Label>NÂº salidas</Label><Input type="number" value={form.specs.ports || ''} onChange={e => setSpec('ports', e.target.value)} /></div>
-          <div><Label>AÃ±o</Label><Input type="number" value={form.specs.year || ''} onChange={e => setSpec('year', e.target.value)} /></div>
+          <div><Label>Nº salidas</Label><Input type="number" value={form.specs.ports || ''} onChange={e => setSpec('ports', e.target.value)} /></div>
+          <div><Label>Año</Label><Input type="number" value={form.specs.year || ''} onChange={e => setSpec('year', e.target.value)} /></div>
           <div>
             <Label>Capa</Label>
             <Select value={form.specs.layer || ''} onChange={e => setSpec('layer', e.target.value)}>
@@ -1198,10 +1198,10 @@ function ITDeviceReadView({ device }) {
         <ReadOnlyField label="Etiqueta / Nombre" value={device.label} />
         <ReadOnlyField label="Marca" value={marca} />
         <ReadOnlyField label="Modelo" value={modelo} />
-        <ReadOnlyField label="Viteka" value={device.is_viteka ? 'SÃ­' : 'No'} />
-        <ReadOnlyField label="NÂº serie" value={device.serial_number} />
-        <ReadOnlyField label="Fecha instalaciÃ³n" value={fmtDate(device.install_date)} />
-        <ReadOnlyField label="Fin garantÃ­a" value={fmtDate(device.warranty_end)} />
+        <ReadOnlyField label="Viteka" value={device.is_viteka ? 'Sí' : 'No'} />
+        <ReadOnlyField label="Nº serie" value={device.serial_number} />
+        <ReadOnlyField label="Fecha instalación" value={fmtDate(device.install_date)} />
+        <ReadOnlyField label="Fin garantía" value={fmtDate(device.warranty_end)} />
       </ReadOnlySection>
 
       {['servidor', 'estacion'].includes(device.device_type) && (
@@ -1211,18 +1211,18 @@ function ITDeviceReadView({ device }) {
             <ReadOnlyField label="Antivirus" value={s.antivirus} />
             <ReadOnlyField label="Procesador" value={s.cpu} />
             <ReadOnlyField label="RAM" value={s.ram} />
-            <ReadOnlyField label="GrÃ¡fica" value={s.gpu} />
-            <ReadOnlyField label="Fuente de alimentaciÃ³n" value={s.psu} />
-            <ReadOnlyField label="Direcciones IP" value={ips.join(' Â· ')} wide />
+            <ReadOnlyField label="Gráfica" value={s.gpu} />
+            <ReadOnlyField label="Fuente de alimentación" value={s.psu} />
+            <ReadOnlyField label="Direcciones IP" value={ips.join(' · ')} wide />
             <ReadOnlyField
               label="Discos duros"
-              value={disks.map(d => `${d.type || ''} ${d.capacity || ''}`.trim()).join(' Â· ')}
+              value={disks.map(d => `${d.type || ''} ${d.capacity || ''}`.trim()).join(' · ')}
               wide
             />
           </ReadOnlySection>
 
-          <ReadOnlySection title="Monitor y PerifÃ©ricos">
-            <ReadOnlyField label="Tiene monitor" value={monitor ? 'SÃ­' : 'No'} />
+          <ReadOnlySection title="Monitor y Periféricos">
+            <ReadOnlyField label="Tiene monitor" value={monitor ? 'Sí' : 'No'} />
             <ReadOnlyField
               label="Detalle monitor"
               value={
@@ -1231,13 +1231,13 @@ function ITDeviceReadView({ device }) {
                       monitor.size && `${monitor.size}"`,
                       monitor.color,
                       monitor.conn,
-                      monitor.tactil ? 'TÃ¡ctil' : null,
-                    ].filter(Boolean).join(' Â· ')
+                      monitor.tactil ? 'Táctil' : null,
+                    ].filter(Boolean).join(' · ')
                   : ''
               }
             />
             <ReadOnlyField label="Teclado" value={s.teclado} />
-            <ReadOnlyField label="RatÃ³n" value={s.raton} />
+            <ReadOnlyField label="Ratón" value={s.raton} />
             <ReadOnlyField
               label="Lector tarjetas"
               value={
@@ -1250,7 +1250,7 @@ function ITDeviceReadView({ device }) {
               label="Lector QR 2D"
               value={
                 s.qr_reader && s.qr_reader !== 'NO'
-                  ? [s.qr_reader.tipo, s.qr_reader.modelo].filter(Boolean).join(' Â· ')
+                  ? [s.qr_reader.tipo, s.qr_reader.modelo].filter(Boolean).join(' · ')
                   : s.qr_reader === 'NO' ? 'No' : ''
               }
             />
@@ -1259,8 +1259,8 @@ function ITDeviceReadView({ device }) {
           {conexiones.length > 0 && (
             <ReadOnlySection title="Conexiones Remotas">
               <ReadOnlyField
-                label="NÂº ConexiÃ³n"
-                value={conexiones.map(c => c.numero).filter(Boolean).join(' Â· ')}
+                label="Nº Conexión"
+                value={conexiones.map(c => c.numero).filter(Boolean).join(' · ')}
                 wide
               />
             </ReadOnlySection>
@@ -1269,39 +1269,39 @@ function ITDeviceReadView({ device }) {
       )}
 
       {['impresora_documentos', 'impresora_tickets', 'impresora_etiquetas'].includes(device.device_type) && (
-        <ReadOnlySection title="ConfiguraciÃ³n de ImpresiÃ³n">
-          <ReadOnlyField label="ConexiÃ³n" value={s.conn} />
+        <ReadOnlySection title="Configuración de Impresión">
+          <ReadOnlyField label="Conexión" value={s.conn} />
           <ReadOnlyField label="Equipo vinculado" value={s.linked} />
         </ReadOnlySection>
       )}
 
       {device.device_type === 'router' && (
-        <ReadOnlySection title="ConfiguraciÃ³n de Router">
+        <ReadOnlySection title="Configuración de Router">
           <ReadOnlyField label="Proveedor" value={s.provider} />
-          <ReadOnlyField label="AÃ±o" value={s.year} />
+          <ReadOnlyField label="Año" value={s.year} />
           <ReadOnlyField label="Prioridad" value={s.priority} />
           <ReadOnlyField
             label="Contacto del proveedor"
-            value={[s.contact_name, s.contact_role, s.contact_phone, s.contact_email].filter(Boolean).join(' Â· ')}
+            value={[s.contact_name, s.contact_role, s.contact_phone, s.contact_email].filter(Boolean).join(' · ')}
             wide
           />
         </ReadOnlySection>
       )}
 
       {device.device_type === 'switch' && (
-        <ReadOnlySection title="ConfiguraciÃ³n de Switch">
-          <ReadOnlyField label="NÂº de salidas" value={s.ports} />
-          <ReadOnlyField label="AÃ±o" value={s.year} />
+        <ReadOnlySection title="Configuración de Switch">
+          <ReadOnlyField label="Nº de salidas" value={s.ports} />
+          <ReadOnlyField label="Año" value={s.year} />
           <ReadOnlyField label="Capa" value={s.layer} />
-          <ReadOnlyField label="Gestionable" value={s.managed ? 'SÃ­' : 'No'} />
-          <ReadOnlyField label="Soporta PoE" value={s.poe ? `SÃ­ Â· ${s.poe.ports || 'Sin indicar'} puertos` : 'No'} />
+          <ReadOnlyField label="Gestionable" value={s.managed ? 'Sí' : 'No'} />
+          <ReadOnlyField label="Soporta PoE" value={s.poe ? `Sí · ${s.poe.ports || 'Sin indicar'} puertos` : 'No'} />
         </ReadOnlySection>
       )}
 
       {device.device_type === 'sai' && (
-        <ReadOnlySection title="ConfiguraciÃ³n de SAI">
+        <ReadOnlySection title="Configuración de SAI">
           <ReadOnlyField label="Capacidad" value={s.capacity} />
-          <ReadOnlyField label="AÃ±o" value={s.year} />
+          <ReadOnlyField label="Año" value={s.year} />
           <ReadOnlyField label="Equipo vinculado" value={s.linked} wide />
         </ReadOnlySection>
       )}
@@ -1511,7 +1511,7 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
               {loadingDev ? (
                 <div className="flex justify-center py-6"><div className="w-6 h-6 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
               ) : sourceDevices.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">Esta farmacia no tiene equipos informÃ¡ticos</p>
+                <p className="text-sm text-gray-400 text-center py-4">Esta farmacia no tiene equipos informáticos</p>
               ) : (
                 <>
                   <div className="flex items-center justify-between">
@@ -1571,12 +1571,12 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
   const [search, setSearch]           = useState('')
   const [draftType, setDraftType]     = useState('servidor')
   const [openGroups, setOpenGroups]   = useLocalStorageState(`pharmacy-it-open-${pharmacyId}`, {})
-  // null = automÃ¡tico (grid si <=6, lista si >6); 'grid' | 'list' = forzado por usuario
+  // null = automático (grid si <=6, lista si >6); 'grid' | 'list' = forzado por usuario
   const [viewOverride, setViewOverride] = useLocalStorageState(`pharmacy-it-view-${pharmacyId}`, null)
 
   const totalDevices = (devices || []).length
 
-  // Vista efectiva: si el usuario forzÃ³, se respeta; si no, auto
+  // Vista efectiva: si el usuario forzó, se respeta; si no, auto
   const effectiveView = viewOverride ?? (totalDevices > AUTO_LIST_THRESHOLD ? 'list' : 'grid')
 
   function openDevice(device) {
@@ -1613,7 +1613,7 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
     }
     if (deletedPhotoPaths.length > 0) {
       const { error } = await supabase.storage.from(DEVICE_PHOTO_BUCKET).remove(deletedPhotoPaths)
-      if (error) toast('Ficha guardada, pero no se pudieron retirar algunas imÃ¡genes del almacenamiento', 'error')
+      if (error) toast('Ficha guardada, pero no se pudieron retirar algunas imágenes del almacenamiento', 'error')
     }
     closeModal()
   }
@@ -1743,7 +1743,7 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
             className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700 transition-colors sm:w-auto"
           >
             <PlusIcon className="w-4 h-4" />
-            AÃ±adir equipo
+            Añadir equipo
           </button>
         </div>
       </div>
@@ -1764,7 +1764,7 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
 
       {/* Lista agrupada */}
       {Object.keys(grouped).length === 0 ? (
-        <EmptyTab icon={ComputerDesktopIcon} message={search ? 'Sin resultados para esa bÃºsqueda' : 'Sin equipos informÃ¡ticos registrados'} />
+        <EmptyTab icon={ComputerDesktopIcon} message={search ? 'Sin resultados para esa búsqueda' : 'Sin equipos informáticos registrados'} />
       ) : (
         <div>
           {IT_TYPES.filter(t => grouped[t.value]).map(t => (
@@ -1809,7 +1809,7 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
       {confirmDel && (
         <ConfirmDialog
           title="Eliminar equipo"
-          message={`Â¿Seguro que quieres eliminar "${confirmDel.label || IT_LABEL[confirmDel.device_type] || 'este equipo'}"? Esta acciÃ³n no se puede deshacer.`}
+          message={`¿Seguro que quieres eliminar "${confirmDel.label || IT_LABEL[confirmDel.device_type] || 'este equipo'}"? Esta acción no se puede deshacer.`}
           confirmLabel="Eliminar"
           variant="danger"
           onConfirm={() => handleDelete(confirmDel)}
@@ -2126,9 +2126,9 @@ function TabDocuments({ pharmacyId, companyId }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><Label>Nombre del documento</Label><Input value={meta.name} onChange={e => setMeta(m => ({ ...m, name: e.target.value }))} placeholder="Opcional" /></div>
           <div>
-            <Label>CategorÃ­a</Label>
+            <Label>Categoría</Label>
             <Select value={meta.category} onChange={e => setMeta(m => ({ ...m, category: e.target.value }))}>
-              <option value="">Sin categorÃ­a</option>
+              <option value="">Sin categoría</option>
               {DOC_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </Select>
           </div>
@@ -2171,7 +2171,7 @@ function TabDocuments({ pharmacyId, companyId }) {
       {confirmDel && (
         <ConfirmDialog
           title="Eliminar documento"
-          message={`Â¿Seguro que quieres eliminar "${confirmDel.name || confirmDel.file_name}"?`}
+          message={`¿Seguro que quieres eliminar "${confirmDel.name || confirmDel.file_name}"?`}
           confirmLabel="Eliminar"
           variant="danger"
           onConfirm={() => handleDelete(confirmDel)}
@@ -2182,7 +2182,7 @@ function TabDocuments({ pharmacyId, companyId }) {
   )
 }
 
-// â”€â”€ PÃ¡gina principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ Página principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function PharmacyDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -2280,7 +2280,7 @@ export default function PharmacyDetailPage() {
                 <h1 className="text-base font-bold text-gray-900 truncate">{pharmacy.pharmacy_name}</h1>
                 <p className="text-xs text-gray-400 truncate">
                   {[pharmacy.city, PROVINCE_LABEL[pharmacy.province] || pharmacy.province].filter(Boolean).join(', ')}
-                  {pharmacy.legal_type && ` Â· ${LEGAL_LABEL[pharmacy.legal_type] || pharmacy.legal_type}`}
+                  {pharmacy.legal_type && ` · ${LEGAL_LABEL[pharmacy.legal_type] || pharmacy.legal_type}`}
                 </p>
               </div>
             </div>
@@ -2289,7 +2289,7 @@ export default function PharmacyDetailPage() {
               type="button"
               onClick={handleEditClick}
               disabled={!isEditableTab}
-              title={isEditableTab ? editLabel : 'EdiciÃ³n disponible en Datos generales y Equipamiento'}
+              title={isEditableTab ? editLabel : 'Edición disponible en Datos generales y Equipamiento'}
               className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-colors shrink-0 ${
                 isEditableTab
                   ? 'bg-teal-600 text-white hover:bg-teal-700'
@@ -2348,8 +2348,8 @@ export default function PharmacyDetailPage() {
             onActionHandled={clearRequestedAction}
           />
         )}
-        {activeTab === 'incidents' && <EmptyTab icon={ExclamationTriangleIcon} message="MÃ³dulo de incidencias prÃ³ximamente" />}
-        {activeTab === 'projects'  && <EmptyTab icon={FolderOpenIcon} message="MÃ³dulo de proyectos prÃ³ximamente" />}
+        {activeTab === 'incidents' && <EmptyTab icon={ExclamationTriangleIcon} message="Módulo de incidencias próximamente" />}
+        {activeTab === 'projects'  && <EmptyTab icon={FolderOpenIcon} message="Módulo de proyectos próximamente" />}
         {activeTab === 'documents' && <TabDocuments pharmacyId={id} companyId={pharmacy.company_id} />}
       </div>
 
