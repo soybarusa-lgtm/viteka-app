@@ -14,6 +14,7 @@ import {
   ERP_OPTIONS, CAJA_OPTIONS, ESL_OPTIONS, BASCULA_OPTIONS, ANTIHURTO_OPTIONS,
   CONSULTORIA_OPTIONS, MONTHS, mkContact,
 } from '../components/pharmacy/PHARMACY_CONSTANTS'
+import { serializeScheduleValue } from '../lib/pharmacySchedule'
 
 // Columnas reales confirmadas:
 // erp | erp_viteka | erp_satisfaction | erp_detail
@@ -228,7 +229,13 @@ export default function PharmacyEditPage() {
         razon_social: hasCb ? form.cb.razon_social : (hasSl && !hasAuto && !hasCb ? form.sl.razon_social : null),
         cif: hasCb ? form.cb.cif : (hasSl && !hasAuto && !hasCb ? form.sl.cif : null),
         cb_owners: hasCb ? form.cb.owners : [],
-        soe_number: mainContact.soe, schedule: mainContact.schedule,
+        soe_number: mainContact.soe,
+        schedule: serializeScheduleValue({
+          detail: mainContact.schedule_detail,
+          summary: mainContact.schedule,
+          rawValue: mainContact.schedule_raw,
+          guardNotes: mainContact.has_guards ? mainContact.guard_notes : '',
+        }),
         has_guards: mainContact.has_guards, contact_phone: mainContact.phone,
         contact_email: mainContact.email, address: mainContact.address,
         province: mainContact.province, city: mainContact.city,
@@ -380,7 +387,7 @@ export default function PharmacyEditPage() {
               <div><Label>Nº Colegiado</Label><Input value={form.auto.collegiate_number} onChange={e => setNested('auto','collegiate_number',e.target.value)} /></div>
             </div>
             <hr className="border-gray-100" />
-            <p className="text-xs font-medium text-gray-500 -mb-2">Contacto de la farmacia</p>
+            <p className="mb-1 text-sm font-medium text-gray-500">Contacto de la farmacia</p>
             <ContactBlock data={form.auto_contact} onChange={(f,v) => setContact('auto_contact',f,v)} showGuardsAndSchedule showSoe />
           </Section>
         )}
@@ -393,7 +400,7 @@ export default function PharmacyEditPage() {
             </div>
             <div><Label>Titulares</Label><CbOwners owners={form.cb.owners} onChange={val => setNested('cb','owners',val)} /></div>
             <hr className="border-gray-100" />
-            <p className="text-xs font-medium text-gray-500 -mb-2">Contacto de la farmacia</p>
+            <p className="mb-1 text-sm font-medium text-gray-500">Contacto de la farmacia</p>
             <ContactBlock data={form.cb_contact} onChange={(f,v) => setContact('cb_contact',f,v)} showGuardsAndSchedule showSoe />
           </Section>
         )}

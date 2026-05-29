@@ -21,6 +21,7 @@ import EquipmentSummaryTable from '../components/pharmacy/EquipmentSummaryTable'
 import PharmacyEditDrawer from '../components/pharmacy/PharmacyEditDrawer'
 import EditGeneralModal from '../components/pharmacy/EditGeneralModal'
 import EditEquipmentModal from '../components/pharmacy/EditEquipmentModal'
+import { parseScheduleValue } from '../lib/pharmacySchedule'
 import {
   PERSON_ROLES, RESPONSIBILITY_AREAS, DOC_CATEGORIES, IT_TYPES,
   CONNECTION_OPTIONS, MONITOR_CONN, DISK_TYPES, CAPA_OPTIONS,
@@ -90,6 +91,7 @@ function TabGeneral({ pharmacy }) {
   const hasSl   = lType.includes('sl')
   const sl = pharmacy.sl_data || {}
   const cbOwners = Array.isArray(pharmacy.cb_owners) ? pharmacy.cb_owners : []
+  const mainSchedule = parseScheduleValue(pharmacy.schedule)
 
   const boolField = (label, val, wide) => (
     <Field label={label} value={val === true ? 'Sí' : val === false ? 'No' : null} wide={wide} />
@@ -109,8 +111,9 @@ function TabGeneral({ pharmacy }) {
           <Field label="Población"      value={pharmacy.city} />
           <Field label="Provincia"      value={PROVINCE_LABEL[pharmacy.province] || pharmacy.province} />
           <Field label="C.P."           value={pharmacy.postal_code} />
-          <Field label="Horario"        value={pharmacy.schedule} />
+          <Field label="Horario"        value={mainSchedule.summary} />
           {boolField('Guardias', pharmacy.has_guards)}
+          {mainSchedule.guardNotes && <Field label="Indicaciones guardias" value={mainSchedule.guardNotes} wide />}
           <Field label="Observaciones"  value={pharmacy.observations} wide />
         </SectionBlock>
       )}
@@ -135,8 +138,9 @@ function TabGeneral({ pharmacy }) {
           <Field label="Provincia"    value={PROVINCE_LABEL[pharmacy.province] || pharmacy.province} />
           <Field label="C.P."         value={pharmacy.postal_code} />
           <Field label="SOE"          value={pharmacy.soe_number} />
-          <Field label="Horario"      value={pharmacy.schedule} />
+          <Field label="Horario"      value={mainSchedule.summary} />
           {boolField('Guardias', pharmacy.has_guards)}
+          {mainSchedule.guardNotes && <Field label="Indicaciones guardias" value={mainSchedule.guardNotes} wide />}
           <Field label="Observaciones" value={pharmacy.observations} wide />
         </SectionBlock>
       )}
@@ -150,6 +154,9 @@ function TabGeneral({ pharmacy }) {
           <Field label="Población"     value={(hasAuto || hasCb) ? sl.city : pharmacy.city} />
           <Field label="Provincia"     value={PROVINCE_LABEL[(hasAuto || hasCb) ? sl.province : pharmacy.province]} />
           <Field label="C.P."          value={(hasAuto || hasCb) ? sl.postal_code : pharmacy.postal_code} />
+          {!hasAuto && !hasCb && <Field label="Horario" value={mainSchedule.summary} />}
+          {!hasAuto && !hasCb && boolField('Guardias', pharmacy.has_guards)}
+          {!hasAuto && !hasCb && mainSchedule.guardNotes && <Field label="Indicaciones guardias" value={mainSchedule.guardNotes} wide />}
           <Field label="Observaciones" value={(hasAuto || hasCb) ? sl.observations : pharmacy.observations} wide />
         </SectionBlock>
       )}

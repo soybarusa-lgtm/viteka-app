@@ -7,6 +7,7 @@ import {
 import ContactBlock from './ContactBlock'
 import CbOwners from './CbOwners'
 import { mkContact } from './PHARMACY_CONSTANTS'
+import { serializeScheduleValue } from '../../lib/pharmacySchedule'
 
 function pharmacyToGeneralForm(ph) {
   const lType    = ph.legal_type || 'autonomo'
@@ -82,7 +83,12 @@ export default function EditGeneralModal({ pharmacy, onClose, onSaved }) {
         cif:                hasCb ? form.cb.cif : (hasSl && !hasAuto && !hasCb ? form.sl.cif : null),
         cb_owners:          hasCb ? form.cb.owners : [],
         soe_number:         mainContact.soe,
-        schedule:           mainContact.schedule,
+        schedule:           serializeScheduleValue({
+          detail: mainContact.schedule_detail,
+          summary: mainContact.schedule,
+          rawValue: mainContact.schedule_raw,
+          guardNotes: mainContact.has_guards ? mainContact.guard_notes : '',
+        }),
         has_guards:         mainContact.has_guards,
         contact_phone:      mainContact.phone,
         contact_email:      mainContact.email,
@@ -149,7 +155,7 @@ export default function EditGeneralModal({ pharmacy, onClose, onSaved }) {
               <div><Label>Nº Colegiado</Label><Input value={form.auto.collegiate_number} onChange={e => setNested('auto', 'collegiate_number', e.target.value)} /></div>
             </div>
             <hr className="border-gray-100" />
-            <p className="text-xs font-medium text-gray-500 -mb-2">Contacto de la farmacia</p>
+            <p className="mb-1 text-sm font-medium text-gray-500">Contacto de la farmacia</p>
             <ContactBlock data={form.auto_contact} onChange={(f, v) => setContact('auto_contact', f, v)} showGuardsAndSchedule showSoe />
           </Section>
         )}
@@ -162,7 +168,7 @@ export default function EditGeneralModal({ pharmacy, onClose, onSaved }) {
             </div>
             <div><Label>Titulares</Label><CbOwners owners={form.cb.owners} onChange={val => setNested('cb', 'owners', val)} /></div>
             <hr className="border-gray-100" />
-            <p className="text-xs font-medium text-gray-500 -mb-2">Contacto de la farmacia</p>
+            <p className="mb-1 text-sm font-medium text-gray-500">Contacto de la farmacia</p>
             <ContactBlock data={form.cb_contact} onChange={(f, v) => setContact('cb_contact', f, v)} showGuardsAndSchedule showSoe />
           </Section>
         )}

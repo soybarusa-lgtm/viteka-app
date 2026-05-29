@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { isActiveCommercialStatus } from '../lib/pharmacyStatus'
+import { parseScheduleValue } from '../lib/pharmacySchedule'
 
 const BASE_SELECT = `
   id,
@@ -107,6 +108,7 @@ export function usePharmacies(companyId) {
 
     setPharmacies(pharmacyRows.map(pharmacy => ({
       ...pharmacy,
+      schedule: parseScheduleValue(pharmacy.schedule).summary,
       equipment: equipmentByPharmacy[pharmacy.id] || null,
     })))
     setLoading(false)

@@ -83,6 +83,15 @@ export const DOC_CATEGORIES = ['Contratos','Informes','Presupuestos','Facturas',
 
 // ── Helper: crea un contacto vacío o hidratado ────────────────────────────────
 export const mkContact = (key, data = {}) => ({
+  ...(() => {
+    const parsedSchedule = parseScheduleValue(data.schedule || '')
+    return {
+      schedule: parsedSchedule.summary || '',
+      schedule_detail: parsedSchedule.detail,
+      schedule_raw: parsedSchedule.rawValue || '',
+      guard_notes: parsedSchedule.guardNotes || '',
+    }
+  })(),
   __key:        key,
   phone:        data.phone        || data.contact_phone  || '',
   email:        data.email        || data.contact_email  || '',
@@ -91,7 +100,7 @@ export const mkContact = (key, data = {}) => ({
   city:         data.city         || '',
   postal_code:  data.postal_code  || '',
   soe:          data.soe          || data.soe_number     || '',
-  schedule:     data.schedule     || '',
   has_guards:   data.has_guards   || false,
   observations: data.observations || '',
 })
+import { parseScheduleValue } from '../../lib/pharmacySchedule'
