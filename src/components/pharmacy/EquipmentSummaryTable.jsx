@@ -160,7 +160,7 @@ const COLS = [
 ]
 
 // ── Component ────────────────────────────────────────────────────────────────
-export default function EquipmentSummaryTable({ equipment }) {
+export default function EquipmentSummaryTable({ equipment, searchQuery = '' }) {
   const [sortCol, setSortCol] = useState('producto')
   const [sortDir, setSortDir] = useState('asc')
   const [filter,  setFilter]  = useState('all')
@@ -175,6 +175,12 @@ export default function EquipmentSummaryTable({ equipment }) {
     let base = buildRows(equipment)
     if (filter === 'viteka') base = base.filter(r => r.is_viteka)
     if (filter === 'active') base = base.filter(r => r.estado === 'SI')
+    const query = searchQuery.trim().toLocaleLowerCase('es')
+    if (query) {
+      base = base.filter(row => (
+        Object.values(row).filter(Boolean).join(' ').toLocaleLowerCase('es').includes(query)
+      ))
+    }
     return [...base].sort((a, b) => {
       const av = String(a[sortCol] ?? '').toLowerCase()
       const bv = String(b[sortCol] ?? '').toLowerCase()
@@ -182,7 +188,7 @@ export default function EquipmentSummaryTable({ equipment }) {
       if (av > bv) return sortDir === 'asc' ? 1 : -1
       return 0
     })
-  }, [equipment, sortCol, sortDir, filter])
+  }, [equipment, sortCol, sortDir, filter, searchQuery])
 
   if (!equipment) return (
     <div className="flex items-center justify-center h-32">
@@ -278,6 +284,11 @@ export default function EquipmentSummaryTable({ equipment }) {
           </tbody>
         </table>
       </div>
+      {rows.length === 0 && (
+        <p className="rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-400">
+          Sin equipamiento con esos filtros.
+        </p>
+      )}
     </div>
   )
 }

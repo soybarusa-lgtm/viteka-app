@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { isActiveCommercialStatus } from '../lib/pharmacyStatus'
 import { parseScheduleValue } from '../lib/pharmacySchedule'
+import { syncPharmacyOwnersAsPersons } from '../lib/pharmacyPersons'
 
 const BASE_SELECT = `
   id,
@@ -153,6 +154,14 @@ export function usePharmacies(companyId) {
     }
 
     if (err) throw err
+    await syncPharmacyOwnersAsPersons({
+      pharmacyId: data.id,
+      companyId: data.company_id || companyId,
+      ownerName: data.owner_name,
+      cbOwners: data.cb_owners,
+      phone: data.contact_phone,
+      email: data.contact_email,
+    })
     setPharmacies(prev => [...prev, data].sort((a, b) => a.pharmacy_name.localeCompare(b.pharmacy_name)))
     return data
   }
@@ -184,6 +193,14 @@ export function usePharmacies(companyId) {
     }
 
     if (err) throw err
+    await syncPharmacyOwnersAsPersons({
+      pharmacyId: id,
+      companyId: data.company_id || companyId,
+      ownerName: data.owner_name,
+      cbOwners: data.cb_owners,
+      phone: data.contact_phone,
+      email: data.contact_email,
+    })
     setPharmacies(prev => prev.map(p => p.id === id ? { ...p, ...data, equipment: p.equipment } : p))
     return data
   }

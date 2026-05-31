@@ -8,6 +8,7 @@ import ContactBlock from './ContactBlock'
 import CbOwners from './CbOwners'
 import { mkContact } from './PHARMACY_CONSTANTS'
 import { serializeScheduleValue } from '../../lib/pharmacySchedule'
+import { syncPharmacyOwnersAsPersons } from '../../lib/pharmacyPersons'
 
 function pharmacyToGeneralForm(ph) {
   const lType    = ph.legal_type || 'autonomo'
@@ -112,6 +113,14 @@ export default function EditGeneralModal({ pharmacy, onClose, onSaved }) {
 
       const { error } = await supabase.from('pharmacies').update(payload).eq('id', pharmacy.id)
       if (error) throw error
+      await syncPharmacyOwnersAsPersons({
+        pharmacyId: pharmacy.id,
+        companyId: pharmacy.company_id,
+        ownerName: payload.owner_name,
+        cbOwners: payload.cb_owners,
+        phone: payload.contact_phone,
+        email: payload.contact_email,
+      })
 
       toast('Datos generales actualizados', 'success')
       onSaved()

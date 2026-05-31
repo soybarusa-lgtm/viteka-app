@@ -15,6 +15,7 @@ import {
   CONSULTORIA_OPTIONS, MONTHS, mkContact,
 } from '../components/pharmacy/PHARMACY_CONSTANTS'
 import { serializeScheduleValue } from '../lib/pharmacySchedule'
+import { syncPharmacyOwnersAsPersons } from '../lib/pharmacyPersons'
 
 // Columnas reales confirmadas:
 // erp | erp_viteka | erp_satisfaction | erp_detail
@@ -156,6 +157,7 @@ export default function PharmacyEditPage() {
 
   const [form,    setForm]    = useState(null)
   const [eqId,    setEqId]    = useState(null)
+  const [companyId, setCompanyId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving,  setSaving]  = useState(false)
 
@@ -190,6 +192,7 @@ export default function PharmacyEditPage() {
       if (!cancelled) {
         setForm(pharmacyToForm(ph, eq))
         setEqId(eq?.id || null)
+        setCompanyId(ph.company_id)
         setLoading(false)
       }
     }
@@ -251,6 +254,14 @@ export default function PharmacyEditPage() {
 
       const { error: phErr } = await supabase.from('pharmacies').update(pharmacyPayload).eq('id', id)
       if (phErr) throw phErr
+      await syncPharmacyOwnersAsPersons({
+        pharmacyId: id,
+        companyId,
+        ownerName: pharmacyPayload.owner_name,
+        cbOwners: pharmacyPayload.cb_owners,
+        phone: pharmacyPayload.contact_phone,
+        email: pharmacyPayload.contact_email,
+      })
 
       const eqPayload = {
         pharmacy_id: id,

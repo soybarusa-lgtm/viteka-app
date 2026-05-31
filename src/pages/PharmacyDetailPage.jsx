@@ -24,6 +24,7 @@ import PharmacyEditDrawer from '../components/pharmacy/PharmacyEditDrawer'
 import EditGeneralModal from '../components/pharmacy/EditGeneralModal'
 import EditEquipmentModal from '../components/pharmacy/EditEquipmentModal'
 import { getScheduleOptionLabels, parseScheduleValue } from '../lib/pharmacySchedule'
+import { syncPharmacyOwnersAsPersons } from '../lib/pharmacyPersons'
 import {
   PERSON_ROLES, RESPONSIBILITY_AREAS, DOC_CATEGORIES, IT_TYPES,
   CONNECTION_OPTIONS, MONITOR_CONN, DISK_TYPES, CAPA_OPTIONS, MONTHS, YEARS,
@@ -56,11 +57,69 @@ function Field({ label, value, wide, emptyText = 'Sin informar' }) {
   )
 }
 
-function SectionBlock({ title, children }) {
+function CollapsibleGroup({ title, count, open, onToggle, children, tone = 'slate' }) {
   return (
-    <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{title}</h3>
-      <dl className="grid grid-cols-2 md:grid-cols-3 gap-3">{children}</dl>
+    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 bg-slate-50/80 px-4 py-3 text-left transition-colors hover:bg-slate-100"
+      >
+        <span className={`text-xs font-bold uppercase tracking-wider ${tone === 'teal' ? 'text-teal-700' : 'text-slate-600'}`}>
+          {title}
+        </span>
+        <span className="flex items-center gap-2">
+          {count !== undefined && (
+            <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500 shadow-sm">{count}</span>
+          )}
+          <ChevronDownIcon className={`h-4 w-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        </span>
+      </button>
+      {open && <div className="p-4">{children}</div>}
+    </section>
+  )
+}
+
+function SectionBlock({ title, open, onToggle, children }) {
+  return (
+    <CollapsibleGroup title={title} open={open} onToggle={onToggle}>
+      <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">{children}</dl>
+    </CollapsibleGroup>
+  )
+}
+
+function TabToolbar({
+  query,
+  onQueryChange,
+  placeholder,
+  onCollapseAll,
+  allCollapsed = false,
+  children,
+}) {
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm lg:flex-row lg:items-center">
+      <div className="relative min-w-0 flex-1">
+        <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <input
+          type="search"
+          value={query}
+          onChange={event => onQueryChange(event.target.value)}
+          placeholder={placeholder}
+          className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm transition-colors focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+        />
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={onCollapseAll}
+          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 transition-colors hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700"
+        >
+          <ChevronDownIcon className={`h-4 w-4 transition-transform ${allCollapsed ? '' : 'rotate-180'}`} />
+          {allCollapsed ? 'Desplegar todo' : 'Contraer todo'}
+        </button>
+        {children}
+      </div>
     </div>
   )
 }
@@ -87,6 +146,8 @@ const TABS = [
 
 // â”€â”€ Tab: Datos generales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TabGeneral({ pharmacy }) {
+  const [query, setQuery] = useState('')
+  const [collapsed, setCollapsed] = useState({})
   const lType = pharmacy.legal_type || ''
   const hasAuto = lType.includes('autonomo')
   const hasCb   = lType.includes('cb')
@@ -98,6 +159,40 @@ function TabGeneral({ pharmacy }) {
     days: mainSchedule.detail?.days,
     options: mainSchedule.options,
   })
+  const groupKeys = [
+    hasAuto && 'autonomo',
+    hasCb && 'cb',
+    hasSl && 'sl',
+  ].filter(Boolean)
+  const allCollapsed = groupKeys.length > 0 && groupKeys.every(key => collapsed[key])
+  const normalizedQuery = query.trim().toLocaleLowerCase('es')
+  const matchesQuery = (...values) => (
+    !normalizedQuery || values.filter(Boolean).join(' ').toLocaleLowerCase('es').includes(normalizedQuery)
+  )
+  const showAuto = hasAuto && matchesQuery(
+    'Autónomo', pharmacy.owner_name, pharmacy.nif, pharmacy.collegiate_number, pharmacy.soe_number,
+    pharmacy.contact_phone, pharmacy.contact_email, pharmacy.address, pharmacy.city, pharmacy.province,
+    pharmacy.postal_code, mainSchedule.summary, scheduleOptions.join(' '), mainSchedule.guardNotes,
+    pharmacy.observations
+  )
+  const showCb = hasCb && matchesQuery(
+    'Comunidad de Bienes C.B.', pharmacy.razon_social, pharmacy.cif,
+    ...cbOwners.flatMap(owner => [owner.name, owner.nif, owner.collegiate]),
+    pharmacy.contact_phone, pharmacy.contact_email, pharmacy.address, pharmacy.city, pharmacy.province,
+    pharmacy.postal_code, pharmacy.soe_number, mainSchedule.summary, scheduleOptions.join(' '),
+    mainSchedule.guardNotes, pharmacy.observations
+  )
+  const showSl = hasSl && matchesQuery(
+    'Sociedad Limitada S.L.', (hasAuto || hasCb) ? sl.razon_social : pharmacy.razon_social,
+    (hasAuto || hasCb) ? sl.cif : pharmacy.cif, (hasAuto || hasCb) ? sl.phone : pharmacy.contact_phone,
+    (hasAuto || hasCb) ? sl.email : pharmacy.contact_email, (hasAuto || hasCb) ? sl.address : pharmacy.address,
+    (hasAuto || hasCb) ? sl.city : pharmacy.city, (hasAuto || hasCb) ? sl.province : pharmacy.province,
+    (hasAuto || hasCb) ? sl.postal_code : pharmacy.postal_code, (hasAuto || hasCb) ? sl.observations : pharmacy.observations
+  )
+
+  function toggleAll() {
+    setCollapsed(Object.fromEntries(groupKeys.map(key => [key, !allCollapsed])))
+  }
 
   const boolField = (label, val, wide) => (
     <Field label={label} value={val === true ? 'Sí' : val === false ? 'No' : null} wide={wide} />
@@ -105,8 +200,9 @@ function TabGeneral({ pharmacy }) {
 
   return (
     <div className="space-y-4">
-      {hasAuto && (
-        <SectionBlock title="Autónomo">
+      <TabToolbar query={query} onQueryChange={setQuery} placeholder="Buscar en datos generales..." onCollapseAll={toggleAll} allCollapsed={allCollapsed} />
+      {showAuto && (
+        <SectionBlock title="Autónomo" open={!collapsed.autonomo} onToggle={() => setCollapsed(prev => ({ ...prev, autonomo: !prev.autonomo }))}>
           <Field label="Titular"        value={pharmacy.owner_name} />
           <Field label="NIF"            value={pharmacy.nif} />
           <Field label="Nº Colegiado"   value={pharmacy.collegiate_number} />
@@ -124,15 +220,15 @@ function TabGeneral({ pharmacy }) {
           <Field label="Observaciones"  value={pharmacy.observations} wide />
         </SectionBlock>
       )}
-      {hasCb && (
-        <SectionBlock title="Comunidad de Bienes (C.B.)">
+      {showCb && (
+        <SectionBlock title="Comunidad de Bienes (C.B.)" open={!collapsed.cb} onToggle={() => setCollapsed(prev => ({ ...prev, cb: !prev.cb }))}>
           <Field label="Razón social" value={pharmacy.razon_social} />
           <Field label="CIF"          value={pharmacy.cif} />
           {cbOwners.length === 0 && (
             <div className="col-span-2 md:col-span-3"><p className="text-xs text-gray-300 italic">Sin titulares registrados</p></div>
           )}
           {cbOwners.map((o, i) => (
-            <div key={i} className="col-span-2 md:col-span-3 grid grid-cols-3 gap-3 bg-white rounded-lg p-3 border border-gray-200">
+            <div key={i} className="col-span-1 grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white p-3 sm:col-span-2 sm:grid-cols-3 md:col-span-3">
               <div><dt className="text-xs text-gray-400">Titular {i + 1}</dt><dd className={`text-sm font-medium ${o.name ? 'text-gray-800' : 'text-gray-300 italic'}`}>{o.name || 'Sin informar'}</dd></div>
               <div><dt className="text-xs text-gray-400">NIF</dt><dd className={`text-sm font-medium ${o.nif ? 'text-gray-800' : 'text-gray-300 italic'}`}>{o.nif || 'Sin informar'}</dd></div>
               <div><dt className="text-xs text-gray-400">Colegiado</dt><dd className={`text-sm font-medium ${o.collegiate ? 'text-gray-800' : 'text-gray-300 italic'}`}>{o.collegiate || 'Sin informar'}</dd></div>
@@ -152,8 +248,8 @@ function TabGeneral({ pharmacy }) {
           <Field label="Observaciones" value={pharmacy.observations} wide />
         </SectionBlock>
       )}
-      {hasSl && (
-        <SectionBlock title="Sociedad Limitada (S.L.)">
+      {showSl && (
+        <SectionBlock title="Sociedad Limitada (S.L.)" open={!collapsed.sl} onToggle={() => setCollapsed(prev => ({ ...prev, sl: !prev.sl }))}>
           <Field label="Razón social"  value={(hasAuto || hasCb) ? sl.razon_social : pharmacy.razon_social} />
           <Field label="CIF"           value={(hasAuto || hasCb) ? sl.cif : pharmacy.cif} />
           <Field label="Teléfono S.L." value={(hasAuto || hasCb) ? sl.phone : pharmacy.contact_phone} />
@@ -169,14 +265,43 @@ function TabGeneral({ pharmacy }) {
           <Field label="Observaciones" value={(hasAuto || hasCb) ? sl.observations : pharmacy.observations} wide />
         </SectionBlock>
       )}
+      {!showAuto && !showCb && !showSl && <EmptyTab icon={BuildingStorefrontIcon} message="Sin resultados en datos generales" />}
     </div>
   )
 }
 
 // â”€â”€ Tab: Equipamiento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TabEquipment({ equipment }) {
+  const [query, setQuery] = useState('')
+  const [collapsed, setCollapsed] = useState(false)
   if (!equipment) return <EmptyTab icon={WrenchScrewdriverIcon} message="Sin equipamiento registrado" />
-  return <EquipmentSummaryTable equipment={equipment} />
+  return (
+    <div className="space-y-4">
+      <TabToolbar
+        query={query}
+        onQueryChange={setQuery}
+        placeholder="Buscar en equipamiento..."
+        onCollapseAll={() => setCollapsed(prev => !prev)}
+        allCollapsed={collapsed}
+      />
+      <CollapsibleGroup title="Equipamiento registrado" open={!collapsed} onToggle={() => setCollapsed(prev => !prev)}>
+        <EquipmentSummaryTable equipment={equipment} searchQuery={query} />
+      </CollapsibleGroup>
+    </div>
+  )
+}
+
+function PlaceholderTab({ icon, message, placeholder, title }) {
+  const [query, setQuery] = useState('')
+  const [collapsed, setCollapsed] = useState(false)
+  return (
+    <div className="space-y-4">
+      <TabToolbar query={query} onQueryChange={setQuery} placeholder={placeholder} onCollapseAll={() => setCollapsed(prev => !prev)} allCollapsed={collapsed} />
+      <CollapsibleGroup title={title} open={!collapsed} onToggle={() => setCollapsed(prev => !prev)}>
+        <EmptyTab icon={icon} message={message} />
+      </CollapsibleGroup>
+    </div>
+  )
 }
 
 // â”€â”€ Tab: Equipamiento Informático â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1758,6 +1883,15 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
     if (list.length > 0) acc[t.value] = list
     return acc
   }, {})
+  const visibleGroupKeys = Object.keys(grouped)
+  const allGroupsCollapsed = visibleGroupKeys.length > 0 && visibleGroupKeys.every(key => openGroups[key] === false)
+
+  function toggleAllGroups() {
+    setOpenGroups(prev => ({
+      ...prev,
+      ...Object.fromEntries(visibleGroupKeys.map(key => [key, allGroupsCollapsed])),
+    }))
+  }
 
   const vitekaDevices = (devices || []).filter(d => d.is_viteka).length
 
@@ -1839,19 +1973,13 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
         </div>
       </div>
 
-      {/* Buscador */}
-      {totalDevices > 3 && (
-        <div className="relative">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="search"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar equipo..."
-            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-colors"
-          />
-        </div>
-      )}
+      <TabToolbar
+        query={search}
+        onQueryChange={setSearch}
+        placeholder="Buscar equipo informático..."
+        onCollapseAll={toggleAllGroups}
+        allCollapsed={allGroupsCollapsed}
+      />
 
       {/* Lista agrupada */}
       {Object.keys(grouped).length === 0 ? (
@@ -1914,12 +2042,14 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
 
 // â”€â”€ Tab: Personas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TabPeople({ pharmacyId, companyId, pharmacy, initialAction, onActionHandled }) {
-  const { persons, loading, createPerson, updatePerson, deletePerson } = usePharmacyPersons(pharmacyId)
+  const { persons, loading, createPerson, updatePerson, deletePerson, reload } = usePharmacyPersons(pharmacyId)
   const toast = useToast()
   const [editing, setEditing] = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
   const [viewMode, setViewMode] = useLocalStorageState(`pharmacy-people-view-${pharmacyId}`, 'cards')
+  const [query, setQuery] = useState('')
+  const [openGroups, setOpenGroups] = useLocalStorageState(`pharmacy-people-open-${pharmacyId}`, {})
 
   const empty = {
     name: '',
@@ -1939,6 +2069,13 @@ function TabPeople({ pharmacyId, companyId, pharmacy, initialAction, onActionHan
   function parsePersonObservations(observations = '') {
     const raw = String(observations || '')
     const prefix = '__VITEKA_PERSON_META__:'
+    if (raw.startsWith('__VITEKA_AUTO_OWNER__:')) return {
+      notes: '',
+      responsiblePriority: '',
+      nixfarmaOperator: '',
+      seniorityMonth: '',
+      seniorityYear: '',
+    }
     if (!raw.startsWith(prefix)) return {
       notes: raw,
       responsiblePriority: '',
@@ -2048,14 +2185,47 @@ function TabPeople({ pharmacyId, companyId, pharmacy, initialAction, onActionHan
     onActionHandled?.()
   }, [initialAction])
 
+  useEffect(() => {
+    let cancelled = false
+    syncPharmacyOwnersAsPersons({
+      pharmacyId,
+      companyId,
+      ownerName: pharmacy?.owner_name,
+      cbOwners: pharmacy?.cb_owners,
+      phone: pharmacy?.contact_phone,
+      email: pharmacy?.contact_email,
+    })
+      .then(() => {
+        if (!cancelled) reload()
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [
+    pharmacyId, companyId, pharmacy?.owner_name, pharmacy?.cb_owners,
+    pharmacy?.contact_phone, pharmacy?.contact_email, reload,
+  ])
+
+  const filteredPersons = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase('es')
+    if (!normalizedQuery) return persons || []
+    return (persons || []).filter(person => {
+      const parsed = parsePersonObservations(person.observations)
+      return [
+        person.name, person.role, person.phone, person.email, person.custom_area,
+        ...(Array.isArray(person.areas) ? person.areas : []),
+        parsed.notes, parsed.nixfarmaOperator, parsed.seniorityMonth, parsed.seniorityYear,
+      ].filter(Boolean).join(' ').toLocaleLowerCase('es').includes(normalizedQuery)
+    })
+  }, [persons, query])
+
   const groupedPersons = useMemo(() => {
-    return (persons || []).reduce((groups, person) => {
+    return filteredPersons.reduce((groups, person) => {
       const role = person.role || 'Sin rol'
       if (!groups[role]) groups[role] = []
       groups[role].push(person)
       return groups
     }, {})
-  }, [persons])
+  }, [filteredPersons])
 
   const roleOrder = useMemo(() => {
     const existingRoles = Object.keys(groupedPersons)
@@ -2064,18 +2234,32 @@ function TabPeople({ pharmacyId, companyId, pharmacy, initialAction, onActionHan
       ...existingRoles.filter(role => !PERSON_ROLES.includes(role)).sort((a, b) => a.localeCompare(b, 'es')),
     ]
   }, [groupedPersons])
+  const allGroupsCollapsed = roleOrder.length > 0 && roleOrder.every(role => openGroups[role] === false)
+
+  function toggleAllGroups() {
+    setOpenGroups(prev => ({
+      ...prev,
+      ...Object.fromEntries(roleOrder.map(role => [role, allGroupsCollapsed])),
+    }))
+  }
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
+      <TabToolbar
+        query={query}
+        onQueryChange={setQuery}
+        placeholder="Buscar persona, rol, teléfono o email..."
+        onCollapseAll={toggleAllGroups}
+        allCollapsed={allGroupsCollapsed}
+      >
+        <div className="flex items-center rounded-lg border border-gray-200 bg-white">
           <button
             type="button"
             onClick={() => setViewMode('cards')}
             title="Vista tarjetas"
-            className={`rounded-lg p-2 ${viewMode === 'cards' ? 'bg-teal-600 text-white' : 'border border-gray-200 bg-white text-gray-400 hover:text-teal-700'}`}
+            className={`rounded-l-lg p-2 ${viewMode === 'cards' ? 'bg-teal-600 text-white' : 'text-gray-400 hover:text-teal-700'}`}
           >
             <Squares2X2Icon className="h-4 w-4" />
           </button>
@@ -2083,7 +2267,7 @@ function TabPeople({ pharmacyId, companyId, pharmacy, initialAction, onActionHan
             type="button"
             onClick={() => setViewMode('list')}
             title="Vista lista"
-            className={`rounded-lg p-2 ${viewMode === 'list' ? 'bg-teal-600 text-white' : 'border border-gray-200 bg-white text-gray-400 hover:text-teal-700'}`}
+            className={`rounded-r-lg p-2 ${viewMode === 'list' ? 'bg-teal-600 text-white' : 'text-gray-400 hover:text-teal-700'}`}
           >
             <ListBulletIcon className="h-4 w-4" />
           </button>
@@ -2095,24 +2279,28 @@ function TabPeople({ pharmacyId, companyId, pharmacy, initialAction, onActionHan
         >
           <PlusIcon className="w-4 h-4" /> Añadir persona
         </button>
-      </div>
+      </TabToolbar>
 
       {(!persons || persons.length === 0) ? (
         <EmptyTab icon={UsersIcon} message="Sin personas registradas" />
+      ) : filteredPersons.length === 0 ? (
+        <EmptyTab icon={UsersIcon} message="Sin personas con esos filtros" />
       ) : (
         <div className="space-y-5">
           {roleOrder.map(role => (
-            <section key={role} className="space-y-2">
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">{role}</h3>
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">{groupedPersons[role].length}</span>
-              </div>
+            <CollapsibleGroup
+              key={role}
+              title={role}
+              count={groupedPersons[role].length}
+              open={openGroups[role] !== false}
+              onToggle={() => setOpenGroups(prev => ({ ...prev, [role]: prev[role] === false }))}
+            >
               <div className={viewMode === 'cards' ? 'grid grid-cols-1 gap-2 lg:grid-cols-2' : 'space-y-2'}>
                 {groupedPersons[role].map(p => {
                   const parsed = parsePersonObservations(p.observations)
                   const seniority = [parsed.seniorityMonth, parsed.seniorityYear].filter(Boolean).join(' / ')
                   return (
-                    <div key={p.id} className={`flex justify-between gap-3 rounded-xl border border-gray-200 bg-white hover:border-gray-300 transition-colors ${viewMode === 'cards' ? 'items-start p-4' : 'items-center px-4 py-3'}`}>
+                    <div key={p.id} className={`flex flex-col justify-between gap-3 rounded-xl border border-gray-200 bg-white hover:border-gray-300 transition-colors sm:flex-row ${viewMode === 'cards' ? 'items-start p-4' : 'items-start px-4 py-3 sm:items-center'}`}>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-semibold text-gray-800">{p.name}</span>
@@ -2149,7 +2337,7 @@ function TabPeople({ pharmacyId, companyId, pharmacy, initialAction, onActionHan
                   )
                 })}
               </div>
-            </section>
+            </CollapsibleGroup>
           ))}
         </div>
       )}
@@ -2328,6 +2516,8 @@ function TabDocuments({ pharmacyId, companyId }) {
   const [query, setQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [viewMode, setViewMode] = useLocalStorageState(`pharmacy-documents-view-${pharmacyId}`, 'list')
+  const [openGroups, setOpenGroups] = useLocalStorageState(`pharmacy-documents-open-${pharmacyId}`, {})
+  const [selectedFile, setSelectedFile] = useState(null)
   const fileRef = useRef(null)
   const [meta, setMeta] = useState({ name: '', category: '' })
 
@@ -2369,8 +2559,8 @@ function TabDocuments({ pharmacyId, companyId }) {
     ]
   }, [groupedDocuments])
 
-  async function handleUpload(e) {
-    const file = e.target.files?.[0]
+  async function handleUpload() {
+    const file = selectedFile
     if (!file) return
     setUploading(true)
     try {
@@ -2382,12 +2572,17 @@ function TabDocuments({ pharmacyId, companyId }) {
       })
       toast('Documento subido', 'success')
       setMeta({ name: '', category: '' })
+      setSelectedFile(null)
     } catch {
       toast('Error al subir el documento', 'error')
     } finally {
       setUploading(false)
       if (fileRef.current) fileRef.current.value = ''
     }
+  }
+
+  function handleFileSelection(event) {
+    setSelectedFile(event.target.files?.[0] || null)
   }
 
   async function resolveUrl(doc) {
@@ -2460,6 +2655,14 @@ function TabDocuments({ pharmacyId, companyId }) {
       setDeletingId(null)
     }
   }
+  const allGroupsCollapsed = categoryOrder.length > 0 && categoryOrder.every(category => openGroups[category] === false)
+
+  function toggleAllGroups() {
+    setOpenGroups(prev => ({
+      ...prev,
+      ...Object.fromEntries(categoryOrder.map(category => [category, allGroupsCollapsed])),
+    }))
+  }
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
 
@@ -2480,20 +2683,28 @@ function TabDocuments({ pharmacyId, companyId }) {
             </Select>
           </div>
         </div>
-        <input ref={fileRef} type="file" onChange={handleUpload} disabled={uploading} className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-white file:text-teal-700 hover:file:bg-teal-100 cursor-pointer" />
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input ref={fileRef} type="file" onChange={handleFileSelection} disabled={uploading} className="block min-w-0 flex-1 text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-white file:text-teal-700 hover:file:bg-teal-100 cursor-pointer" />
+          <button
+            type="button"
+            onClick={handleUpload}
+            disabled={!selectedFile || uploading}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+            Subir
+          </button>
+        </div>
         {uploading && <p className="text-xs text-teal-600 animate-pulse">Subiendo...</p>}
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Buscar documentos..."
-            className="pl-9"
-          />
-        </div>
+      <TabToolbar
+        query={query}
+        onQueryChange={setQuery}
+        placeholder="Buscar documentos..."
+        onCollapseAll={toggleAllGroups}
+        allCollapsed={allGroupsCollapsed}
+      >
         <Select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="sm:w-48">
           <option value="">Todas las categorías</option>
           {categories.map(c => <option key={c} value={c}>{c}</option>)}
@@ -2523,7 +2734,7 @@ function TabDocuments({ pharmacyId, companyId }) {
         >
           <ArrowPathIcon className="w-4 h-4" /> Actualizar
         </button>
-      </div>
+      </TabToolbar>
 
       {error && (
         <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
@@ -2536,18 +2747,20 @@ function TabDocuments({ pharmacyId, companyId }) {
       ) : (
         <div className="space-y-5">
           {categoryOrder.map(category => (
-            <section key={category} className="space-y-2">
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">{category}</h3>
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">{groupedDocuments[category].length}</span>
-              </div>
+            <CollapsibleGroup
+              key={category}
+              title={category}
+              count={groupedDocuments[category].length}
+              open={openGroups[category] !== false}
+              onToggle={() => setOpenGroups(prev => ({ ...prev, [category]: prev[category] === false }))}
+            >
               <div className={viewMode === 'cards' ? 'grid grid-cols-1 gap-2 lg:grid-cols-2' : 'space-y-2'}>
                 {groupedDocuments[category].map(doc => {
                   const name = getDocumentName(doc)
                   const ext = getDocumentExt(doc)
                   const urlAvailable = Boolean(doc.storage_path || doc.public_url || doc.file_url)
                   return (
-                    <div key={doc.id} className={`flex justify-between gap-3 rounded-xl border border-gray-200 bg-white hover:border-gray-300 transition-colors ${viewMode === 'cards' ? 'items-start p-4' : 'items-center p-3'}`}>
+                    <div key={doc.id} className={`flex flex-col justify-between gap-3 rounded-xl border border-gray-200 bg-white hover:border-gray-300 transition-colors sm:flex-row ${viewMode === 'cards' ? 'items-start p-4' : 'items-start p-3 sm:items-center'}`}>
                       <div className="min-w-0 flex items-center gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[11px] font-bold text-slate-500">
                           {ext || <DocumentTextIcon className="w-5 h-5" />}
@@ -2584,7 +2797,7 @@ function TabDocuments({ pharmacyId, companyId }) {
                   )
                 })}
               </div>
-            </section>
+            </CollapsibleGroup>
           ))}
         </div>
       )}
@@ -2764,7 +2977,7 @@ export default function PharmacyDetailPage() {
           </div>
 
           {/* Tabs */}
-          <div className="grid grid-cols-4 gap-1 pb-0 -mb-px sm:flex sm:overflow-x-auto sm:scrollbar-none">
+          <div className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-0 -mb-px scrollbar-none md:-mx-6 md:px-6">
             {TABS.map(tab => {
               const Icon = tab.icon
               return (
@@ -2775,13 +2988,13 @@ export default function PharmacyDetailPage() {
                     setActiveTab(tab.key)
                     setTabInUrl(tab.key)
                   }}
-                  className={`inline-flex w-full min-h-[42px] items-center justify-center px-2 py-2 text-[11px] leading-tight text-center font-medium border-b-2 transition-colors sm:w-auto sm:min-h-0 sm:justify-start sm:gap-1.5 sm:px-3 sm:py-2.5 sm:text-xs sm:whitespace-nowrap ${
+                  className={`inline-flex min-h-[42px] shrink-0 items-center justify-center gap-1.5 px-3 py-2 text-[11px] leading-tight text-center font-medium whitespace-nowrap border-b-2 transition-colors sm:min-h-0 sm:justify-start sm:py-2.5 sm:text-xs ${
                     activeTab === tab.key
                       ? 'border-teal-600 text-teal-700'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
-                  <Icon className="hidden sm:block w-3.5 h-3.5" />
+                  <Icon className="h-3.5 w-3.5" />
                   <span>{tab.label}</span>
                 </button>
               )
@@ -2811,8 +3024,8 @@ export default function PharmacyDetailPage() {
             onActionHandled={clearRequestedAction}
           />
         )}
-        {activeTab === 'incidents' && <EmptyTab icon={ExclamationTriangleIcon} message="Módulo de incidencias próximamente" />}
-        {activeTab === 'projects'  && <EmptyTab icon={FolderOpenIcon} message="Módulo de proyectos próximamente" />}
+        {activeTab === 'incidents' && <PlaceholderTab icon={ExclamationTriangleIcon} title="Incidencias" message="Módulo de incidencias próximamente" placeholder="Buscar incidencias..." />}
+        {activeTab === 'projects'  && <PlaceholderTab icon={FolderOpenIcon} title="Proyectos" message="Módulo de proyectos próximamente" placeholder="Buscar proyectos..." />}
         {activeTab === 'documents' && <TabDocuments pharmacyId={id} companyId={pharmacy.company_id} />}
       </div>
 
