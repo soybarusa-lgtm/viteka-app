@@ -87,6 +87,14 @@ function parsePersonObservations(observations = '') {
   }
 }
 
+function normalizeText(value = '') {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('es')
+    .trim()
+}
+
 function normalizePerson(person) {
   const parsed = parsePersonObservations(person.observations)
   const pharmacy = Array.isArray(person.pharmacy) ? person.pharmacy[0] : person.pharmacy
@@ -659,7 +667,7 @@ export default function PeoplePage() {
         (person.is_responsible && advancedFilters.responsibleGrades.includes(person.responsiblePriority || ''))
       const matchAreas =
         advancedFilters.areas.length === 0 ||
-        advancedFilters.areas.some(area => (person.areas || []).includes(area))
+        advancedFilters.areas.some(area => (person.areas || []).some(personArea => normalizeText(personArea) === normalizeText(area)))
 
       return matchSearch && matchPharmacy && matchRole && matchProvince && matchName && matchPharmacyText && matchRoleText && matchProvinceText && matchCity && matchPhone && matchEmail && matchResponsible && matchResponsibleGrade && matchAreas
     })
