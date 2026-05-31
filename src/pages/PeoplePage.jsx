@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { RESPONSIBILITY_AREAS } from '../components/pharmacy/PHARMACY_CONSTANTS'
 import {
   MagnifyingGlassIcon,
   UsersIcon,
@@ -58,6 +59,8 @@ const DEFAULT_ADVANCED_FILTERS = {
   phone: '',
   email: '',
   responsible: '',
+  responsibleGrades: [],
+  areas: [],
 }
 
 function parsePersonObservations(observations = '') {
@@ -94,6 +97,7 @@ function normalizePerson(person) {
     city: pharmacy?.city || '',
     province: pharmacy?.province || '',
     provinceLabel: PROVINCE_LABEL[pharmacy?.province] || pharmacy?.province || '',
+    areas: Array.isArray(person.areas) ? person.areas : [],
     responsiblePriority: parsed.responsiblePriority,
   }
 }
@@ -228,11 +232,33 @@ function AdvancedFiltersModal({
   filters,
   onChange,
   onClear,
+  pharmacyOptions,
+  roleOptions,
+  provinceOptions,
+  cityOptions,
 }) {
   if (!isOpen) return null
 
   function updateField(key, value) {
     onChange(prev => ({ ...prev, [key]: value }))
+  }
+
+  function toggleGrade(grade) {
+    onChange(prev => ({
+      ...prev,
+      responsibleGrades: prev.responsibleGrades.includes(grade)
+        ? prev.responsibleGrades.filter(item => item !== grade)
+        : [...prev.responsibleGrades, grade],
+    }))
+  }
+
+  function toggleArea(area) {
+    onChange(prev => ({
+      ...prev,
+      areas: prev.areas.includes(area)
+        ? prev.areas.filter(item => item !== area)
+        : [...prev.areas, area],
+    }))
   }
 
   return (
@@ -265,35 +291,55 @@ function AdvancedFiltersModal({
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Farmacia</label>
-            <input
+            <select
               value={filters.pharmacy}
               onChange={event => updateField('pharmacy', event.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100"
-            />
+            >
+              <option value="">Todas</option>
+              {pharmacyOptions.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Rol</label>
-            <input
+            <select
               value={filters.role}
               onChange={event => updateField('role', event.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100"
-            />
+            >
+              <option value="">Todos</option>
+              {roleOptions.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Provincia</label>
-            <input
+            <select
               value={filters.province}
               onChange={event => updateField('province', event.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100"
-            />
+            >
+              <option value="">Todas</option>
+              {provinceOptions.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Población</label>
-            <input
+            <select
               value={filters.city}
               onChange={event => updateField('city', event.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100"
-            />
+            >
+              <option value="">Todas</option>
+              {cityOptions.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Teléfono</label>
@@ -322,6 +368,43 @@ function AdvancedFiltersModal({
               <option value="yes">Solo responsables</option>
               <option value="no">No responsables</option>
             </select>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {['1', '2', '3', '4', '5'].map(grade => (
+                <label key={grade} className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                  filters.responsibleGrades.includes(grade)
+                    ? 'border-teal-300 bg-teal-50 text-teal-700'
+                    : 'border-gray-200 bg-white text-gray-600'
+                }`}>
+                  <input
+                    type="checkbox"
+                    checked={filters.responsibleGrades.includes(grade)}
+                    onChange={() => toggleGrade(grade)}
+                    className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                  />
+                  #{grade}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-sm font-medium text-gray-700">Áreas de responsabilidad</label>
+            <div className="flex flex-wrap gap-2">
+              {RESPONSIBILITY_AREAS.map(area => (
+                <label key={area} className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                  filters.areas.includes(area)
+                    ? 'border-teal-300 bg-teal-50 text-teal-700'
+                    : 'border-gray-200 bg-white text-gray-600'
+                }`}>
+                  <input
+                    type="checkbox"
+                    checked={filters.areas.includes(area)}
+                    onChange={() => toggleArea(area)}
+                    className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                  />
+                  {area}
+                </label>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -511,6 +594,10 @@ export default function PeoplePage() {
     () => [...new Set(people.map(person => person.role).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' })),
     [people]
   )
+  const cityOptions = useMemo(
+    () => [...new Set(people.map(person => person.city).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' })),
+    [people]
+  )
   const provinceOptions = useMemo(
     () => [...new Set(people.map(person => person.provinceLabel).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' })),
     [people]
@@ -529,6 +616,8 @@ export default function PeoplePage() {
     if (advancedFilters.phone) count += 1
     if (advancedFilters.email) count += 1
     if (advancedFilters.responsible) count += 1
+    if (advancedFilters.responsibleGrades.length > 0) count += 1
+    if (advancedFilters.areas.length > 0) count += 1
     return count
   }, [advancedFilters, selectedPharmacies, selectedRoles, selectedProvinces])
 
@@ -552,20 +641,26 @@ export default function PeoplePage() {
       const matchRole = selectedRoles.length === 0 || selectedRoles.includes(person.role)
       const matchProvince = selectedProvinces.length === 0 || selectedProvinces.includes(person.provinceLabel)
       const matchName = !advancedFilters.name || String(person.name || '').toLocaleLowerCase('es').includes(advancedFilters.name.toLocaleLowerCase('es'))
-      const matchPharmacyText = !advancedFilters.pharmacy || String(person.pharmacyName || '').toLocaleLowerCase('es').includes(advancedFilters.pharmacy.toLocaleLowerCase('es'))
-      const matchRoleText = !advancedFilters.role || String(person.role || '').toLocaleLowerCase('es').includes(advancedFilters.role.toLocaleLowerCase('es'))
+      const matchPharmacyText = !advancedFilters.pharmacy || String(person.pharmacyName || '') === advancedFilters.pharmacy
+      const matchRoleText = !advancedFilters.role || String(person.role || '') === advancedFilters.role
       const matchProvinceText =
         !advancedFilters.province ||
-        String(person.provinceLabel || person.province || '').toLocaleLowerCase('es').includes(advancedFilters.province.toLocaleLowerCase('es'))
-      const matchCity = !advancedFilters.city || String(person.city || '').toLocaleLowerCase('es').includes(advancedFilters.city.toLocaleLowerCase('es'))
+        String(person.provinceLabel || person.province || '') === advancedFilters.province
+      const matchCity = !advancedFilters.city || String(person.city || '') === advancedFilters.city
       const matchPhone = !advancedFilters.phone || String(person.phone || '').toLocaleLowerCase('es').includes(advancedFilters.phone.toLocaleLowerCase('es'))
       const matchEmail = !advancedFilters.email || String(person.email || '').toLocaleLowerCase('es').includes(advancedFilters.email.toLocaleLowerCase('es'))
       const matchResponsible =
         !advancedFilters.responsible ||
         (advancedFilters.responsible === 'yes' && person.is_responsible) ||
         (advancedFilters.responsible === 'no' && !person.is_responsible)
+      const matchResponsibleGrade =
+        advancedFilters.responsibleGrades.length === 0 ||
+        (person.is_responsible && advancedFilters.responsibleGrades.includes(person.responsiblePriority || ''))
+      const matchAreas =
+        advancedFilters.areas.length === 0 ||
+        advancedFilters.areas.some(area => (person.areas || []).includes(area))
 
-      return matchSearch && matchPharmacy && matchRole && matchProvince && matchName && matchPharmacyText && matchRoleText && matchProvinceText && matchCity && matchPhone && matchEmail && matchResponsible
+      return matchSearch && matchPharmacy && matchRole && matchProvince && matchName && matchPharmacyText && matchRoleText && matchProvinceText && matchCity && matchPhone && matchEmail && matchResponsible && matchResponsibleGrade && matchAreas
     })
   }, [people, search, selectedPharmacies, selectedRoles, selectedProvinces, advancedFilters])
 
@@ -703,6 +798,10 @@ export default function PeoplePage() {
         filters={advancedFilters}
         onChange={setAdvancedFilters}
         onClear={() => setAdvancedFilters(DEFAULT_ADVANCED_FILTERS)}
+        pharmacyOptions={pharmacyOptions}
+        roleOptions={roleOptions}
+        provinceOptions={provinceOptions}
+        cityOptions={cityOptions}
       />
 
       {loading ? (
