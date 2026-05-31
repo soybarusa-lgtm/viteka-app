@@ -51,8 +51,6 @@ export function usePharmacyDocuments(pharmacyId) {
       .upload(path, file, { upsert: false })
     if (upErr) throw upErr
 
-    const { data: urlData } = supabase.storage.from(DOCUMENT_BUCKET).getPublicUrl(path)
-
     const { data, error: dbErr } = await supabase
       .from('pharmacy_documents')
       .insert({
@@ -61,7 +59,7 @@ export function usePharmacyDocuments(pharmacyId) {
         name:         name || file.name,
         category:     category || 'Otros',
         storage_path: path,
-        public_url:   urlData.publicUrl,
+        public_url:   '',
         file_ext:     ext,
         size_bytes:   file.size,
       })

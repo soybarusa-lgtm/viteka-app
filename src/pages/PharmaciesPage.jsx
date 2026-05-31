@@ -136,6 +136,21 @@ function getVitekaEquipmentProducts(pharmacy) {
   return [...new Set(products.filter(Boolean))]
 }
 
+const VITEKA_PRODUCT_PRIORITY = ['Nixfarma', 'Cashlogy', 'Hanshow']
+
+function sortVitekaProducts(a, b) {
+  const aIndex = VITEKA_PRODUCT_PRIORITY.indexOf(a)
+  const bIndex = VITEKA_PRODUCT_PRIORITY.indexOf(b)
+
+  if (aIndex !== -1 || bIndex !== -1) {
+    if (aIndex === -1) return 1
+    if (bIndex === -1) return -1
+    return aIndex - bIndex
+  }
+
+  return a.localeCompare(b, 'es', { sensitivity: 'base' })
+}
+
 function getEquipmentValue(pharmacy, key) {
   const eq = pharmacy?.equipment || {}
 
@@ -577,6 +592,7 @@ function VitekaFilterMenu({
   options,
   selectedProducts,
   onToggleProduct,
+  onToggleAll,
   onClear,
 }) {
   const anchorRef = useRef(null)
@@ -668,20 +684,34 @@ function VitekaFilterMenu({
           <div className="max-h-64 overflow-y-auto p-2">
             {options.length === 0 ? (
               <p className="px-2 py-3 text-sm text-gray-400">Todavía no hay productos Viteka detectados.</p>
-            ) : options.map(product => (
-              <label
-                key={product}
-                className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedProducts.includes(product)}
-                  onChange={() => onToggleProduct(product)}
-                  className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
-                />
-                <span className="min-w-0 flex-1 truncate">{product}</span>
-              </label>
-            ))}
+            ) : (
+              <>
+                <label className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-teal-700 hover:bg-teal-50">
+                  <input
+                    type="checkbox"
+                    checked={options.every(product => selectedProducts.includes(product))}
+                    onChange={onToggleAll}
+                    className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                  />
+                  <span className="min-w-0 flex-1 truncate">Seleccionar todo</span>
+                </label>
+                <div className="my-1 border-t border-gray-100" />
+                {options.map(product => (
+                  <label
+                    key={product}
+                    className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedProducts.includes(product)}
+                      onChange={() => onToggleProduct(product)}
+                      className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                    />
+                    <span className="min-w-0 flex-1 truncate">{product}</span>
+                  </label>
+                ))}
+              </>
+            )}
           </div>
           <div className="flex items-center justify-between gap-2 border-t border-gray-100 px-4 py-3">
             <button
@@ -1061,7 +1091,7 @@ export default function PharmaciesPage() {
 
   const vitekaProductOptions = useMemo(() => (
     [...new Set(pharmacies.flatMap(pharmacy => getVitekaEquipmentProducts(pharmacy)))]
-      .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }))
+      .sort(sortVitekaProducts)
   ), [pharmacies])
   const equipmentOptions = useMemo(() => ({
     erp: buildUniqueOptions(pharmacies, pharmacy => getEquipmentValue(pharmacy, 'erp')),
@@ -1162,6 +1192,14 @@ export default function PharmaciesPage() {
 
   function clearVitekaProducts() {
     setSelectedVitekaProducts([])
+  }
+
+  function toggleAllVitekaProducts() {
+    setSelectedVitekaProducts(prev => (
+      vitekaProductOptions.every(product => prev.includes(product))
+        ? []
+        : [...vitekaProductOptions]
+    ))
   }
 
   function clearAdvancedFilters() {
@@ -1421,6 +1459,7 @@ export default function PharmaciesPage() {
             options={vitekaProductOptions}
             selectedProducts={selectedVitekaProducts}
             onToggleProduct={toggleVitekaProduct}
+            onToggleAll={toggleAllVitekaProducts}
             onClear={clearVitekaProducts}
           />
           <button

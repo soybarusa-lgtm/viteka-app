@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 const ALLOWED_FIELDS = new Set([
+  'pharmacy_id',
+  'company_id',
   'name',
   'phone',
   'email',

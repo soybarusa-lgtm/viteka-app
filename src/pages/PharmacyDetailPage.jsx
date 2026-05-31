@@ -26,7 +26,7 @@ import EditEquipmentModal from '../components/pharmacy/EditEquipmentModal'
 import { getScheduleOptionLabels, parseScheduleValue } from '../lib/pharmacySchedule'
 import {
   PERSON_ROLES, RESPONSIBILITY_AREAS, DOC_CATEGORIES, IT_TYPES,
-  CONNECTION_OPTIONS, MONITOR_CONN, DISK_TYPES, CAPA_OPTIONS,
+  CONNECTION_OPTIONS, MONITOR_CONN, DISK_TYPES, CAPA_OPTIONS, MONTHS, YEARS,
 } from '../components/pharmacy/PHARMACY_CONSTANTS'
 import { Label, Input, Select, Textarea } from '../components/pharmacy/PharmacyFormAtoms'
 
@@ -234,6 +234,17 @@ function Chip({ children }) {
 
 function getDevicePhotos(device) {
   return Array.isArray(device?.specs?.photos) ? device.specs.photos.filter(Boolean) : []
+}
+
+async function getPrivateDevicePhotoUrl(photo) {
+  if (!photo?.storage_path) throw new Error('Imagen sin ruta de almacenamiento')
+
+  const { data, error } = await supabase.storage
+    .from(DEVICE_PHOTO_BUCKET)
+    .download(photo.storage_path)
+
+  if (error) throw error
+  return URL.createObjectURL(data)
 }
 
 function stripDevicePhotos(device) {
@@ -726,10 +737,56 @@ function createEmptyITDevice(deviceType = 'servidor') {
 }
 
 // â”€â”€ Formulario de equipo (dentro del modal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function DevicePhotoModal({ photo, onClose }) {
+  const [photoUrl, setPhotoUrl] = useState('')
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let active = true
+    let objectUrl = ''
+
+    getPrivateDevicePhotoUrl(photo)
+      .then(url => {
+        objectUrl = url
+        if (active) setPhotoUrl(url)
+      })
+      .catch(err => {
+        if (active) setError(err.message || 'No se pudo cargar la imagen')
+      })
+
+    return () => {
+      active = false
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [photo])
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/60 p-4" onClick={onClose}>
+      <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={event => event.stopPropagation()}>
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-slate-900">{photo.caption || photo.file_name || 'Imagen del equipo'}</p>
+            <p className="mt-0.5 text-xs text-slate-400">Visualización protegida para usuarios autenticados</p>
+          </div>
+          <button type="button" onClick={onClose} title="Cerrar" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+            <XMarkIcon className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="flex min-h-[55vh] items-center justify-center overflow-auto bg-slate-100 p-4">
+          {!photoUrl && !error && <p className="text-sm text-slate-400">Cargando imagen protegida...</p>}
+          {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+          {photoUrl && <img src={photoUrl} alt={photo.caption || photo.file_name || 'Imagen del equipo'} className="max-h-[75vh] max-w-full rounded-lg object-contain shadow-sm" />}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function DevicePhotosEditor({ form, setForm, pharmacyId, companyId }) {
   const fileRef = useRef(null)
   const toast = useToast()
   const [uploading, setUploading] = useState(false)
+  const [selectedPhoto, setSelectedPhoto] = useState(null)
   const photos = getDevicePhotos(form)
   const canUpload = !!form.id
 
@@ -755,7 +812,6 @@ function DevicePhotosEditor({ form, setForm, pharmacyId, companyId }) {
         .upload(path, file, { upsert: false })
       if (uploadError) throw uploadError
 
-      const { data: urlData } = supabase.storage.from(DEVICE_PHOTO_BUCKET).getPublicUrl(path)
       setPhotos([
         ...photos,
         {
@@ -764,7 +820,6 @@ function DevicePhotosEditor({ form, setForm, pharmacyId, companyId }) {
           file_type: file.type,
           size_bytes: file.size,
           storage_path: path,
-          public_url: urlData.publicUrl,
           caption: '',
           created_at: uploadedAt,
         },
@@ -836,10 +891,15 @@ function DevicePhotosEditor({ form, setForm, pharmacyId, companyId }) {
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {photos.map(photo => (
-            <div key={photo.id || photo.storage_path} className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-              <a href={photo.public_url} target="_blank" rel="noopener noreferrer" className="block">
-                <img src={photo.public_url} alt={photo.caption || photo.file_name || 'Imagen del equipo'} className="h-36 w-full object-cover" />
-              </a>
+            <div key={photo.id || photo.storage_path} className="rounded-xl border border-slate-200 bg-slate-50">
+              <button
+                type="button"
+                onClick={() => setSelectedPhoto(photo)}
+                className="flex w-full items-center justify-center gap-2 border-b border-slate-200 bg-white px-3 py-5 text-sm font-medium text-teal-700 hover:bg-teal-50"
+              >
+                <EyeIcon className="h-4 w-4" />
+                Ver imagen protegida
+              </button>
               <div className="space-y-2 p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -865,32 +925,39 @@ function DevicePhotosEditor({ form, setForm, pharmacyId, companyId }) {
           ))}
         </div>
       )}
+
+      {selectedPhoto && <DevicePhotoModal photo={selectedPhoto} onClose={() => setSelectedPhoto(null)} />}
     </section>
   )
 }
 
 function DevicePhotosReadOnly({ photos }) {
+  const [selectedPhoto, setSelectedPhoto] = useState(null)
+
   if (!photos.length) return null
   return (
     <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
       <h3 className="text-xs font-bold uppercase tracking-widest text-teal-700">Imágenes del equipo y puesto</h3>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {photos.map(photo => (
-          <a
+          <button
+            type="button"
             key={photo.id || photo.storage_path}
-            href={photo.public_url}
-            target="_blank"
-            rel="noopener noreferrer"
+            onClick={() => setSelectedPhoto(photo)}
             className="overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-teal-300 hover:shadow-sm"
           >
-            <img src={photo.public_url} alt={photo.caption || photo.file_name || 'Imagen del equipo'} className="h-36 w-full object-cover" />
-            <div className="p-3">
+            <div className="flex items-center justify-center gap-2 bg-slate-50 px-3 py-6 text-sm font-medium text-teal-700">
+              <EyeIcon className="h-4 w-4" />
+              Ver imagen protegida
+            </div>
+            <div className="border-t border-slate-100 p-3 text-left">
               <p className="truncate text-xs font-semibold text-gray-700">{photo.caption || photo.file_name || 'Imagen'}</p>
               {photo.caption && <p className="mt-1 truncate text-[11px] text-gray-400">{photo.file_name}</p>}
             </div>
-          </a>
+          </button>
         ))}
       </div>
+      {selectedPhoto && <DevicePhotoModal photo={selectedPhoto} onClose={() => setSelectedPhoto(null)} />}
     </section>
   )
 }
@@ -1846,18 +1913,22 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
 }
 
 // â”€â”€ Tab: Personas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function TabPeople({ pharmacyId, companyId, initialAction, onActionHandled }) {
+function TabPeople({ pharmacyId, companyId, pharmacy, initialAction, onActionHandled }) {
   const { persons, loading, createPerson, updatePerson, deletePerson } = usePharmacyPersons(pharmacyId)
   const toast = useToast()
   const [editing, setEditing] = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+  const [viewMode, setViewMode] = useLocalStorageState(`pharmacy-people-view-${pharmacyId}`, 'cards')
 
   const empty = {
     name: '',
     role: '',
     phone: '',
     email: '',
+    nixfarma_operator: '',
+    seniority_month: '',
+    seniority_year: '',
     is_responsible: false,
     responsible_priority: '1',
     areas: [],
@@ -1868,7 +1939,13 @@ function TabPeople({ pharmacyId, companyId, initialAction, onActionHandled }) {
   function parsePersonObservations(observations = '') {
     const raw = String(observations || '')
     const prefix = '__VITEKA_PERSON_META__:'
-    if (!raw.startsWith(prefix)) return { notes: raw, responsiblePriority: '' }
+    if (!raw.startsWith(prefix)) return {
+      notes: raw,
+      responsiblePriority: '',
+      nixfarmaOperator: '',
+      seniorityMonth: '',
+      seniorityYear: '',
+    }
 
     const newlineIndex = raw.indexOf('\n')
     const metaRaw = newlineIndex === -1 ? raw.slice(prefix.length) : raw.slice(prefix.length, newlineIndex)
@@ -1879,19 +1956,34 @@ function TabPeople({ pharmacyId, companyId, initialAction, onActionHandled }) {
       return {
         notes,
         responsiblePriority: String(meta?.responsiblePriority || ''),
+        nixfarmaOperator: String(meta?.nixfarmaOperator || ''),
+        seniorityMonth: String(meta?.seniorityMonth || ''),
+        seniorityYear: String(meta?.seniorityYear || ''),
       }
     } catch {
-      return { notes: raw, responsiblePriority: '' }
+      return {
+        notes: raw,
+        responsiblePriority: '',
+        nixfarmaOperator: '',
+        seniorityMonth: '',
+        seniorityYear: '',
+      }
     }
   }
 
-  function serializePersonObservations(notes = '', responsiblePriority = '') {
+  function serializePersonObservations(notes = '', personMeta = {}) {
     const cleanNotes = String(notes || '').trim()
-    const cleanPriority = String(responsiblePriority || '').trim()
-    if (!cleanPriority) return cleanNotes
+    const meta = {
+      responsiblePriority: String(personMeta.responsiblePriority || '').trim(),
+      nixfarmaOperator: String(personMeta.nixfarmaOperator || '').trim(),
+      seniorityMonth: String(personMeta.seniorityMonth || '').trim(),
+      seniorityYear: String(personMeta.seniorityYear || '').trim(),
+    }
 
-    const meta = '__VITEKA_PERSON_META__:' + JSON.stringify({ responsiblePriority: cleanPriority })
-    return cleanNotes ? `${meta}\n${cleanNotes}` : meta
+    if (!Object.values(meta).some(Boolean)) return cleanNotes
+
+    const serializedMeta = '__VITEKA_PERSON_META__:' + JSON.stringify(meta)
+    return cleanNotes ? `${serializedMeta}\n${cleanNotes}` : serializedMeta
   }
 
   function normalizePersonForm(personLike) {
@@ -1901,6 +1993,9 @@ function TabPeople({ pharmacyId, companyId, initialAction, onActionHandled }) {
       ...personLike,
       is_responsible: Boolean(personLike?.is_responsible),
       responsible_priority: parsed.responsiblePriority || personLike?.responsible_priority || '1',
+      nixfarma_operator: parsed.nixfarmaOperator || personLike?.nixfarma_operator || '',
+      seniority_month: parsed.seniorityMonth || personLike?.seniority_month || '',
+      seniority_year: parsed.seniorityYear || personLike?.seniority_year || '',
       areas: Array.isArray(personLike?.areas) ? personLike.areas : [],
       custom_area: personLike?.custom_area || '',
       observations: parsed.notes,
@@ -1916,7 +2011,12 @@ function TabPeople({ pharmacyId, companyId, initialAction, onActionHandled }) {
       is_responsible: Boolean(form.is_responsible),
       areas: Array.isArray(form.areas) ? form.areas : [],
       custom_area: form.areas?.includes('Categoría') ? (form.custom_area || '').trim() : '',
-      observations: serializePersonObservations(form.observations, form.is_responsible ? form.responsible_priority : ''),
+      observations: serializePersonObservations(form.observations, {
+        responsiblePriority: form.is_responsible ? form.responsible_priority : '',
+        nixfarmaOperator: form.nixfarma_operator,
+        seniorityMonth: form.seniority_month,
+        seniorityYear: form.seniority_year,
+      }),
     }
 
     if (form.id) {
@@ -1948,11 +2048,46 @@ function TabPeople({ pharmacyId, companyId, initialAction, onActionHandled }) {
     onActionHandled?.()
   }, [initialAction])
 
+  const groupedPersons = useMemo(() => {
+    return (persons || []).reduce((groups, person) => {
+      const role = person.role || 'Sin rol'
+      if (!groups[role]) groups[role] = []
+      groups[role].push(person)
+      return groups
+    }, {})
+  }, [persons])
+
+  const roleOrder = useMemo(() => {
+    const existingRoles = Object.keys(groupedPersons)
+    return [
+      ...PERSON_ROLES.filter(role => existingRoles.includes(role)),
+      ...existingRoles.filter(role => !PERSON_ROLES.includes(role)).sort((a, b) => a.localeCompare(b, 'es')),
+    ]
+  }, [groupedPersons])
+
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setViewMode('cards')}
+            title="Vista tarjetas"
+            className={`rounded-lg p-2 ${viewMode === 'cards' ? 'bg-teal-600 text-white' : 'border border-gray-200 bg-white text-gray-400 hover:text-teal-700'}`}
+          >
+            <Squares2X2Icon className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('list')}
+            title="Vista lista"
+            className={`rounded-lg p-2 ${viewMode === 'list' ? 'bg-teal-600 text-white' : 'border border-gray-200 bg-white text-gray-400 hover:text-teal-700'}`}
+          >
+            <ListBulletIcon className="h-4 w-4" />
+          </button>
+        </div>
         <button
           type="button"
           onClick={() => setEditing(normalizePersonForm(empty))}
@@ -1965,52 +2100,62 @@ function TabPeople({ pharmacyId, companyId, initialAction, onActionHandled }) {
       {(!persons || persons.length === 0) ? (
         <EmptyTab icon={UsersIcon} message="Sin personas registradas" />
       ) : (
-        <div className="space-y-2">
-          {persons.map(p => {
-            const parsed = parsePersonObservations(p.observations)
-            return (
-              <div key={p.id} className="flex items-start justify-between gap-3 p-4 rounded-xl border border-gray-200 bg-white hover:border-gray-300 transition-colors">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-gray-800">{p.name}</span>
-                    {p.role && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700">{p.role}</span>}
-                    {p.is_responsible && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-teal-50 text-teal-700">
-                        Responsable{parsed.responsiblePriority ? ` #${parsed.responsiblePriority}` : ''}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-3 mt-1">
-                    {p.phone && <span className="text-xs text-gray-500">{p.phone}</span>}
-                    {p.email && <span className="text-xs text-gray-500">{p.email}</span>}
-                  </div>
-                  {Array.isArray(p.areas) && p.areas.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1.5">
-                      {p.areas.map(a => (
-                        <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-gray-600">{a}</span>
-                      ))}
-                    </div>
-                  )}
-                  {parsed.notes && (
-                    <p className="text-xs text-gray-400 mt-1">{parsed.notes}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button type="button" onClick={() => setEditing(normalizePersonForm(p))} className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors">
-                    <PencilSquareIcon className="w-4 h-4" />
-                  </button>
-                  <button type="button" onClick={() => setConfirmDel(p)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
-                    <TrashIcon className="w-4 h-4" />
-                  </button>
-                </div>
+        <div className="space-y-5">
+          {roleOrder.map(role => (
+            <section key={role} className="space-y-2">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">{role}</h3>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">{groupedPersons[role].length}</span>
               </div>
-            )
-          })}
+              <div className={viewMode === 'cards' ? 'grid grid-cols-1 gap-2 lg:grid-cols-2' : 'space-y-2'}>
+                {groupedPersons[role].map(p => {
+                  const parsed = parsePersonObservations(p.observations)
+                  const seniority = [parsed.seniorityMonth, parsed.seniorityYear].filter(Boolean).join(' / ')
+                  return (
+                    <div key={p.id} className={`flex justify-between gap-3 rounded-xl border border-gray-200 bg-white hover:border-gray-300 transition-colors ${viewMode === 'cards' ? 'items-start p-4' : 'items-center px-4 py-3'}`}>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-semibold text-gray-800">{p.name}</span>
+                          {p.is_responsible && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-teal-50 text-teal-700">
+                              Responsable{parsed.responsiblePriority ? ` #${parsed.responsiblePriority}` : ''}
+                            </span>
+                          )}
+                        </div>
+                        {parsed.nixfarmaOperator && <p className="mt-1 text-xs font-medium text-sky-700">Operador Nixfarma: {parsed.nixfarmaOperator}</p>}
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                          {p.phone && <span className="text-xs text-gray-500">{p.phone}</span>}
+                          {p.email && <span className="text-xs text-gray-500">{p.email}</span>}
+                          {seniority && <span className="text-xs text-gray-400">Desde {seniority}</span>}
+                        </div>
+                        {viewMode === 'cards' && Array.isArray(p.areas) && p.areas.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {p.areas.map(a => (
+                              <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-gray-600">{a}</span>
+                            ))}
+                          </div>
+                        )}
+                        {viewMode === 'cards' && parsed.notes && <p className="text-xs text-gray-400 mt-1">{parsed.notes}</p>}
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button type="button" title="Editar persona" onClick={() => setEditing(normalizePersonForm(p))} className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors">
+                          <PencilSquareIcon className="w-4 h-4" />
+                        </button>
+                        <button type="button" title="Eliminar persona" onClick={() => setConfirmDel(p)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       )}
 
       {editing !== null && (
-        <PersonModal person={editing} onSave={handleSave} onClose={() => setEditing(null)} />
+        <PersonModal person={editing} pharmacy={pharmacy} onSave={handleSave} onClose={() => setEditing(null)} />
       )}
 
       {confirmDel && (
@@ -2028,7 +2173,7 @@ function TabPeople({ pharmacyId, companyId, initialAction, onActionHandled }) {
   )
 }
 
-function PersonModal({ person, onSave, onClose }) {
+function PersonModal({ person, pharmacy, onSave, onClose }) {
   const [form, setForm] = useState(person)
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
 
@@ -2039,15 +2184,16 @@ function PersonModal({ person, onSave, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+      <div className="max-h-[90vh] w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           <h2 className="text-base font-semibold text-gray-900">{person.id ? 'Editar persona' : 'Nueva persona'}</h2>
           <button type="button" onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
             <XMarkIcon className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-5 space-y-3">
+        <div className="max-h-[calc(90vh-132px)] overflow-y-auto p-5 space-y-3">
           <div><Label required>Nombre</Label><Input value={form.name || ''} onChange={e => set('name', e.target.value)} /></div>
+          <div><Label>Operador Nixfarma</Label><Input value={form.nixfarma_operator || ''} onChange={e => set('nixfarma_operator', e.target.value)} placeholder="Nombre del operador" /></div>
           <div>
             <Label>Rol</Label>
             <Select value={form.role || ''} onChange={e => set('role', e.target.value)}>
@@ -2056,8 +2202,41 @@ function PersonModal({ person, onSave, onClose }) {
             </Select>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>Teléfono</Label><Input value={form.phone || ''} onChange={e => set('phone', e.target.value)} /></div>
-            <div><Label>Email</Label><Input type="email" value={form.email || ''} onChange={e => set('email', e.target.value)} /></div>
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <Label>Teléfono</Label>
+                {pharmacy?.contact_phone && (
+                  <button type="button" onClick={() => set('phone', pharmacy.contact_phone)} className="mb-1 text-[11px] font-medium text-teal-700 hover:text-teal-900">
+                    Usar farmacia
+                  </button>
+                )}
+              </div>
+              <Input value={form.phone || ''} onChange={e => set('phone', e.target.value)} />
+            </div>
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <Label>Email</Label>
+                {pharmacy?.contact_email && (
+                  <button type="button" onClick={() => set('email', pharmacy.contact_email)} className="mb-1 text-[11px] font-medium text-teal-700 hover:text-teal-900">
+                    Usar farmacia
+                  </button>
+                )}
+              </div>
+              <Input type="email" value={form.email || ''} onChange={e => set('email', e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <Label>Antigüedad</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <Select value={form.seniority_month || ''} onChange={e => set('seniority_month', e.target.value)}>
+                <option value="">Mes de inicio</option>
+                {MONTHS.map((month, index) => <option key={month} value={String(index + 1)}>{month}</option>)}
+              </Select>
+              <Select value={form.seniority_year || ''} onChange={e => set('seniority_year', e.target.value)}>
+                <option value="">Año de inicio</option>
+                {YEARS.map(year => <option key={year} value={String(year)}>{year}</option>)}
+              </Select>
+            </div>
           </div>
           <div className="rounded-xl border border-teal-100 bg-teal-50/60 p-3 space-y-3">
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
@@ -2148,6 +2327,7 @@ function TabDocuments({ pharmacyId, companyId }) {
   const [previewLoadingId, setPreviewLoadingId] = useState(null)
   const [query, setQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
+  const [viewMode, setViewMode] = useLocalStorageState(`pharmacy-documents-view-${pharmacyId}`, 'list')
   const fileRef = useRef(null)
   const [meta, setMeta] = useState({ name: '', category: '' })
 
@@ -2171,6 +2351,23 @@ function TabDocuments({ pharmacyId, companyId }) {
       ].filter(Boolean).some(value => String(value).toLowerCase().includes(q))
     })
   }, [documents, query, categoryFilter])
+
+  const groupedDocuments = useMemo(() => {
+    return filteredDocuments.reduce((groups, doc) => {
+      const category = doc.category || 'Otros'
+      if (!groups[category]) groups[category] = []
+      groups[category].push(doc)
+      return groups
+    }, {})
+  }, [filteredDocuments])
+
+  const categoryOrder = useMemo(() => {
+    const existingCategories = Object.keys(groupedDocuments)
+    return [
+      ...DOC_CATEGORIES.filter(category => existingCategories.includes(category)),
+      ...existingCategories.filter(category => !DOC_CATEGORIES.includes(category)).sort((a, b) => a.localeCompare(b, 'es')),
+    ]
+  }, [groupedDocuments])
 
   async function handleUpload(e) {
     const file = e.target.files?.[0]
@@ -2301,6 +2498,24 @@ function TabDocuments({ pharmacyId, companyId }) {
           <option value="">Todas las categorías</option>
           {categories.map(c => <option key={c} value={c}>{c}</option>)}
         </Select>
+        <div className="flex items-center rounded-lg border border-gray-200 bg-white">
+          <button
+            type="button"
+            onClick={() => setViewMode('cards')}
+            title="Vista tarjetas"
+            className={`rounded-l-lg p-2 ${viewMode === 'cards' ? 'bg-teal-600 text-white' : 'text-gray-400 hover:text-teal-700'}`}
+          >
+            <Squares2X2Icon className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('list')}
+            title="Vista lista"
+            className={`rounded-r-lg p-2 ${viewMode === 'list' ? 'bg-teal-600 text-white' : 'text-gray-400 hover:text-teal-700'}`}
+          >
+            <ListBulletIcon className="h-4 w-4" />
+          </button>
+        </div>
         <button
           type="button"
           onClick={reload}
@@ -2319,48 +2534,58 @@ function TabDocuments({ pharmacyId, companyId }) {
       ) : filteredDocuments.length === 0 ? (
         <EmptyTab icon={DocumentTextIcon} message="Sin documentos con esos filtros" />
       ) : (
-        <div className="space-y-2">
-          {filteredDocuments.map(doc => {
-            const name = getDocumentName(doc)
-            const ext = getDocumentExt(doc)
-            const urlAvailable = Boolean(doc.storage_path || doc.public_url || doc.file_url)
-            return (
-            <div key={doc.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:border-gray-300 transition-colors">
-              <div className="min-w-0 flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[11px] font-bold text-slate-500">
-                  {ext || <DocumentTextIcon className="w-5 h-5" />}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate">{name}</p>
-                  <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                    {doc.category && <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-700">{doc.category}</span>}
-                    <span className="text-[11px] text-gray-400">{new Date(doc.created_at).toLocaleDateString('es-ES')}</span>
-                    {doc.size_bytes ? <span className="text-[11px] text-gray-300">{formatBytes(doc.size_bytes)}</span> : null}
-                  </div>
-                </div>
+        <div className="space-y-5">
+          {categoryOrder.map(category => (
+            <section key={category} className="space-y-2">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">{category}</h3>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">{groupedDocuments[category].length}</span>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
-                {urlAvailable && (
-                  <button type="button" onClick={() => handlePreview(doc)} disabled={previewLoadingId === doc.id} title="Visualizar" className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors disabled:opacity-40">
-                    <EyeIcon className="w-4 h-4" />
-                  </button>
-                )}
-                {urlAvailable && (
-                  <button type="button" onClick={() => handleDownload(doc)} title="Descargar" className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors">
-                    <ArrowDownTrayIcon className="w-4 h-4" />
-                  </button>
-                )}
-                {urlAvailable && (
-                  <button type="button" onClick={() => handleCopyLink(doc)} title="Copiar enlace temporal" className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors">
-                    <ClipboardDocumentIcon className="w-4 h-4" />
-                  </button>
-                )}
-                <button type="button" onClick={() => setConfirmDel(doc)} disabled={deletingId === doc.id} title="Eliminar documento" className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40">
-                  <TrashIcon className="w-4 h-4" />
-                </button>
+              <div className={viewMode === 'cards' ? 'grid grid-cols-1 gap-2 lg:grid-cols-2' : 'space-y-2'}>
+                {groupedDocuments[category].map(doc => {
+                  const name = getDocumentName(doc)
+                  const ext = getDocumentExt(doc)
+                  const urlAvailable = Boolean(doc.storage_path || doc.public_url || doc.file_url)
+                  return (
+                    <div key={doc.id} className={`flex justify-between gap-3 rounded-xl border border-gray-200 bg-white hover:border-gray-300 transition-colors ${viewMode === 'cards' ? 'items-start p-4' : 'items-center p-3'}`}>
+                      <div className="min-w-0 flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[11px] font-bold text-slate-500">
+                          {ext || <DocumentTextIcon className="w-5 h-5" />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-800 truncate">{name}</p>
+                          <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                            <span className="text-[11px] text-gray-400">{new Date(doc.created_at).toLocaleDateString('es-ES')}</span>
+                            {doc.size_bytes ? <span className="text-[11px] text-gray-300">{formatBytes(doc.size_bytes)}</span> : null}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {urlAvailable && (
+                          <button type="button" onClick={() => handlePreview(doc)} disabled={previewLoadingId === doc.id} title="Visualizar" className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors disabled:opacity-40">
+                            <EyeIcon className="w-4 h-4" />
+                          </button>
+                        )}
+                        {urlAvailable && (
+                          <button type="button" onClick={() => handleDownload(doc)} title="Descargar" className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors">
+                            <ArrowDownTrayIcon className="w-4 h-4" />
+                          </button>
+                        )}
+                        {urlAvailable && (
+                          <button type="button" onClick={() => handleCopyLink(doc)} title="Copiar enlace temporal" className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors">
+                            <ClipboardDocumentIcon className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button type="button" onClick={() => setConfirmDel(doc)} disabled={deletingId === doc.id} title="Eliminar documento" className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40">
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            </div>
-          )})}
+            </section>
+          ))}
         </div>
       )}
 
@@ -2581,6 +2806,7 @@ export default function PharmacyDetailPage() {
           <TabPeople
             pharmacyId={id}
             companyId={pharmacy.company_id}
+            pharmacy={pharmacy}
             initialAction={requestedAction}
             onActionHandled={clearRequestedAction}
           />
