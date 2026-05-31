@@ -29,7 +29,7 @@ const VITEKA_PRODUCTS = [
   { key:'han',  label:'Hanshow',  color:'#3b82f6', test: c => c.products?.etiquetas?.brand==='Hanshow' && c.products?.etiquetas?.viteka_support==='SI' },
 ]
 const TYPE_FILTERS = [
-  { id:'all', label:'Todas' }, { id:'autonomo', label:'Autónomo' },
+  { id:'all', label:'Todas' }, { id:'autonomo', label:'Persona Jurídica.' },
   { id:'cb',  label:'C.B.'  }, { id:'sl',       label:'S.L.'    },
 ]
 const SUPPORT_FILTERS = [

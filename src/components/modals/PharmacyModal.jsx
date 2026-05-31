@@ -3,10 +3,10 @@ import { usePharmacies } from '../../hooks/usePharmacies'
 import { useSpanishLocations } from '../../hooks/useSpanishLocations'
 
 const LEGAL_TYPES = [
-  { value: 'autonomo',    label: 'Autónomo' },
+  { value: 'autonomo',    label: 'Persona Jurídica.' },
   { value: 'cb',          label: 'Comunidad de Bienes (CB)' },
   { value: 'sl',          label: 'Sociedad Limitada (SL)' },
-  { value: 'autonomo_sl', label: 'Autónomo + SL' },
+  { value: 'autonomo_sl', label: 'Persona Jurídica. + SL' },
   { value: 'cb_sl',       label: 'CB + SL' },
 ]
 
@@ -122,7 +122,7 @@ export default function PharmacyModal({ open = true, pharmacy = null, onClose, o
 
           {isAutonomo && (
             <section>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Datos autónomo</h3>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Datos Persona Jurídica.</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><label className="label">Nombre titular</label><input className="input" value={v('owner_name')} onChange={e => set('owner_name', e.target.value)} /></div>
                 <div><label className="label">NIF</label><input className="input" value={v('nif')} onChange={e => set('nif', e.target.value)} /></div>

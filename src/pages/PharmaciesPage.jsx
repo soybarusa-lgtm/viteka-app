@@ -17,8 +17,8 @@ const PROVINCE_LABEL = {
   huelva: 'Huelva', jaen: 'Jaén', malaga: 'Málaga', sevilla: 'Sevilla',
 }
 const LEGAL_LABEL = {
-  autonomo: 'Autónomo', cb: 'C.B.', sl: 'S.L.',
-  autonomo_sl: 'Autónomo + S.L.', cb_sl: 'C.B. + S.L.',
+  autonomo: 'Persona Jurídica.', cb: 'C.B.', sl: 'S.L.',
+  autonomo_sl: 'Persona Jurídica. + S.L.', cb_sl: 'C.B. + S.L.',
 }
 
 const DEFAULT_COLUMNS = [
@@ -54,10 +54,10 @@ const ADVANCED_SCHEDULE_OPTIONS = [
 ]
 const LEGAL_TYPE_OPTIONS = [
   { value: '', label: 'Todos' },
-  { value: 'autonomo', label: 'Autónomo' },
+  { value: 'autonomo', label: 'Persona Jurídica.' },
   { value: 'cb', label: 'C.B.' },
   { value: 'sl', label: 'S.L.' },
-  { value: 'autonomo_sl', label: 'Autónomo + S.L.' },
+  { value: 'autonomo_sl', label: 'Persona Jurídica. + S.L.' },
   { value: 'cb_sl', label: 'C.B. + S.L.' },
 ]
 const DEFAULT_ADVANCED_FILTERS = {

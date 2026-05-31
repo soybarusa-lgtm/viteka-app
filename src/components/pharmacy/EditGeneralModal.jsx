@@ -144,9 +144,9 @@ export default function EditGeneralModal({ pharmacy, onClose, onSaved }) {
           </div>
           <div>
             <Label required>Tipo jurídico</Label>
-            <p className="text-xs text-gray-400 mb-2">Autónomo y C.B. son excluyentes. La S.L. puede combinarse.</p>
+            <p className="text-xs text-gray-400 mb-2">Persona Jurídica. y C.B. son excluyentes. La S.L. puede combinarse.</p>
             <div className="flex flex-wrap gap-2">
-              <ToggleBtn active={hasAuto} onClick={() => toggleType('autonomo')}>{hasAuto ? '✓ ' : ''}Autónomo</ToggleBtn>
+              <ToggleBtn active={hasAuto} onClick={() => toggleType('autonomo')}>{hasAuto ? '✓ ' : ''}Persona Jurídica.</ToggleBtn>
               <ToggleBtn active={hasCb}   onClick={() => toggleType('cb')}>{hasCb ? '✓ ' : ''}C.B.</ToggleBtn>
               <ToggleBtn active={hasSl}   onClick={() => toggleType('sl')}>{hasSl ? '✓ ' : ''}S.L.</ToggleBtn>
             </div>
@@ -154,7 +154,7 @@ export default function EditGeneralModal({ pharmacy, onClose, onSaved }) {
         </Section>
 
         {hasAuto && (
-          <Section title="Autónomo">
+          <Section title="Persona Jurídica.">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="sm:col-span-2">
                 <Label required>Nombre del titular</Label>

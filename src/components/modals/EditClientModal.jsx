@@ -178,7 +178,7 @@ function EditClientForm({ client, onClose, onSave }) {
               <div>
                 <p className={labelCls}>Tipo jurídico</p>
                 <div className="flex gap-2">
-                  {[['autonomo', 'Autónomo'], ['cb', 'C.B.'], ['sl', 'S.L.']].map(([val, lbl]) => (
+                  {[['autonomo', 'Persona Jurídica.'], ['cb', 'C.B.'], ['sl', 'S.L.']].map(([val, lbl]) => (
                     <button key={val} type="button" onClick={() => setLegalType(val)}
                       className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
                         legalType === val ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'

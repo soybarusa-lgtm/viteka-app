@@ -13,10 +13,10 @@ const PROVINCES = [
 ]
 
 const LEGAL_TYPES = [
-  { value: 'autonomo',    label: 'Autónomo'        },
+  { value: 'autonomo',    label: 'Persona Jurídica.' },
   { value: 'cb',          label: 'C.B.'             },
   { value: 'sl',          label: 'S.L.'             },
-  { value: 'autonomo_sl', label: 'Autónomo + S.L.'  },
+  { value: 'autonomo_sl', label: 'Persona Jurídica. + S.L.' },
   { value: 'cb_sl',       label: 'C.B. + S.L.'      },
 ]
 

@@ -37,8 +37,8 @@ const PROVINCE_LABEL = {
   huelva:'Huelva',jaen:'Jaén',malaga:'Málaga',sevilla:'Sevilla',
 }
 const LEGAL_LABEL = {
-  autonomo:'Autónomo',cb:'C.B.',sl:'S.L.',
-  autonomo_sl:'Autónomo + S.L.',cb_sl:'C.B. + S.L.',
+  autonomo:'Persona Jurídica.',cb:'C.B.',sl:'S.L.',
+  autonomo_sl:'Persona Jurídica. + S.L.',cb_sl:'C.B. + S.L.',
 }
 
 const DEVICE_PHOTO_BUCKET = 'task-evidence'
@@ -170,7 +170,7 @@ function TabGeneral({ pharmacy }) {
     !normalizedQuery || values.filter(Boolean).join(' ').toLocaleLowerCase('es').includes(normalizedQuery)
   )
   const showAuto = hasAuto && matchesQuery(
-    'Autónomo', pharmacy.owner_name, pharmacy.nif, pharmacy.collegiate_number, pharmacy.soe_number,
+    'Persona Jurídica.', pharmacy.owner_name, pharmacy.nif, pharmacy.collegiate_number, pharmacy.soe_number,
     pharmacy.contact_phone, pharmacy.contact_email, pharmacy.address, pharmacy.city, pharmacy.province,
     pharmacy.postal_code, mainSchedule.summary, scheduleOptions.join(' '), mainSchedule.guardNotes,
     pharmacy.observations
@@ -202,7 +202,7 @@ function TabGeneral({ pharmacy }) {
     <div className="space-y-4">
       <TabToolbar query={query} onQueryChange={setQuery} placeholder="Buscar en datos generales..." onCollapseAll={toggleAll} allCollapsed={allCollapsed} />
       {showAuto && (
-        <SectionBlock title="Autónomo" open={!collapsed.autonomo} onToggle={() => setCollapsed(prev => ({ ...prev, autonomo: !prev.autonomo }))}>
+        <SectionBlock title="Persona Jurídica." open={!collapsed.autonomo} onToggle={() => setCollapsed(prev => ({ ...prev, autonomo: !prev.autonomo }))}>
           <Field label="Titular"        value={pharmacy.owner_name} />
           <Field label="NIF"            value={pharmacy.nif} />
           <Field label="Nº Colegiado"   value={pharmacy.collegiate_number} />
@@ -1539,7 +1539,7 @@ function ITDeviceModal({ device, pharmacyId, companyId, onSave, onClose }) {
   }
 
   const title = isNew
-    ? `Nuevo equipo â€” ${IT_LABEL[form.device_type] || ''}`
+    ? `Nuevo equipo - ${IT_LABEL[form.device_type] || ''}`
     : (form.label || IT_LABEL[form.device_type] || 'Equipo')
 
   const isReadMode = !isNew && mode === 'view'
@@ -1576,7 +1576,7 @@ function ITDeviceModal({ device, pharmacyId, companyId, onSave, onClose }) {
         <span className={`text-xs font-medium transition-colors ${
           isDirty ? 'text-amber-600' : 'text-gray-400'
         }`}>
-          {isDirty ? 'â— Cambios sin guardar' : isReadMode ? 'Modo lectura' : isNew ? 'Nuevo equipo' : 'Sin cambios'}
+          {isDirty ? '● Cambios sin guardar' : isReadMode ? 'Modo lectura' : isNew ? 'Nuevo equipo' : 'Sin cambios'}
         </span>
 
         <div className="flex gap-2">
@@ -1695,7 +1695,7 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
               <Select value={sourceId} onChange={e => setSourceId(e.target.value)}>
                 <option value="">Selecciona una farmacia</option>
                 {pharmacies.map(p => (
-                  <option key={p.id} value={p.id}>{p.pharmacy_name}{p.city ? ` â€” ${p.city}` : ''}</option>
+                  <option key={p.id} value={p.id}>{p.pharmacy_name}{p.city ? ` - ${p.city}` : ''}</option>
                 ))}
               </Select>
             )}
@@ -1724,7 +1724,7 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
                         <div className="min-w-0">
                           <p className="text-xs font-semibold text-teal-600 uppercase tracking-wide">{IT_LABEL[d.device_type] || d.device_type}</p>
                           {d.label && <p className="text-sm text-gray-800">{d.label}</p>}
-                          {(marca || modelo) && <p className="text-xs text-gray-400">{marca}{modelo ? ` â€” ${modelo}` : ''}</p>}
+                          {(marca || modelo) && <p className="text-xs text-gray-400">{marca}{modelo ? ` - ${modelo}` : ''}</p>}
                         </div>
                       </label>
                     )
