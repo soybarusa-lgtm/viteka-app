@@ -133,6 +133,98 @@ function EmptyTab({ icon: Icon, message }) {
   )
 }
 
+function formatDateTime(value) {
+  if (!value) return 'Sin informar'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Sin informar'
+  return date.toLocaleString('es-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function getLastActionLabel(log) {
+  if (!log) return 'Sin actividad reciente'
+  const actionMap = {
+    create: 'creación',
+    update: 'actualización',
+    delete: 'eliminación',
+    upload: 'subida',
+    complete: 'cierre',
+  }
+  const action = actionMap[log.action] || log.action || 'actualización'
+  const user = log.user_name || 'Sistema'
+  const entity = log.entity_name || 'elemento'
+  return `${user} realizó ${action} en ${entity}`
+}
+
+function SummaryCard({ title, value, detail, icon: Icon, onClick, tooltip, accent = 'teal' }) {
+  const accentClass = accent === 'teal'
+    ? 'border-teal-200 bg-teal-50/60 hover:border-teal-300 hover:bg-teal-50'
+    : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={tooltip}
+      className={`group flex h-full min-h-[108px] w-full flex-col justify-between rounded-xl border p-3 text-left shadow-sm transition-all ${accentClass}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{title}</p>
+          <p className="mt-1 line-clamp-2 text-sm font-semibold text-slate-900">{value || 'Sin datos'}</p>
+        </div>
+        <div className="rounded-lg bg-white/80 p-2 text-teal-700 shadow-sm ring-1 ring-inset ring-teal-100">
+          <Icon className="h-4 w-4" />
+        </div>
+      </div>
+      {detail ? <p className="mt-3 line-clamp-2 text-xs text-slate-500">{detail}</p> : <span className="mt-3 text-xs text-slate-400">Abrir pestaña</span>}
+    </button>
+  )
+}
+
+function MapSummaryCard({ title, value, detail, onClick, tooltip }) {
+  const src = value && value !== 'Ubicación no informada'
+    ? `https://www.google.com/maps?q=${encodeURIComponent(value)}&z=15&output=embed`
+    : null
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={tooltip}
+      className="group relative flex min-h-[160px] w-full flex-col overflow-hidden rounded-xl border border-teal-200 bg-teal-50/60 p-3 text-left shadow-sm transition-all hover:border-teal-300 hover:bg-teal-50"
+    >
+      {src ? (
+        <iframe
+          title={title}
+          src={src}
+          className="pointer-events-none absolute inset-0 h-full w-full opacity-35"
+          loading="lazy"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(13,148,136,0.12),_transparent_45%),linear-gradient(135deg,_rgba(255,255,255,0.95),_rgba(236,253,245,0.95))]" />
+      )}
+      <div className="relative z-10 flex h-full flex-col justify-between">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{title}</p>
+            <p className="mt-1 line-clamp-2 text-sm font-semibold text-slate-900">{value || 'Sin datos'}</p>
+          </div>
+          <div className="rounded-lg bg-white/90 p-2 text-teal-700 shadow-sm ring-1 ring-inset ring-teal-100">
+            <MapPinIcon className="h-4 w-4" />
+          </div>
+        </div>
+        <p className="relative z-10 mt-3 text-xs text-slate-600">{detail}</p>
+      </div>
+    </button>
+  )
+}
+
 // â”€â”€ Pestañas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const TABS = [
   { key: 'general',   label: 'Datos generales',   icon: BuildingStorefrontIcon },
@@ -145,7 +237,7 @@ const TABS = [
 ]
 
 // â”€â”€ Tab: Datos generales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function TabGeneral({ pharmacy }) {
+function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
   const [query, setQuery] = useState('')
   const [collapsed, setCollapsed] = useState({})
   const lType = pharmacy.legal_type || ''
@@ -201,6 +293,80 @@ function TabGeneral({ pharmacy }) {
   return (
     <div className="space-y-4">
       <TabToolbar query={query} onQueryChange={setQuery} placeholder="Buscar en datos generales..." onCollapseAll={toggleAll} allCollapsed={allCollapsed} />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MapSummaryCard
+          title="Mapa"
+          value={summaries.map}
+          detail="Ubicación y acceso"
+          onClick={() => onNavigateTab('general')}
+          tooltip={summaries.lastActionTooltip}
+        />
+        <SummaryCard
+          title="Personas"
+          value={`${summaries.people.count} registradas`}
+          detail={summaries.people.preview}
+          icon={UsersIcon}
+          onClick={() => onNavigateTab('people')}
+          tooltip={summaries.lastActionTooltip}
+        />
+        <SummaryCard
+          title="Equipamiento"
+          value={summaries.equipment.preview}
+          detail={summaries.equipment.detail}
+          icon={WrenchScrewdriverIcon}
+          onClick={() => onNavigateTab('equipment')}
+          tooltip={summaries.lastActionTooltip}
+        />
+        <SummaryCard
+          title="Equip. informático"
+          value={summaries.it.preview}
+          detail={summaries.it.detail}
+          icon={ComputerDesktopIcon}
+          onClick={() => onNavigateTab('it')}
+          tooltip={summaries.lastActionTooltip}
+        />
+      <SummaryCard
+          title="Proyectos"
+          value="—"
+          detail=""
+          icon={FolderOpenIcon}
+          onClick={() => onNavigateTab('projects')}
+          tooltip={summaries.lastActionTooltip}
+          accent="slate"
+        />
+        <SummaryCard
+          title="Incidencias"
+          value="—"
+          detail=""
+          icon={ExclamationTriangleIcon}
+          onClick={() => onNavigateTab('incidents')}
+          tooltip={summaries.lastActionTooltip}
+          accent="slate"
+        />
+        <SummaryCard
+          title="Documentos"
+          value={summaries.documents.preview}
+          detail={summaries.documents.detail}
+          icon={DocumentTextIcon}
+          onClick={() => onNavigateTab('documents')}
+          tooltip={summaries.lastActionTooltip}
+        />
+        <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="space-y-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Creación</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{formatDateTime(pharmacy.created_at)}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Última modificación</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{formatDateTime(pharmacy.updated_at)}</p>
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-slate-500" title={summaries.lastActionTooltip}>
+            Última acción: {summaries.lastActionText}
+          </p>
+        </div>
+      </div>
       {showAuto && (
         <SectionBlock title="Persona Jurídica." open={!collapsed.autonomo} onToggle={() => setCollapsed(prev => ({ ...prev, autonomo: !prev.autonomo }))}>
           <Field label="Titular"        value={pharmacy.owner_name} />
@@ -2875,8 +3041,12 @@ export default function PharmacyDetailPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { pharmacy, equipment, loading, error, refetch } = usePharmacy(id)
+  const { persons } = usePharmacyPersons(id)
+  const { documents } = usePharmacyDocuments(id)
+  const { devices } = usePharmacyIT(id)
   const [activeTab, setActiveTab] = useState('general')
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [lastActivity, setLastActivity] = useState(null)
   const requestedTab = searchParams.get('tab')
   const requestedAction = searchParams.get('action')
   const requestedPersonId = searchParams.get('person')
@@ -2917,6 +3087,94 @@ export default function PharmacyDetailPage() {
     await refetch()
     setIsEditOpen(false)
   }
+
+  useEffect(() => {
+    if (!id) return
+    let cancelled = false
+    async function loadActivity() {
+      const { data } = await supabase
+        .from('activity_logs')
+        .select('action, entity_name, user_name, created_at')
+        .eq('entity_type', 'client')
+        .eq('entity_id', id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (!cancelled) setLastActivity(data || null)
+    }
+    loadActivity().catch(() => {})
+    return () => { cancelled = true }
+  }, [id])
+
+  const summaryData = useMemo(() => {
+    const safePersons = Array.isArray(persons) ? persons : []
+    const safeDocuments = Array.isArray(documents) ? documents : []
+    const safeDevices = Array.isArray(devices) ? devices : []
+    const equipmentRows = buildRows(equipment).filter(row => row.estado === 'SI')
+    const vitekaRows = equipmentRows.filter(row => row.is_viteka)
+
+    const peoplePreview = safePersons.slice(0, 3).map(person => {
+      const responsible = person.is_responsible ? ` · Sí #${person.responsibility_grade || ''}`.trim() : ''
+      return [person.name, person.role].filter(Boolean).join(' · ') + responsible
+    }).filter(Boolean).join(' | ')
+
+    const itGroups = safeDevices.reduce((acc, device) => {
+      const label = IT_LABEL[device.device_type] || device.device_type || 'Otro'
+      acc[label] = (acc[label] || 0) + 1
+      return acc
+    }, {})
+    const itPreview = Object.entries(itGroups).slice(0, 2).map(([label, count]) => `${label} (${count})`).join(' · ')
+    const itDetail = safeDevices.length > 0
+      ? `${safeDevices.length} equipos · ${Object.entries(itGroups).map(([label, count]) => `${label}: ${count}`).join(' | ')}`
+      : 'Sin equipos informáticos'
+
+    const docGroups = safeDocuments.reduce((acc, doc) => {
+      const label = doc.category || 'Otros'
+      acc[label] = (acc[label] || 0) + 1
+      return acc
+    }, {})
+    const docPreview = safeDocuments.length > 0 ? `${safeDocuments.length} documentos` : 'Sin documentos'
+    const docDetail = safeDocuments.length > 0
+      ? `${Object.entries(docGroups).slice(0, 3).map(([label, count]) => `${label}: ${count}`).join(' · ')}`
+      : 'Sin documentos cargados'
+
+    const mapText = [pharmacy?.address, pharmacy?.city, pharmacy?.province].filter(Boolean).join(', ')
+    const lastActionText = getLastActionLabel(lastActivity)
+    const lastActionTooltip = lastActivity
+      ? `${lastActionText} · ${formatDateTime(lastActivity.created_at)}`
+      : 'Sin actividad registrada todavía'
+
+    return {
+      map: mapText || 'Ubicación no informada',
+      people: {
+        count: safePersons.length,
+        preview: peoplePreview || 'Sin personas registradas',
+      },
+      equipment: {
+        preview: `${equipmentRows.length} activos · ${vitekaRows.length} Viteka`,
+        detail: equipmentRows.length > 0
+          ? equipmentRows.slice(0, 3).map(row => {
+              const source = row.is_viteka
+                ? 'Viteka'
+                : [row.distribuidor, row.soporte].filter(Boolean).join(' / ')
+              return source ? `${row.producto} · ${source}` : row.producto
+            }).join(' · ')
+          : 'Sin equipamiento registrado',
+      },
+      it: {
+        preview: safeDevices.length > 0 ? `${safeDevices.length} equipos` : 'Sin equipos',
+        detail: itDetail,
+      },
+      projects: 'Vacío',
+      incidents: 'Vacío',
+      documents: {
+        preview: docPreview,
+        detail: docDetail,
+      },
+      lastActionText,
+      lastActionTooltip,
+    }
+  }, [documents, equipment, lastActivity, persons, pharmacy, devices])
 
   useEffect(() => {
     if (!requestedTab) return
@@ -3020,7 +3278,16 @@ export default function PharmacyDetailPage() {
 
       {/* Contenido */}
       <div className="px-4 md:px-6 py-6">
-        {activeTab === 'general'   && <TabGeneral pharmacy={pharmacy} />}
+        {activeTab === 'general'   && (
+          <TabGeneral
+            pharmacy={pharmacy}
+            summaries={summaryData}
+            onNavigateTab={(tabKey) => {
+              setActiveTab(tabKey)
+              setTabInUrl(tabKey)
+            }}
+          />
+        )}
         {activeTab === 'equipment' && <TabEquipment equipment={equipment} />}
         {activeTab === 'it'        && (
           <TabIT
