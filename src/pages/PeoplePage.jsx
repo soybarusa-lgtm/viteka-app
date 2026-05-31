@@ -560,6 +560,7 @@ export default function PeoplePage() {
           email,
           role,
           is_responsible,
+          areas,
           observations,
           pharmacy:pharmacies (
             id,
