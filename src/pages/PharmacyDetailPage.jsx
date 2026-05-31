@@ -2041,7 +2041,7 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
 }
 
 // â”€â”€ Tab: Personas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function TabPeople({ pharmacyId, companyId, pharmacy, initialAction, onActionHandled }) {
+function TabPeople({ pharmacyId, companyId, pharmacy, initialAction, initialPersonId, onActionHandled }) {
   const { persons, loading, createPerson, updatePerson, deletePerson, reload } = usePharmacyPersons(pharmacyId)
   const toast = useToast()
   const [editing, setEditing] = useState(null)
@@ -2184,6 +2184,18 @@ function TabPeople({ pharmacyId, companyId, pharmacy, initialAction, onActionHan
     setEditing(normalizePersonForm(empty))
     onActionHandled?.()
   }, [initialAction])
+
+  useEffect(() => {
+    if (initialAction !== 'edit-person') return
+    if (!initialPersonId) return
+    if (!persons || persons.length === 0) return
+
+    const targetPerson = persons.find(person => person.id === initialPersonId)
+    if (!targetPerson) return
+
+    setEditing(normalizePersonForm(targetPerson))
+    onActionHandled?.()
+  }, [initialAction, initialPersonId, persons])
 
   useEffect(() => {
     let cancelled = false
@@ -2867,6 +2879,7 @@ export default function PharmacyDetailPage() {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const requestedTab = searchParams.get('tab')
   const requestedAction = searchParams.get('action')
+  const requestedPersonId = searchParams.get('person')
   const isEditableTab = activeTab === 'general' || activeTab === 'equipment'
   const editTitle = activeTab === 'general'
     ? 'Editar datos generales'
@@ -2888,6 +2901,7 @@ export default function PharmacyDetailPage() {
     const nextParams = new URLSearchParams(searchParams)
     nextParams.set('tab', tabKey)
     nextParams.delete('action')
+    nextParams.delete('person')
     setSearchParams(nextParams, { replace: true })
   }
 
@@ -2895,6 +2909,7 @@ export default function PharmacyDetailPage() {
     if (!requestedAction) return
     const nextParams = new URLSearchParams(searchParams)
     nextParams.delete('action')
+    nextParams.delete('person')
     setSearchParams(nextParams, { replace: true })
   }
 
@@ -3021,6 +3036,7 @@ export default function PharmacyDetailPage() {
             companyId={pharmacy.company_id}
             pharmacy={pharmacy}
             initialAction={requestedAction}
+            initialPersonId={requestedPersonId}
             onActionHandled={clearRequestedAction}
           />
         )}
