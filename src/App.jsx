@@ -9,6 +9,7 @@ import PharmaciesPage from './pages/PharmaciesPage'
 import PharmacyDetailPage from './pages/PharmacyDetailPage'
 import NewPharmacyPage from './pages/NewPharmacyPage'
 import PharmacyEditPage from './pages/PharmacyEditPage'
+import PeoplePage from './pages/PeoplePage'
 import IncidentsPage from './pages/IncidentsPage'
 import ProjectsPage from './pages/ProjectsPage'
 import DocumentsPage from './pages/DocumentsPage'
@@ -94,6 +95,7 @@ export default function App() {
             <Route path="farmacias/nueva" element={<NewPharmacyPage />} />
             <Route path="farmacias/:id" element={<PharmacyDetailPage />} />
             <Route path="farmacias/:id/editar" element={<PharmacyEditPage />} />
+            <Route path="personas" element={<PeoplePage />} />
             <Route path="incidencias" element={<IncidentsPage profile={profile} />} />
             <Route path="proyectos" element={<ProjectsRoute />} />
             <Route path="documentos" element={<DocumentsPage profile={profile} />} />

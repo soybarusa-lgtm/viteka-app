@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import {
   HomeIcon,
   BuildingStorefrontIcon,
+  UsersIcon,
   ArrowRightOnRectangleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -14,6 +15,7 @@ import {
 const NAV = [
   { to: '/', label: 'Dashboard', Icon: HomeIcon },
   { to: '/farmacias', label: 'Farmacias', Icon: BuildingStorefrontIcon },
+  { to: '/personas', label: 'Personas', Icon: UsersIcon },
 ]
 
 export default function AppLayout({ session }) {
