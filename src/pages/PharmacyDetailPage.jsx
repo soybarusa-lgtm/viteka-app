@@ -15,7 +15,7 @@ import {
   CalendarDaysIcon, ShieldCheckIcon, EyeIcon,
   Squares2X2Icon, ListBulletIcon, PhotoIcon,
   ArrowDownTrayIcon, ArrowPathIcon, ArrowTopRightOnSquareIcon,
-  ClipboardDocumentIcon,
+  ClipboardDocumentIcon, MapPinIcon,
 } from '@heroicons/react/24/outline'
 import { useToast } from '../context/ToastContext'
 import ConfirmDialog from '../components/pharmacy/ConfirmDialog'
@@ -159,6 +159,34 @@ function getLastActionLabel(log) {
   const user = log.user_name || 'Sistema'
   const entity = log.entity_name || 'elemento'
   return `${user} realizó ${action} en ${entity}`
+}
+
+function getEquipmentSummaryRows(equipment) {
+  if (!equipment) return []
+
+  const isActive = value => Boolean(value && value !== 'NO')
+  const row = (producto, value, detailKey, isViteka = false) => ({
+    producto,
+    estado: isActive(value) ? 'SI' : 'NO',
+    is_viteka: isViteka,
+    distribuidor: equipment[detailKey]?.distribuidor || '',
+    soporte: equipment[detailKey]?.soporte || '',
+  })
+
+  return [
+    row('ERP', equipment.erp, 'erp_detail', equipment.erp_viteka),
+    row('Caja de cobro', equipment.caja, 'cash_detail', equipment.caja_viteka),
+    row('Etiquetas ESL', equipment.esl, 'esl_detail', equipment.esl_viteka),
+    row('Báscula', equipment.bascula, 'scale_detail', equipment.bascula_viteka),
+    row('Arco antihurto', equipment.antihurto, 'antitheft_detail'),
+    row('Consultoría', equipment.consultoria, 'consulting_detail', equipment.consultoria_viteka),
+    row('Robot dispensador', equipment.robot, 'robot_detail'),
+    row('Cruz luminosa', equipment.cruz, 'cross_detail'),
+    row('Gestor de turnos', equipment.gestor_turnos, 'queue_detail'),
+    row('SPD', equipment.spd, 'spd_detail'),
+    row('Pantallas', equipment.pantallas, 'screens_detail'),
+    row('Frigorífico', equipment.frigorifico_marca, 'fridge_detail', equipment.frigorifico_viteka),
+  ]
 }
 
 function SummaryCard({ title, value, detail, icon: Icon, onClick, tooltip, accent = 'teal' }) {
@@ -3110,7 +3138,7 @@ export default function PharmacyDetailPage() {
     const safePersons = Array.isArray(persons) ? persons : []
     const safeDocuments = Array.isArray(documents) ? documents : []
     const safeDevices = Array.isArray(devices) ? devices : []
-    const equipmentRows = buildRows(equipment).filter(row => row.estado === 'SI')
+    const equipmentRows = getEquipmentSummaryRows(equipment).filter(row => row.estado === 'SI')
     const vitekaRows = equipmentRows.filter(row => row.is_viteka)
 
     const peoplePreview = safePersons.slice(0, 3).map(person => {
@@ -3123,7 +3151,6 @@ export default function PharmacyDetailPage() {
       acc[label] = (acc[label] || 0) + 1
       return acc
     }, {})
-    const itPreview = Object.entries(itGroups).slice(0, 2).map(([label, count]) => `${label} (${count})`).join(' · ')
     const itDetail = safeDevices.length > 0
       ? `${safeDevices.length} equipos · ${Object.entries(itGroups).map(([label, count]) => `${label}: ${count}`).join(' | ')}`
       : 'Sin equipos informáticos'
