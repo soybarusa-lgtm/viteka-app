@@ -701,77 +701,87 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
           <p className="mt-0.5 text-xs text-slate-400">Accesos directos a la información relacionada con la farmacia.</p>
         </div>
       </div>
-      <div className="grid auto-rows-fr gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
-        <MapSummaryCard
-          title="Mapa"
-          value={summaries.map}
-          detail="Abrir ubicación →"
-          onClick={() => {
-            if (!summaries.hasMapLocation) return
-            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(summaries.map)}`, '_blank', 'noopener,noreferrer')
-          }}
-          className="sm:col-span-2 xl:col-span-2"
-        />
-        <SummaryCard
-          title="Personas"
-          value={`${summaries.people.count} personas`}
-          meta={`${summaries.people.responsibleCount} responsables`}
-          detail={summaries.people.preview}
-          items={summaries.people.items}
-          icon={UsersIcon}
-          onClick={() => onNavigateTab('people')}
-        />
-        <SummaryCard
-          title="Equipamiento"
-          value={`${summaries.equipment.count} productos activos`}
-          meta={`${summaries.equipment.vitekaCount} gestionados por Viteka`}
-          detail={summaries.equipment.detail}
-          items={summaries.equipment.items}
-          icon={WrenchScrewdriverIcon}
-          onClick={() => onNavigateTab('equipment')}
-        />
-        <SummaryCard
-          title="Equipos informáticos"
-          value={`${summaries.it.count} equipos`}
-          meta={`${summaries.it.typeCount} tipos registrados`}
-          detail={summaries.it.detail}
-          items={summaries.it.items}
-          icon={ComputerDesktopIcon}
-          onClick={() => onNavigateTab('it')}
-        />
-        <SummaryCard
-          title="Proyectos"
-          value="Sin registros"
-          detail="No hay proyectos asociados"
-          icon={FolderOpenIcon}
-          onClick={() => onNavigateTab('projects')}
-          accent="slate"
-        />
-        <SummaryCard
-          title="Incidencias"
-          value="Sin registros"
-          detail="No hay incidencias asociadas"
-          icon={ExclamationTriangleIcon}
-          onClick={() => onNavigateTab('incidents')}
-          accent="slate"
-        />
-        <SummaryCard
-          title="Documentos"
-          value={`${summaries.documents.count} documentos`}
-          meta={`${summaries.documents.categoryCount} categorías`}
-          detail={summaries.documents.detail}
-          items={summaries.documents.items}
-          icon={DocumentTextIcon}
-          onClick={() => onNavigateTab('documents')}
-        />
-        <ActivitySummaryCard pharmacy={pharmacy} summary={summaries} />
+      <div className="grid gap-3 xl:grid-cols-12">
+        <div className="space-y-3 xl:col-span-8">
+          <MapSummaryCard
+            title="Mapa"
+            value={summaries.map}
+            detail="Abrir ubicación →"
+            onClick={() => {
+              if (!summaries.hasMapLocation) return
+              window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(summaries.map)}`, '_blank', 'noopener,noreferrer')
+            }}
+          />
+          <div className="grid auto-rows-fr gap-2.5 sm:grid-cols-2">
+            <SummaryCard
+              title="Equipamiento"
+              value={`${summaries.equipment.count} productos activos`}
+              meta={`${summaries.equipment.vitekaCount} gestionados por Viteka`}
+              detail={summaries.equipment.detail}
+              items={summaries.equipment.items}
+              icon={WrenchScrewdriverIcon}
+              onClick={() => onNavigateTab('equipment')}
+            />
+            <SummaryCard
+              title="Equipos informáticos"
+              value={`${summaries.it.count} equipos`}
+              meta={`${summaries.it.typeCount} tipos registrados`}
+              detail={summaries.it.detail}
+              items={summaries.it.items}
+              icon={ComputerDesktopIcon}
+              onClick={() => onNavigateTab('it')}
+            />
+            <SummaryCard
+              title="Personas"
+              value={`${summaries.people.count} personas`}
+              meta={`${summaries.people.responsibleCount} responsables`}
+              detail={summaries.people.preview}
+              items={summaries.people.items}
+              icon={UsersIcon}
+              onClick={() => onNavigateTab('people')}
+            />
+            <SummaryCard
+              title="Documentos"
+              value={`${summaries.documents.count} documentos`}
+              meta={`${summaries.documents.categoryCount} categorías`}
+              detail={summaries.documents.detail}
+              items={summaries.documents.items}
+              icon={DocumentTextIcon}
+              onClick={() => onNavigateTab('documents')}
+            />
+          </div>
+        </div>
+        <div className="space-y-2.5 xl:col-span-4">
+          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Seguimiento</p>
+            <p className="mt-1 text-sm font-semibold text-slate-900">Incidencias y proyectos</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">Accesos rápidos para revisar trabajo pendiente y la última actividad realizada en la ficha.</p>
+          </div>
+          <SummaryCard
+            title="Incidencias"
+            value="Sin registros"
+            detail="No hay incidencias asociadas"
+            icon={ExclamationTriangleIcon}
+            onClick={() => onNavigateTab('incidents')}
+            accent="slate"
+          />
+          <SummaryCard
+            title="Proyectos"
+            value="Sin registros"
+            detail="No hay proyectos asociados"
+            icon={FolderOpenIcon}
+            onClick={() => onNavigateTab('projects')}
+            accent="slate"
+          />
+          <ActivitySummaryCard pharmacy={pharmacy} summary={summaries} />
+        </div>
       </div>
     </div>
   )
 }
 
 // â”€â”€ Tab: Equipamiento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function TabEquipment({ equipment }) {
+function TabEquipment({ equipment, onEditItem }) {
   const [query, setQuery] = useState('')
   const [collapsed, setCollapsed] = useState(false)
   if (!equipment) return <EmptyTab icon={WrenchScrewdriverIcon} message="Sin equipamiento registrado" />
@@ -785,17 +795,17 @@ function TabEquipment({ equipment }) {
         allCollapsed={collapsed}
       />
       <CollapsibleGroup title="Equipamiento registrado" open={!collapsed} onToggle={() => setCollapsed(prev => !prev)}>
-        <EquipmentSummaryTable equipment={equipment} searchQuery={query} />
+        <EquipmentSummaryTable equipment={equipment} searchQuery={query} onRowClick={onEditItem} />
       </CollapsibleGroup>
     </div>
   )
 }
 
-function ActivitySummaryCard({ pharmacy, summary }) {
+function ActivitySummaryCard({ pharmacy, summary, className = '' }) {
   return (
     <div
       title={summary.lastActionTooltip}
-      className="flex min-h-[96px] flex-col justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm sm:col-span-2 xl:col-span-2"
+      className={`flex min-h-[96px] flex-col justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -3404,6 +3414,8 @@ export default function PharmacyDetailPage() {
   const { devices } = usePharmacyIT(id)
   const [activeTab, setActiveTab] = useState('general')
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [selectedEquipmentSection, setSelectedEquipmentSection] = useState(null)
+  const [selectedEquipmentLabel, setSelectedEquipmentLabel] = useState('')
   const [lastActivity, setLastActivity] = useState(null)
   const [activityVersion, setActivityVersion] = useState(0)
   const requestedTab = searchParams.get('tab')
@@ -3413,7 +3425,9 @@ export default function PharmacyDetailPage() {
   const editTitle = activeTab === 'general'
     ? 'Editar datos generales'
     : activeTab === 'equipment'
-      ? 'Editar equipamiento'
+      ? selectedEquipmentLabel
+        ? `Editar ${selectedEquipmentLabel}`
+        : 'Editar equipamiento'
       : 'Editar farmacia'
   const editLabel = activeTab === 'general'
     ? 'Editar datos generales'
@@ -3423,6 +3437,15 @@ export default function PharmacyDetailPage() {
 
   function handleEditClick() {
     if (!isEditableTab) return
+    setSelectedEquipmentSection(null)
+    setSelectedEquipmentLabel('')
+    setIsEditOpen(true)
+  }
+
+  function handleEquipmentRowClick(row) {
+    setSelectedEquipmentSection(row.key)
+    setSelectedEquipmentLabel(row.producto)
+    setActiveTab('equipment')
     setIsEditOpen(true)
   }
 
@@ -3445,6 +3468,8 @@ export default function PharmacyDetailPage() {
   async function handleSaved() {
     await refetch()
     setActivityVersion(version => version + 1)
+    setSelectedEquipmentSection(null)
+    setSelectedEquipmentLabel('')
     setIsEditOpen(false)
   }
 
@@ -3712,7 +3737,7 @@ export default function PharmacyDetailPage() {
             }}
           />
         )}
-        {activeTab === 'equipment' && <TabEquipment equipment={equipment} />}
+        {activeTab === 'equipment' && <TabEquipment equipment={equipment} onEditItem={handleEquipmentRowClick} />}
         {activeTab === 'it'        && (
           <TabIT
             pharmacyId={id}
@@ -3738,7 +3763,11 @@ export default function PharmacyDetailPage() {
 
       <PharmacyEditDrawer
         isOpen={isEditOpen}
-        onClose={() => setIsEditOpen(false)}
+        onClose={() => {
+          setIsEditOpen(false)
+          setSelectedEquipmentSection(null)
+          setSelectedEquipmentLabel('')
+        }}
         title={editTitle}
         subtitle={pharmacy.pharmacy_name}
       >
@@ -3753,7 +3782,12 @@ export default function PharmacyDetailPage() {
           <EditEquipmentModal
             pharmacy={pharmacy}
             equipment={equipment}
-            onClose={() => setIsEditOpen(false)}
+            initialSection={selectedEquipmentSection}
+            onClose={() => {
+              setIsEditOpen(false)
+              setSelectedEquipmentSection(null)
+              setSelectedEquipmentLabel('')
+            }}
             onSaved={handleSaved}
           />
         )}

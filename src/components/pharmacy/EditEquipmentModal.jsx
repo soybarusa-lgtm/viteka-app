@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 import { supabase } from '../../lib/supabase'
 import { logActivity } from '../../lib/activityLogs'
@@ -17,6 +17,15 @@ function mkDetail(base = {}) {
   return { distribuidor: '', val_distribuidor: '', soporte: '', val_soporte: '', anotaciones: '', ...base }
 }
 
+const SECTION_KEYS = [
+  'erp', 'caja', 'esl', 'bascula', 'antihurto', 'consultoria',
+  'robot', 'cruz', 'gestor_turnos', 'spd', 'pantallas', 'frigorifico',
+]
+
+function buildSectionState(initialSection) {
+  return Object.fromEntries(SECTION_KEYS.map(key => [key, key === initialSection]))
+}
+
 function eqToForm(eq) {
   const pantDetail = eq?.pantallas_detail || {}
   const locations = pantDetail.ubicaciones || []
@@ -26,6 +35,7 @@ function eqToForm(eq) {
     erp_viteka: eq?.erp_viteka || false,
     erp_satisfaction: eq?.erp_satisfaction || '',
     erp_detail: mkDetail(eq?.erp_detail || {}),
+    erp_otro: eq?.erp === 'Otro' ? (eq?.erp_detail?.otro || '') : '',
     erp_license: eq?.erp_detail?.licencia || '',
     erp_seats: eq?.erp_detail?.puestos || '',
     erp_start_year: eq?.erp_detail?.year || '',
@@ -36,23 +46,24 @@ function eqToForm(eq) {
     caja_viteka: eq?.caja_viteka || false,
     caja_satisfaction: eq?.caja_satisfaction || '',
     cash_detail: mkDetail(eq?.cash_detail || {}),
-    caja_otro: '',
+    caja_otro: eq?.caja === 'Otro' ? (eq?.cash_detail?.otro || '') : '',
 
     esl: eq?.esl || 'NO',
     esl_year: eq?.esl_year || '',
     esl_viteka: eq?.esl_viteka || false,
     esl_satisfaction: eq?.esl_satisfaction || '',
     esl_detail: mkDetail(eq?.esl_detail || {}),
+    esl_otro: eq?.esl === 'Otro' ? (eq?.esl_detail?.otro || '') : '',
 
     bascula: eq?.bascula || 'NO',
     bascula_year: eq?.bascula_year || '',
     bascula_viteka: eq?.bascula_viteka || false,
     scale_detail: mkDetail(eq?.scale_detail || {}),
-    bascula_otro: '',
+    bascula_otro: eq?.bascula === 'Otro' ? (eq?.scale_detail?.otro || '') : '',
 
     antihurto: eq?.antihurto || 'NO',
     antihurto_year: eq?.antihurto_year || '',
-    antihurto_otro: '',
+    antihurto_otro: eq?.antihurto === 'Otro' ? (eq?.antitheft_detail?.otro || '') : '',
     antitheft_detail: mkDetail(eq?.antitheft_detail || {}),
 
     consultoria: eq?.consultoria || 'NO',
@@ -64,7 +75,7 @@ function eqToForm(eq) {
 
     robot: eq?.robot || 'NO',
     robot_year: eq?.robot_year || '',
-    robot_otro: '',
+    robot_otro: eq?.robot === 'Otro' ? (eq?.robot_detail?.otro || '') : '',
     robot_detail: mkDetail(eq?.robot_detail || {}),
 
     cruz: eq?.cruz || 'NO',
@@ -113,11 +124,11 @@ function hasMeaningfulDetail(detail = {}) {
 function getSectionSummary(sectionKey, form) {
   switch (sectionKey) {
     case 'erp':
-      return form.erp || ''
+      return form.erp === 'Otro' ? form.erp_otro || 'Otro' : form.erp || ''
     case 'caja':
       return form.caja === 'NO' ? '' : form.caja === 'Otro' ? form.caja_otro || 'Otro' : form.caja
     case 'esl':
-      return form.esl === 'NO' ? '' : form.esl
+      return form.esl === 'NO' ? '' : form.esl === 'Otro' ? form.esl_otro || 'Otro' : form.esl
     case 'bascula':
       return form.bascula === 'NO' ? '' : form.bascula === 'Otro' ? form.bascula_otro || 'Otro' : form.bascula
     case 'antihurto':
@@ -177,24 +188,19 @@ function CollapsibleSection({ title, summary, isOpen, onToggle, children }) {
   )
 }
 
-export default function EditEquipmentModal({ pharmacy, equipment, onClose, onSaved }) {
+export default function EditEquipmentModal({ pharmacy, equipment, onClose, onSaved, initialSection = null }) {
   const toast = useToast()
   const [form, setForm] = useState(() => eqToForm(equipment))
   const [saving, setSaving] = useState(false)
-  const [openSections, setOpenSections] = useState({
-    erp: false,
-    caja: false,
-    esl: false,
-    bascula: false,
-    antihurto: false,
-    consultoria: false,
-    robot: false,
-    cruz: false,
-    gestor_turnos: false,
-    spd: false,
-    pantallas: false,
-    frigorifico: false,
-  })
+  const [openSections, setOpenSections] = useState(() => buildSectionState(initialSection))
+
+  useEffect(() => {
+    setForm(eqToForm(equipment))
+  }, [equipment, initialSection])
+
+  useEffect(() => {
+    setOpenSections(buildSectionState(initialSection))
+  }, [initialSection])
 
   const set = useCallback((key, value) => setForm(prev => ({ ...prev, [key]: value })), [])
   const setDetail = useCallback((section, key, value) => {
@@ -216,6 +222,7 @@ export default function EditEquipmentModal({ pharmacy, equipment, onClose, onSav
         erp_satisfaction: form.erp_satisfaction ? Number(form.erp_satisfaction) : null,
         erp_detail: resolveDetail({
           ...form.erp_detail,
+          otro: form.erp === 'Otro' ? form.erp_otro : '',
           licencia: form.erp_license,
           puestos: form.erp_seats,
           year: form.erp_start_year,
@@ -227,22 +234,34 @@ export default function EditEquipmentModal({ pharmacy, equipment, onClose, onSav
         caja_year: form.caja_year ? Number(form.caja_year) : null,
         caja_viteka: form.caja_viteka,
         caja_satisfaction: form.caja_satisfaction ? Number(form.caja_satisfaction) : null,
-        cash_detail: resolveDetail(form.cash_detail, form.caja_viteka),
+        cash_detail: resolveDetail({
+          ...form.cash_detail,
+          otro: form.caja === 'Otro' ? form.caja_otro : '',
+        }, form.caja_viteka),
 
         esl: form.esl,
         esl_year: form.esl_year ? Number(form.esl_year) : null,
         esl_viteka: form.esl_viteka,
         esl_satisfaction: form.esl_satisfaction ? Number(form.esl_satisfaction) : null,
-        esl_detail: resolveDetail(form.esl_detail, form.esl_viteka),
+        esl_detail: resolveDetail({
+          ...form.esl_detail,
+          otro: form.esl === 'Otro' ? form.esl_otro : '',
+        }, form.esl_viteka),
 
         bascula: form.bascula,
         bascula_year: form.bascula_year ? Number(form.bascula_year) : null,
         bascula_viteka: form.bascula_viteka,
-        scale_detail: resolveDetail(form.scale_detail, form.bascula_viteka),
+        scale_detail: resolveDetail({
+          ...form.scale_detail,
+          otro: form.bascula === 'Otro' ? form.bascula_otro : '',
+        }, form.bascula_viteka),
 
         antihurto: form.antihurto,
         antihurto_year: form.antihurto_year ? Number(form.antihurto_year) : null,
-        antitheft_detail: form.antitheft_detail,
+        antitheft_detail: {
+          ...form.antitheft_detail,
+          otro: form.antihurto === 'Otro' ? form.antihurto_otro : '',
+        },
 
         consultoria: form.consultoria,
         consultoria_viteka: form.consultoria_viteka,
@@ -255,7 +274,10 @@ export default function EditEquipmentModal({ pharmacy, equipment, onClose, onSav
 
         robot: form.robot,
         robot_year: form.robot_year ? Number(form.robot_year) : null,
-        robot_detail: form.robot_detail,
+        robot_detail: {
+          ...form.robot_detail,
+          otro: form.robot === 'Otro' ? form.robot_otro : '',
+        },
 
         cruz: form.cruz,
         cruz_cantidad: form.cruz_cantidad ? Number(form.cruz_cantidad) : null,
@@ -333,6 +355,12 @@ export default function EditEquipmentModal({ pharmacy, equipment, onClose, onSav
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {form.erp === 'Otro' && (
+              <div>
+                <Label>Indicar ERP</Label>
+                <Input value={form.erp_otro} onChange={event => set('erp_otro', event.target.value)} />
+              </div>
+            )}
             {form.erp === 'Nixfarma' && (
               <div>
                 <Label>Licencia</Label>
@@ -443,6 +471,12 @@ export default function EditEquipmentModal({ pharmacy, equipment, onClose, onSav
           {form.esl !== 'NO' && (
             <div className="space-y-3">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {form.esl === 'Otro' && (
+                  <div className="sm:col-span-2">
+                    <Label>Indicar sistema ESL</Label>
+                    <Input value={form.esl_otro} onChange={event => set('esl_otro', event.target.value)} />
+                  </div>
+                )}
                 <div>
                   <Label>Año instalación</Label>
                   <YearSelect value={form.esl_year} onChange={event => set('esl_year', event.target.value)} />
