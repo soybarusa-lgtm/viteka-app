@@ -353,7 +353,7 @@ function SummaryCard({ title, value, detail, meta, items = [], icon: Icon, onCli
     <button
       type="button"
       onClick={onClick}
-      className={`group flex h-full min-h-[102px] w-full flex-col justify-between rounded-xl border px-3 py-2.5 text-left shadow-sm transition-all ${accentClass} ${className}`}
+      className={`group flex h-full min-h-[96px] w-full flex-col justify-between rounded-xl border px-3 py-2.5 text-left shadow-sm transition-all ${accentClass} ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -397,7 +397,7 @@ function MapSummaryCard({ title, value, detail, onClick, className = '' }) {
     <button
       type="button"
       onClick={onClick}
-      className={`group relative flex min-h-[118px] w-full flex-col overflow-hidden rounded-xl border border-teal-200 bg-teal-50/60 px-3 py-2.5 text-left shadow-sm transition-all hover:border-teal-300 hover:bg-teal-50 ${className}`}
+      className={`group relative flex min-h-[96px] w-full flex-col overflow-hidden rounded-xl border border-teal-200 bg-teal-50/60 px-3 py-2.5 text-left shadow-sm transition-all hover:border-teal-300 hover:bg-teal-50 ${className}`}
     >
       {src ? (
         <iframe
@@ -419,7 +419,7 @@ function MapSummaryCard({ title, value, detail, onClick, className = '' }) {
             <MapPinIcon className="h-4 w-4" />
           </div>
         </div>
-        <p className="relative z-10 mt-3 text-xs font-semibold text-teal-800">{detail}</p>
+        <p className="relative z-10 mt-2 text-xs font-semibold text-teal-800">{detail}</p>
       </div>
     </button>
   )
@@ -698,83 +698,73 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
       <div className="flex items-end justify-between gap-3 pt-1">
         <div>
           <h2 className="text-sm font-bold text-slate-800">Resumen operativo</h2>
-          <p className="mt-0.5 text-xs text-slate-400">Accesos directos a la información relacionada con la farmacia.</p>
+          <p className="mt-0.5 text-xs text-slate-400">Vista rápida y homogénea de los módulos clave de la farmacia.</p>
         </div>
       </div>
-      <div className="grid gap-3 xl:grid-cols-12">
-        <div className="space-y-3 xl:col-span-8">
-          <MapSummaryCard
-            title="Mapa"
-            value={summaries.map}
-            detail="Abrir ubicación →"
-            onClick={() => {
-              if (!summaries.hasMapLocation) return
-              window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(summaries.map)}`, '_blank', 'noopener,noreferrer')
-            }}
-          />
-          <div className="grid auto-rows-fr gap-2.5 sm:grid-cols-2">
-            <SummaryCard
-              title="Equipamiento"
-              value={`${summaries.equipment.count} productos activos`}
-              meta={`${summaries.equipment.vitekaCount} gestionados por Viteka`}
-              detail={summaries.equipment.detail}
-              items={summaries.equipment.items}
-              icon={WrenchScrewdriverIcon}
-              onClick={() => onNavigateTab('equipment')}
-            />
-            <SummaryCard
-              title="Equipos informáticos"
-              value={`${summaries.it.count} equipos`}
-              meta={`${summaries.it.typeCount} tipos registrados`}
-              detail={summaries.it.detail}
-              items={summaries.it.items}
-              icon={ComputerDesktopIcon}
-              onClick={() => onNavigateTab('it')}
-            />
-            <SummaryCard
-              title="Personas"
-              value={`${summaries.people.count} personas`}
-              meta={`${summaries.people.responsibleCount} responsables`}
-              detail={summaries.people.preview}
-              items={summaries.people.items}
-              icon={UsersIcon}
-              onClick={() => onNavigateTab('people')}
-            />
-            <SummaryCard
-              title="Documentos"
-              value={`${summaries.documents.count} documentos`}
-              meta={`${summaries.documents.categoryCount} categorías`}
-              detail={summaries.documents.detail}
-              items={summaries.documents.items}
-              icon={DocumentTextIcon}
-              onClick={() => onNavigateTab('documents')}
-            />
-          </div>
-        </div>
-        <div className="space-y-2.5 xl:col-span-4">
-          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Seguimiento</p>
-            <p className="mt-1 text-sm font-semibold text-slate-900">Incidencias y proyectos</p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-500">Accesos rápidos para revisar trabajo pendiente y la última actividad realizada en la ficha.</p>
-          </div>
-          <SummaryCard
-            title="Incidencias"
-            value="Sin registros"
-            detail="No hay incidencias asociadas"
-            icon={ExclamationTriangleIcon}
-            onClick={() => onNavigateTab('incidents')}
-            accent="slate"
-          />
-          <SummaryCard
-            title="Proyectos"
-            value="Sin registros"
-            detail="No hay proyectos asociados"
-            icon={FolderOpenIcon}
-            onClick={() => onNavigateTab('projects')}
-            accent="slate"
-          />
-          <ActivitySummaryCard pharmacy={pharmacy} summary={summaries} />
-        </div>
+      <div className="grid auto-rows-fr gap-2.5 lg:grid-cols-2 xl:grid-cols-3">
+        <MapSummaryCard
+          title="Mapa"
+          value={summaries.map}
+          detail="Abrir ubicación →"
+          onClick={() => {
+            if (!summaries.hasMapLocation) return
+            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(summaries.map)}`, '_blank', 'noopener,noreferrer')
+          }}
+          className="lg:col-span-2 xl:col-span-1"
+        />
+        <ActivitySummaryCard pharmacy={pharmacy} summary={summaries} />
+        <SummaryCard
+          title="Equipamiento"
+          value={`${summaries.equipment.count} productos activos`}
+          meta={`${summaries.equipment.vitekaCount} gestionados por Viteka`}
+          detail={summaries.equipment.detail}
+          items={summaries.equipment.items}
+          icon={WrenchScrewdriverIcon}
+          onClick={() => onNavigateTab('equipment')}
+        />
+        <SummaryCard
+          title="Equipos informáticos"
+          value={`${summaries.it.count} equipos`}
+          meta={`${summaries.it.typeCount} tipos registrados`}
+          detail={summaries.it.detail}
+          items={summaries.it.items}
+          icon={ComputerDesktopIcon}
+          onClick={() => onNavigateTab('it')}
+        />
+        <SummaryCard
+          title="Personas"
+          value={`${summaries.people.count} personas`}
+          meta={`${summaries.people.responsibleCount} responsables`}
+          detail={summaries.people.preview}
+          items={summaries.people.items}
+          icon={UsersIcon}
+          onClick={() => onNavigateTab('people')}
+        />
+        <SummaryCard
+          title="Documentos"
+          value={`${summaries.documents.count} documentos`}
+          meta={`${summaries.documents.categoryCount} categorías`}
+          detail={summaries.documents.detail}
+          items={summaries.documents.items}
+          icon={DocumentTextIcon}
+          onClick={() => onNavigateTab('documents')}
+        />
+        <SummaryCard
+          title="Incidencias"
+          value="Sin registros"
+          detail="No hay incidencias asociadas"
+          icon={ExclamationTriangleIcon}
+          onClick={() => onNavigateTab('incidents')}
+          accent="slate"
+        />
+        <SummaryCard
+          title="Proyectos"
+          value="Sin registros"
+          detail="No hay proyectos asociados"
+          icon={FolderOpenIcon}
+          onClick={() => onNavigateTab('projects')}
+          accent="slate"
+        />
       </div>
     </div>
   )
@@ -805,7 +795,7 @@ function ActivitySummaryCard({ pharmacy, summary, className = '' }) {
   return (
     <div
       title={summary.lastActionTooltip}
-      className={`flex min-h-[96px] flex-col justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm ${className}`}
+      className={`flex min-h-[96px] flex-col justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
