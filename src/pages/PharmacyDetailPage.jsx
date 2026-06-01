@@ -76,7 +76,7 @@ function CollapsibleGroup({ title, count, open, onToggle, children, tone = 'slat
           <ChevronDownIcon className={`h-4 w-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
         </span>
       </button>
-      {open && <div className="p-4">{children}</div>}
+      {open && <div className="p-3">{children}</div>}
     </section>
   )
 }
@@ -84,16 +84,16 @@ function CollapsibleGroup({ title, count, open, onToggle, children, tone = 'slat
 function SectionBlock({ title, open, onToggle, children }) {
   return (
     <CollapsibleGroup title={title} open={open} onToggle={onToggle}>
-      <div className="space-y-3">{children}</div>
+      <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-12">{children}</div>
     </CollapsibleGroup>
   )
 }
 
 function InfoGroup({ title, children, className = '' }) {
   return (
-    <section className={`rounded-lg border border-slate-100 bg-slate-50/45 px-3 py-2.5 ${className}`}>
-      <h3 className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-teal-700">{title}</h3>
-      <dl className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-4">{children}</dl>
+    <section className={`rounded-lg border border-slate-100 bg-slate-50/45 px-3 py-2 ${className}`}>
+      <h3 className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-teal-700">{title}</h3>
+      <dl className="grid grid-cols-1 gap-x-3 gap-y-1.5 sm:grid-cols-2 lg:grid-cols-4">{children}</dl>
     </section>
   )
 }
@@ -273,21 +273,21 @@ function SummaryCard({ title, value, detail, meta, icon: Icon, onClick, tooltip,
       type="button"
       onClick={onClick}
       title={tooltip}
-      className={`group flex h-full min-h-[126px] w-full flex-col justify-between rounded-xl border p-3 text-left shadow-sm transition-all ${accentClass} ${className}`}
+      className={`group flex h-full min-h-[102px] w-full flex-col justify-between rounded-xl border px-3 py-2.5 text-left shadow-sm transition-all ${accentClass} ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{title}</p>
-          <p className="mt-1 line-clamp-2 text-base font-bold leading-tight text-slate-900">{value || 'Sin datos'}</p>
-          {meta && <p className="mt-1 text-[11px] font-semibold text-teal-700">{meta}</p>}
+          <p className="mt-0.5 line-clamp-2 text-[15px] font-bold leading-tight text-slate-900">{value || 'Sin datos'}</p>
+          {meta && <p className="mt-0.5 text-[11px] font-semibold text-teal-700">{meta}</p>}
         </div>
         <div className="rounded-lg bg-white/80 p-2 text-teal-700 shadow-sm ring-1 ring-inset ring-teal-100">
           <Icon className="h-4 w-4" />
         </div>
       </div>
-      <div className="mt-3">
+      <div className="mt-2">
         {detail && <p className="line-clamp-2 text-xs leading-relaxed text-slate-500">{detail}</p>}
-        <span className="mt-1.5 inline-flex text-[11px] font-semibold text-teal-700 transition-transform group-hover:translate-x-0.5">
+        <span className="mt-1 inline-flex text-[11px] font-semibold text-teal-700 transition-transform group-hover:translate-x-0.5">
           Ver detalle →
         </span>
       </div>
@@ -305,7 +305,7 @@ function MapSummaryCard({ title, value, detail, onClick, tooltip, className = ''
       type="button"
       onClick={onClick}
       title={tooltip}
-      className={`group relative flex min-h-[160px] w-full flex-col overflow-hidden rounded-xl border border-teal-200 bg-teal-50/60 p-3 text-left shadow-sm transition-all hover:border-teal-300 hover:bg-teal-50 ${className}`}
+      className={`group relative flex min-h-[118px] w-full flex-col overflow-hidden rounded-xl border border-teal-200 bg-teal-50/60 px-3 py-2.5 text-left shadow-sm transition-all hover:border-teal-300 hover:bg-teal-50 ${className}`}
     >
       {src ? (
         <iframe
@@ -403,12 +403,12 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
       <TabToolbar query={query} onQueryChange={setQuery} placeholder="Buscar en datos generales..." onCollapseAll={toggleAll} allCollapsed={allCollapsed} />
       {showAuto && (
         <SectionBlock title="Persona Jurídica." open={!collapsed.autonomo} onToggle={() => setCollapsed(prev => ({ ...prev, autonomo: !prev.autonomo }))}>
-          <InfoGroup title="Identificación">
+          <InfoGroup title="Identificación" className="xl:col-span-4">
             <Field label="Titular"      value={pharmacy.owner_name} className="lg:col-span-2" />
             <Field label="NIF"          value={pharmacy.nif} />
             <Field label="Nº colegiado" value={pharmacy.collegiate_number} />
           </InfoGroup>
-          <InfoGroup title="Contacto y ubicación">
+          <InfoGroup title="Contacto y ubicación" className="xl:col-span-8">
             <Field label="Teléfono"  value={pharmacy.contact_phone} />
             <Field label="Email"     value={pharmacy.contact_email} />
             <Field label="Dirección" value={pharmacy.address} className="lg:col-span-2" />
@@ -417,7 +417,7 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
             <Field label="C.P."      value={pharmacy.postal_code} />
             <Field label="SOE"       value={pharmacy.soe_number} />
           </InfoGroup>
-          <InfoGroup title="Horario y notas">
+          <InfoGroup title="Horario y notas" className="xl:col-span-12">
             <Field label="Horario" value={mainSchedule.summary} className="lg:col-span-2" />
             {boolField('Guardias', pharmacy.has_guards)}
             {scheduleOptions.length > 0 && <Field label="Aperturas especiales" value={scheduleOptions.join(' · ')} />}
@@ -428,11 +428,11 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
       )}
       {showCb && (
         <SectionBlock title="Comunidad de Bienes (C.B.)" open={!collapsed.cb} onToggle={() => setCollapsed(prev => ({ ...prev, cb: !prev.cb }))}>
-          <InfoGroup title="Identificación">
+          <InfoGroup title="Identificación" className="xl:col-span-4">
             <Field label="Razón social" value={pharmacy.razon_social} className="lg:col-span-2" />
             <Field label="CIF" value={pharmacy.cif} />
           </InfoGroup>
-          <InfoGroup title="Titulares">
+          <InfoGroup title="Titulares" className="xl:col-span-8">
             {cbOwners.length === 0 && <p className="col-span-full text-xs italic text-gray-300">Sin titulares registrados</p>}
             {cbOwners.map((owner, index) => (
               <div key={index} className="col-span-full grid grid-cols-1 gap-2 rounded-lg border border-slate-100 bg-white px-3 py-2 sm:grid-cols-3">
@@ -442,7 +442,7 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
               </div>
             ))}
           </InfoGroup>
-          <InfoGroup title="Contacto y ubicación">
+          <InfoGroup title="Contacto y ubicación" className="xl:col-span-8">
             <Field label="Teléfono"  value={pharmacy.contact_phone} />
             <Field label="Email"     value={pharmacy.contact_email} />
             <Field label="Dirección" value={pharmacy.address} className="lg:col-span-2" />
@@ -451,7 +451,7 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
             <Field label="C.P."      value={pharmacy.postal_code} />
             <Field label="SOE"       value={pharmacy.soe_number} />
           </InfoGroup>
-          <InfoGroup title="Horario y notas">
+          <InfoGroup title="Horario y notas" className="xl:col-span-4">
             <Field label="Horario" value={mainSchedule.summary} className="lg:col-span-2" />
             {boolField('Guardias', pharmacy.has_guards)}
             {scheduleOptions.length > 0 && <Field label="Aperturas especiales" value={scheduleOptions.join(' · ')} />}
@@ -462,11 +462,11 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
       )}
       {showSl && (
         <SectionBlock title="Sociedad Limitada (S.L.)" open={!collapsed.sl} onToggle={() => setCollapsed(prev => ({ ...prev, sl: !prev.sl }))}>
-          <InfoGroup title="Identificación">
+          <InfoGroup title="Identificación" className="xl:col-span-4">
             <Field label="Razón social" value={(hasAuto || hasCb) ? sl.razon_social : pharmacy.razon_social} className="lg:col-span-2" />
             <Field label="CIF" value={(hasAuto || hasCb) ? sl.cif : pharmacy.cif} />
           </InfoGroup>
-          <InfoGroup title="Contacto y ubicación">
+          <InfoGroup title="Contacto y ubicación" className="xl:col-span-8">
             <Field label="Teléfono S.L." value={(hasAuto || hasCb) ? sl.phone : pharmacy.contact_phone} />
             <Field label="Email S.L." value={(hasAuto || hasCb) ? sl.email : pharmacy.contact_email} />
             <Field label="Dirección" value={(hasAuto || hasCb) ? sl.address : pharmacy.address} className="lg:col-span-2" />
@@ -474,7 +474,7 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
             <Field label="Provincia" value={PROVINCE_LABEL[(hasAuto || hasCb) ? sl.province : pharmacy.province]} />
             <Field label="C.P." value={(hasAuto || hasCb) ? sl.postal_code : pharmacy.postal_code} />
           </InfoGroup>
-          <InfoGroup title="Horario y notas">
+          <InfoGroup title="Horario y notas" className="xl:col-span-12">
             {!hasAuto && !hasCb && <Field label="Horario" value={mainSchedule.summary} className="lg:col-span-2" />}
             {!hasAuto && !hasCb && boolField('Guardias', pharmacy.has_guards)}
             {!hasAuto && !hasCb && scheduleOptions.length > 0 && <Field label="Aperturas especiales" value={scheduleOptions.join(' · ')} />}
@@ -490,7 +490,7 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
           <p className="mt-0.5 text-xs text-slate-400">Accesos directos a la información relacionada con la farmacia.</p>
         </div>
       </div>
-      <div className="grid auto-rows-fr gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid auto-rows-fr gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
         <MapSummaryCard
           title="Mapa"
           value={summaries.map}
@@ -500,7 +500,7 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
             window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(summaries.map)}`, '_blank', 'noopener,noreferrer')
           }}
           tooltip={summaries.lastActionTooltip}
-          className="sm:col-span-2 xl:col-span-2 xl:row-span-2"
+          className="sm:col-span-2 xl:col-span-2"
         />
         <SummaryCard
           title="Personas"
@@ -587,22 +587,22 @@ function ActivitySummaryCard({ pharmacy, summary }) {
   return (
     <div
       title={summary.lastActionTooltip}
-      className="flex min-h-[108px] flex-col justify-between rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:col-span-2 xl:col-span-2"
+      className="flex min-h-[96px] flex-col justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm sm:col-span-2 xl:col-span-2"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Actividad</p>
-          <p className="mt-1 text-sm font-semibold text-slate-900">{summary.lastChangeDetail}</p>
+          <p className="mt-0.5 text-[13px] font-semibold leading-snug text-slate-900">{summary.lastChangeDetail}</p>
         </div>
         <div className="rounded-lg bg-slate-50 p-2 text-teal-700 ring-1 ring-inset ring-slate-100">
           <ClockIcon className="h-4 w-4" />
         </div>
       </div>
-      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-slate-500">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
         <span>Creación: <strong className="font-semibold text-slate-700">{formatDateTime(pharmacy.created_at)}</strong></span>
         <span>Modificación: <strong className="font-semibold text-slate-700">{formatDateTime(pharmacy.updated_at)}</strong></span>
       </div>
-      <p className="mt-2 line-clamp-2 text-xs text-slate-500">{summary.lastActionText}</p>
+      <p className="mt-1.5 line-clamp-2 text-xs text-slate-500">{summary.lastActionText}</p>
     </div>
   )
 }
