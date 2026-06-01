@@ -9,6 +9,7 @@ import CbOwners from './CbOwners'
 import { mkContact } from './PHARMACY_CONSTANTS'
 import { serializeScheduleValue } from '../../lib/pharmacySchedule'
 import { syncPharmacyOwnersAsPersons } from '../../lib/pharmacyPersons'
+import { logActivity } from '../../lib/activityLogs'
 
 function pharmacyToGeneralForm(ph) {
   const lType    = ph.legal_type || 'autonomo'
@@ -113,6 +114,14 @@ export default function EditGeneralModal({ pharmacy, onClose, onSaved }) {
 
       const { error } = await supabase.from('pharmacies').update(payload).eq('id', pharmacy.id)
       if (error) throw error
+      await logActivity({
+        entity_type: 'client',
+        entity_id: pharmacy.id,
+        entity_name: pharmacy.pharmacy_name,
+        action: 'update',
+        old_value: pharmacy,
+        new_value: { ...pharmacy, ...payload },
+      })
       await syncPharmacyOwnersAsPersons({
         pharmacyId: pharmacy.id,
         companyId: pharmacy.company_id,

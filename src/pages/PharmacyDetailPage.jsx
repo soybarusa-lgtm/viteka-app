@@ -15,7 +15,7 @@ import {
   CalendarDaysIcon, ShieldCheckIcon, EyeIcon,
   Squares2X2Icon, ListBulletIcon, PhotoIcon,
   ArrowDownTrayIcon, ArrowPathIcon, ArrowTopRightOnSquareIcon,
-  ClipboardDocumentIcon, MapPinIcon,
+  ClipboardDocumentIcon, MapPinIcon, ClockIcon,
 } from '@heroicons/react/24/outline'
 import { useToast } from '../context/ToastContext'
 import ConfirmDialog from '../components/pharmacy/ConfirmDialog'
@@ -46,7 +46,7 @@ const DEVICE_PHOTO_BUCKET = 'task-evidence'
 function Field({ label, value, wide, emptyText = 'Sin informar' }) {
   const isEmpty = value === null || value === undefined || value === ''
   return (
-    <div className={wide ? 'col-span-2 md:col-span-3' : ''}>
+    <div className={wide ? 'col-span-full' : ''}>
       <dt className="text-xs text-gray-400 mb-0.5">{label}</dt>
       <dd className={`text-sm font-medium ${
         isEmpty ? 'text-gray-300 italic' : 'text-gray-800'
@@ -84,7 +84,7 @@ function CollapsibleGroup({ title, count, open, onToggle, children, tone = 'slat
 function SectionBlock({ title, open, onToggle, children }) {
   return (
     <CollapsibleGroup title={title} open={open} onToggle={onToggle}>
-      <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">{children}</dl>
+      <dl className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-4">{children}</dl>
     </CollapsibleGroup>
   )
 }
@@ -161,6 +161,71 @@ function getLastActionLabel(log) {
   return `${user} realizó ${action} en ${entity}`
 }
 
+const ACTIVITY_FIELD_LABELS = {
+  pharmacy_name: 'Nombre de la farmacia',
+  legal_type: 'Tipo jurídico',
+  owner_name: 'Titular',
+  nif: 'NIF',
+  collegiate_number: 'Nº colegiado',
+  razon_social: 'Razón social',
+  cif: 'CIF',
+  soe_number: 'SOE',
+  contact_phone: 'Teléfono',
+  contact_email: 'Email',
+  address: 'Dirección',
+  province: 'Provincia',
+  city: 'Población',
+  postal_code: 'C.P.',
+  schedule: 'Horario',
+  has_guards: 'Guardias',
+  observations: 'Observaciones',
+  sl_data: 'Datos S.L.',
+  cb_owners: 'Titulares C.B.',
+  erp: 'ERP',
+  erp_viteka: 'ERP gestionado por Viteka',
+  caja: 'Caja de cobro',
+  caja_viteka: 'Caja gestionada por Viteka',
+  esl: 'Etiquetas ESL',
+  esl_viteka: 'ESL gestionado por Viteka',
+  bascula: 'Báscula',
+  consultoria: 'Consultoría',
+  robot: 'Robot dispensador',
+  cruz: 'Cruz luminosa',
+  gestor_turnos: 'Gestor de turnos',
+  spd: 'SPD',
+  pantallas: 'Pantallas',
+  frigorifico_marca: 'Frigorífico',
+}
+
+function formatActivityValue(value) {
+  if (value === true) return 'Sí'
+  if (value === false) return 'No'
+  if (value === null || value === undefined || value === '') return 'Sin informar'
+  if (typeof value === 'object') return 'Datos actualizados'
+  return String(value)
+}
+
+function getLastChangeDetail(log) {
+  if (!log) return 'Sin actividad registrada'
+  if (log.action === 'create' && log.new_value) return 'Registro creado'
+  if (log.action === 'delete' && log.old_value) return 'Registro eliminado'
+  if (!log.old_value || !log.new_value) return 'Sin detalle histórico del cambio'
+  const ignoredFields = new Set(['id', 'company_id', 'created_at', 'updated_at'])
+  const keys = [...new Set([...Object.keys(log.old_value), ...Object.keys(log.new_value)])]
+  const changes = keys.filter(key => (
+    !ignoredFields.has(key) &&
+    JSON.stringify(log.old_value[key] ?? null) !== JSON.stringify(log.new_value[key] ?? null)
+  ))
+  if (changes.length === 0) return 'Sin cambios de contenido detectados'
+
+  const key = changes[0]
+  const label = ACTIVITY_FIELD_LABELS[key] || key
+  const previous = formatActivityValue(log.old_value[key])
+  const next = formatActivityValue(log.new_value[key])
+  const extra = changes.length > 1 ? ` · +${changes.length - 1} campos` : ''
+  return `${label}: ${previous} → ${next}${extra}`
+}
+
 function getEquipmentSummaryRows(equipment) {
   if (!equipment) return []
 
@@ -189,7 +254,7 @@ function getEquipmentSummaryRows(equipment) {
   ]
 }
 
-function SummaryCard({ title, value, detail, icon: Icon, onClick, tooltip, accent = 'teal' }) {
+function SummaryCard({ title, value, detail, icon: Icon, onClick, tooltip, accent = 'teal', className = '' }) {
   const accentClass = accent === 'teal'
     ? 'border-teal-200 bg-teal-50/60 hover:border-teal-300 hover:bg-teal-50'
     : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
@@ -199,7 +264,7 @@ function SummaryCard({ title, value, detail, icon: Icon, onClick, tooltip, accen
       type="button"
       onClick={onClick}
       title={tooltip}
-      className={`group flex h-full min-h-[108px] w-full flex-col justify-between rounded-xl border p-3 text-left shadow-sm transition-all ${accentClass}`}
+      className={`group flex h-full min-h-[108px] w-full flex-col justify-between rounded-xl border p-3 text-left shadow-sm transition-all ${accentClass} ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -215,7 +280,7 @@ function SummaryCard({ title, value, detail, icon: Icon, onClick, tooltip, accen
   )
 }
 
-function MapSummaryCard({ title, value, detail, onClick, tooltip }) {
+function MapSummaryCard({ title, value, detail, onClick, tooltip, className = '' }) {
   const src = value && value !== 'Ubicación no informada'
     ? `https://www.google.com/maps?q=${encodeURIComponent(value)}&z=15&output=embed`
     : null
@@ -225,7 +290,7 @@ function MapSummaryCard({ title, value, detail, onClick, tooltip }) {
       type="button"
       onClick={onClick}
       title={tooltip}
-      className="group relative flex min-h-[160px] w-full flex-col overflow-hidden rounded-xl border border-teal-200 bg-teal-50/60 p-3 text-left shadow-sm transition-all hover:border-teal-300 hover:bg-teal-50"
+      className={`group relative flex min-h-[160px] w-full flex-col overflow-hidden rounded-xl border border-teal-200 bg-teal-50/60 p-3 text-left shadow-sm transition-all hover:border-teal-300 hover:bg-teal-50 ${className}`}
     >
       {src ? (
         <iframe
@@ -321,80 +386,6 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
   return (
     <div className="space-y-4">
       <TabToolbar query={query} onQueryChange={setQuery} placeholder="Buscar en datos generales..." onCollapseAll={toggleAll} allCollapsed={allCollapsed} />
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MapSummaryCard
-          title="Mapa"
-          value={summaries.map}
-          detail="Ubicación y acceso"
-          onClick={() => onNavigateTab('general')}
-          tooltip={summaries.lastActionTooltip}
-        />
-        <SummaryCard
-          title="Personas"
-          value={`${summaries.people.count} registradas`}
-          detail={summaries.people.preview}
-          icon={UsersIcon}
-          onClick={() => onNavigateTab('people')}
-          tooltip={summaries.lastActionTooltip}
-        />
-        <SummaryCard
-          title="Equipamiento"
-          value={summaries.equipment.preview}
-          detail={summaries.equipment.detail}
-          icon={WrenchScrewdriverIcon}
-          onClick={() => onNavigateTab('equipment')}
-          tooltip={summaries.lastActionTooltip}
-        />
-        <SummaryCard
-          title="Equip. informático"
-          value={summaries.it.preview}
-          detail={summaries.it.detail}
-          icon={ComputerDesktopIcon}
-          onClick={() => onNavigateTab('it')}
-          tooltip={summaries.lastActionTooltip}
-        />
-      <SummaryCard
-          title="Proyectos"
-          value="—"
-          detail=""
-          icon={FolderOpenIcon}
-          onClick={() => onNavigateTab('projects')}
-          tooltip={summaries.lastActionTooltip}
-          accent="slate"
-        />
-        <SummaryCard
-          title="Incidencias"
-          value="—"
-          detail=""
-          icon={ExclamationTriangleIcon}
-          onClick={() => onNavigateTab('incidents')}
-          tooltip={summaries.lastActionTooltip}
-          accent="slate"
-        />
-        <SummaryCard
-          title="Documentos"
-          value={summaries.documents.preview}
-          detail={summaries.documents.detail}
-          icon={DocumentTextIcon}
-          onClick={() => onNavigateTab('documents')}
-          tooltip={summaries.lastActionTooltip}
-        />
-        <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-          <div className="space-y-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Creación</p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">{formatDateTime(pharmacy.created_at)}</p>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Última modificación</p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">{formatDateTime(pharmacy.updated_at)}</p>
-            </div>
-          </div>
-          <p className="mt-3 text-xs text-slate-500" title={summaries.lastActionTooltip}>
-            Última acción: {summaries.lastActionText}
-          </p>
-        </div>
-      </div>
       {showAuto && (
         <SectionBlock title="Persona Jurídica." open={!collapsed.autonomo} onToggle={() => setCollapsed(prev => ({ ...prev, autonomo: !prev.autonomo }))}>
           <Field label="Titular"        value={pharmacy.owner_name} />
@@ -460,6 +451,73 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
         </SectionBlock>
       )}
       {!showAuto && !showCb && !showSl && <EmptyTab icon={BuildingStorefrontIcon} message="Sin resultados en datos generales" />}
+      <div className="flex items-end justify-between gap-3 pt-1">
+        <div>
+          <h2 className="text-sm font-bold text-slate-800">Resumen operativo</h2>
+          <p className="mt-0.5 text-xs text-slate-400">Accesos directos a la información relacionada con la farmacia.</p>
+        </div>
+      </div>
+      <div className="grid auto-rows-fr gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MapSummaryCard
+          title="Mapa"
+          value={summaries.map}
+          detail="Ubicación y acceso"
+          onClick={() => onNavigateTab('general')}
+          tooltip={summaries.lastActionTooltip}
+          className="sm:col-span-2 xl:col-span-2 xl:row-span-2"
+        />
+        <SummaryCard
+          title="Personas"
+          value={`${summaries.people.count} registradas`}
+          detail={summaries.people.preview}
+          icon={UsersIcon}
+          onClick={() => onNavigateTab('people')}
+          tooltip={summaries.lastActionTooltip}
+        />
+        <SummaryCard
+          title="Equipamiento"
+          value={summaries.equipment.preview}
+          detail={summaries.equipment.detail}
+          icon={WrenchScrewdriverIcon}
+          onClick={() => onNavigateTab('equipment')}
+          tooltip={summaries.lastActionTooltip}
+        />
+        <SummaryCard
+          title="Equip. informático"
+          value={summaries.it.preview}
+          detail={summaries.it.detail}
+          icon={ComputerDesktopIcon}
+          onClick={() => onNavigateTab('it')}
+          tooltip={summaries.lastActionTooltip}
+        />
+        <SummaryCard
+          title="Proyectos"
+          value="—"
+          detail=""
+          icon={FolderOpenIcon}
+          onClick={() => onNavigateTab('projects')}
+          tooltip={summaries.lastActionTooltip}
+          accent="slate"
+        />
+        <SummaryCard
+          title="Incidencias"
+          value="—"
+          detail=""
+          icon={ExclamationTriangleIcon}
+          onClick={() => onNavigateTab('incidents')}
+          tooltip={summaries.lastActionTooltip}
+          accent="slate"
+        />
+        <SummaryCard
+          title="Documentos"
+          value={summaries.documents.preview}
+          detail={summaries.documents.detail}
+          icon={DocumentTextIcon}
+          onClick={() => onNavigateTab('documents')}
+          tooltip={summaries.lastActionTooltip}
+        />
+        <ActivitySummaryCard pharmacy={pharmacy} summary={summaries} />
+      </div>
     </div>
   )
 }
@@ -481,6 +539,30 @@ function TabEquipment({ equipment }) {
       <CollapsibleGroup title="Equipamiento registrado" open={!collapsed} onToggle={() => setCollapsed(prev => !prev)}>
         <EquipmentSummaryTable equipment={equipment} searchQuery={query} />
       </CollapsibleGroup>
+    </div>
+  )
+}
+
+function ActivitySummaryCard({ pharmacy, summary }) {
+  return (
+    <div
+      title={summary.lastActionTooltip}
+      className="flex min-h-[108px] flex-col justify-between rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:col-span-2 xl:col-span-2"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Actividad</p>
+          <p className="mt-1 text-sm font-semibold text-slate-900">{summary.lastChangeDetail}</p>
+        </div>
+        <div className="rounded-lg bg-slate-50 p-2 text-teal-700 ring-1 ring-inset ring-slate-100">
+          <ClockIcon className="h-4 w-4" />
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-slate-500">
+        <span>Creación: <strong className="font-semibold text-slate-700">{formatDateTime(pharmacy.created_at)}</strong></span>
+        <span>Modificación: <strong className="font-semibold text-slate-700">{formatDateTime(pharmacy.updated_at)}</strong></span>
+      </div>
+      <p className="mt-2 line-clamp-2 text-xs text-slate-500">{summary.lastActionText}</p>
     </div>
   )
 }
@@ -3075,6 +3157,7 @@ export default function PharmacyDetailPage() {
   const [activeTab, setActiveTab] = useState('general')
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [lastActivity, setLastActivity] = useState(null)
+  const [activityVersion, setActivityVersion] = useState(0)
   const requestedTab = searchParams.get('tab')
   const requestedAction = searchParams.get('action')
   const requestedPersonId = searchParams.get('person')
@@ -3113,6 +3196,7 @@ export default function PharmacyDetailPage() {
 
   async function handleSaved() {
     await refetch()
+    setActivityVersion(version => version + 1)
     setIsEditOpen(false)
   }
 
@@ -3122,7 +3206,7 @@ export default function PharmacyDetailPage() {
     async function loadActivity() {
       const { data } = await supabase
         .from('activity_logs')
-        .select('action, entity_name, user_name, created_at')
+        .select('action, entity_name, user_name, created_at, old_value, new_value')
         .eq('entity_type', 'client')
         .eq('entity_id', id)
         .order('created_at', { ascending: false })
@@ -3132,7 +3216,7 @@ export default function PharmacyDetailPage() {
     }
     loadActivity().catch(() => {})
     return () => { cancelled = true }
-  }, [id])
+  }, [id, activityVersion])
 
   const summaryData = useMemo(() => {
     const safePersons = Array.isArray(persons) ? persons : []
@@ -3167,8 +3251,9 @@ export default function PharmacyDetailPage() {
 
     const mapText = [pharmacy?.address, pharmacy?.city, pharmacy?.province].filter(Boolean).join(', ')
     const lastActionText = getLastActionLabel(lastActivity)
+    const lastChangeDetail = getLastChangeDetail(lastActivity)
     const lastActionTooltip = lastActivity
-      ? `${lastActionText} · ${formatDateTime(lastActivity.created_at)}`
+      ? `${lastChangeDetail} · ${lastActionText} · ${formatDateTime(lastActivity.created_at)}`
       : 'Sin actividad registrada todavía'
 
     return {
@@ -3199,6 +3284,7 @@ export default function PharmacyDetailPage() {
         detail: docDetail,
       },
       lastActionText,
+      lastChangeDetail,
       lastActionTooltip,
     }
   }, [documents, equipment, lastActivity, persons, pharmacy, devices])

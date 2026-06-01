@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 import { supabase } from '../../lib/supabase'
+import { logActivity } from '../../lib/activityLogs'
 import { useToast } from '../../context/ToastContext'
 import {
   Label, Input, Select, ChipBtn,
@@ -296,6 +297,14 @@ export default function EditEquipmentModal({ pharmacy, equipment, onClose, onSav
         const { error } = await supabase.from('pharmacy_equipment').insert({ ...eqPayload, company_id: profile.company_id })
         if (error) throw error
       }
+      await logActivity({
+        entity_type: 'client',
+        entity_id: pharmacy.id,
+        entity_name: `${pharmacy.pharmacy_name} · equipamiento`,
+        action: equipment?.id ? 'update' : 'create',
+        old_value: equipment || null,
+        new_value: eqPayload,
+      })
 
       toast('Equipamiento actualizado', 'success')
       onSaved()
