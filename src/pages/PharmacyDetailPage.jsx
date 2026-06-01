@@ -162,6 +162,26 @@ function CompactMetaBox({ label, value, detailTitle, detailSubtitle, detailLines
   )
 }
 
+function OverviewCard({ title, value, lines = [], chips = [], className = '' }) {
+  return (
+    <HoverPanel title={title} subtitle={value} lines={lines} chips={chips} widthClass="w-80">
+      <article className={`rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition-colors group-hover/hover:border-teal-200 group-hover/hover:bg-teal-50/40 ${className}`}>
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">{title}</p>
+        <p className="mt-1 line-clamp-2 text-[14px] font-semibold leading-tight text-slate-900">{value || 'Sin informar'}</p>
+        {lines.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {lines.slice(0, 2).map(line => (
+              <span key={`${title}-${line.label}`} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                {line.value}
+              </span>
+            ))}
+          </div>
+        )}
+      </article>
+    </HoverPanel>
+  )
+}
+
 function SectionBlock({ title, open, onToggle, children }) {
   return (
     <CollapsibleGroup title={title} open={open} onToggle={onToggle}>
@@ -344,6 +364,149 @@ function getEquipmentSummaryRows(equipment) {
   ]
 }
 
+function getEquipmentPreviewData(equipment, row) {
+  if (!equipment || !row) return null
+
+  const byKey = {
+    erp: {
+      subtitle: 'Gestión principal de la farmacia',
+      lines: [
+        { label: 'Marca', value: equipment.erp === 'Otro' ? (equipment.erp_detail?.otro || 'Otro') : equipment.erp },
+        { label: 'Licencia', value: equipment.erp_detail?.licencia || 'Sin informar' },
+        { label: 'Puestos', value: equipment.erp_detail?.puestos || 'Sin informar' },
+        { label: 'Año inicio', value: equipment.erp_detail?.year || 'Sin informar' },
+        { label: 'Distribuidor', value: equipment.erp_detail?.distribuidor || 'Sin informar' },
+        { label: 'Soporte', value: equipment.erp_detail?.soporte || 'Sin informar' },
+      ],
+      notes: equipment.erp_detail?.anotaciones || '',
+    },
+    caja: {
+      subtitle: 'Sistema de caja y automatización de cobro',
+      lines: [
+        { label: 'Marca', value: equipment.caja === 'Otro' ? (equipment.cash_detail?.otro || 'Otro') : equipment.caja },
+        { label: 'Modelo', value: equipment.caja_modelo || 'Sin informar' },
+        { label: 'Año instalación', value: equipment.caja_year || 'Sin informar' },
+        { label: 'Distribuidor', value: equipment.cash_detail?.distribuidor || 'Sin informar' },
+        { label: 'Soporte', value: equipment.cash_detail?.soporte || 'Sin informar' },
+        { label: 'Viteka', value: equipment.caja_viteka ? 'Sí' : 'No' },
+      ],
+      notes: equipment.cash_detail?.anotaciones || '',
+    },
+    esl: {
+      subtitle: 'Etiquetas electrónicas en tienda',
+      lines: [
+        { label: 'Sistema', value: equipment.esl === 'Otro' ? (equipment.esl_detail?.otro || 'Otro') : equipment.esl },
+        { label: 'Año instalación', value: equipment.esl_year || 'Sin informar' },
+        { label: 'Distribuidor', value: equipment.esl_detail?.distribuidor || 'Sin informar' },
+        { label: 'Soporte', value: equipment.esl_detail?.soporte || 'Sin informar' },
+        { label: 'Viteka', value: equipment.esl_viteka ? 'Sí' : 'No' },
+      ],
+      notes: equipment.esl_detail?.anotaciones || '',
+    },
+    bascula: {
+      subtitle: 'Básculas de atención y venta',
+      lines: [
+        { label: 'Marca', value: equipment.bascula === 'Otro' ? (equipment.scale_detail?.otro || 'Otro') : equipment.bascula },
+        { label: 'Año instalación', value: equipment.bascula_year || 'Sin informar' },
+        { label: 'Distribuidor', value: equipment.scale_detail?.distribuidor || 'Sin informar' },
+        { label: 'Soporte', value: equipment.scale_detail?.soporte || 'Sin informar' },
+        { label: 'Viteka', value: equipment.bascula_viteka ? 'Sí' : 'No' },
+      ],
+      notes: equipment.scale_detail?.anotaciones || '',
+    },
+    antihurto: {
+      subtitle: 'Control de acceso y seguridad',
+      lines: [
+        { label: 'Sistema', value: equipment.antihurto === 'Otro' ? (equipment.antitheft_detail?.otro || 'Otro') : equipment.antihurto },
+        { label: 'Año instalación', value: equipment.antihurto_year || 'Sin informar' },
+        { label: 'Distribuidor', value: equipment.antitheft_detail?.distribuidor || 'Sin informar' },
+        { label: 'Soporte', value: equipment.antitheft_detail?.soporte || 'Sin informar' },
+      ],
+      notes: equipment.antitheft_detail?.anotaciones || '',
+    },
+    consultoria: {
+      subtitle: 'Servicios de consultoría asociados',
+      lines: [
+        { label: 'Servicio', value: equipment.consultoria === 'Otro' ? (equipment.consultoria_detail?.otro || 'Otro') : equipment.consultoria },
+        { label: 'Mes inicio', value: equipment.consultoria_detail?.month || 'Sin informar' },
+        { label: 'Año inicio', value: equipment.consultoria_detail?.year || 'Sin informar' },
+        { label: 'Distribuidor', value: equipment.consulting_detail?.distribuidor || 'Sin informar' },
+        { label: 'Soporte', value: equipment.consulting_detail?.soporte || 'Sin informar' },
+        { label: 'Viteka', value: equipment.consultoria_viteka ? 'Sí' : 'No' },
+      ],
+      notes: equipment.consulting_detail?.anotaciones || '',
+    },
+    robot: {
+      subtitle: 'Robot dispensador',
+      lines: [
+        { label: 'Marca', value: equipment.robot === 'Otro' ? (equipment.robot_detail?.otro || 'Otro') : equipment.robot },
+        { label: 'Año instalación', value: equipment.robot_year || 'Sin informar' },
+        { label: 'Distribuidor', value: equipment.robot_detail?.distribuidor || 'Sin informar' },
+        { label: 'Soporte', value: equipment.robot_detail?.soporte || 'Sin informar' },
+      ],
+      notes: equipment.robot_detail?.anotaciones || '',
+    },
+    cruz: {
+      subtitle: 'Cruz exterior y ampliaciones',
+      lines: [
+        { label: 'Estado', value: equipment.cruz || 'Sin informar' },
+        { label: 'Unidades', value: equipment.cruz_cantidad || 'Sin informar' },
+        { label: 'Ampliación', value: equipment.cruz_ampliacion || 'Sin informar' },
+      ],
+      notes: '',
+    },
+    gestor_turnos: {
+      subtitle: 'Gestión de turnos',
+      lines: [
+        { label: 'Marca', value: equipment.gestor_turnos_marca || 'Sin informar' },
+        { label: 'Año', value: equipment.gestor_turnos_year || 'Sin informar' },
+        { label: 'Distribuidor', value: equipment.queue_detail?.distribuidor || 'Sin informar' },
+        { label: 'Soporte', value: equipment.queue_detail?.soporte || 'Sin informar' },
+      ],
+      notes: equipment.queue_detail?.anotaciones || '',
+    },
+    spd: {
+      subtitle: 'Sistema SPD',
+      lines: [
+        { label: 'Marca', value: equipment.spd_marca || 'Sin informar' },
+        { label: 'Año', value: equipment.spd_year || 'Sin informar' },
+        { label: 'Distribuidor', value: equipment.spd_detail?.distribuidor || 'Sin informar' },
+        { label: 'Soporte', value: equipment.spd_detail?.soporte || 'Sin informar' },
+      ],
+      notes: equipment.spd_detail?.anotaciones || '',
+    },
+    pantallas: {
+      subtitle: 'Pantallas y ubicaciones',
+      lines: [
+        { label: 'Marca', value: equipment.pantallas_detail?.marca || 'Sin informar' },
+        { label: 'Año', value: equipment.pantallas_detail?.year || 'Sin informar' },
+        { label: 'Ubicaciones', value: Array.isArray(equipment.pantallas_detail?.ubicaciones) && equipment.pantallas_detail.ubicaciones.length ? equipment.pantallas_detail.ubicaciones.join(', ') : 'Sin informar' },
+        { label: 'Distribuidor', value: equipment.screens_detail?.distribuidor || 'Sin informar' },
+        { label: 'Soporte', value: equipment.screens_detail?.soporte || 'Sin informar' },
+      ],
+      notes: equipment.screens_detail?.anotaciones || '',
+    },
+    frigorifico: {
+      subtitle: 'Frigorífico farmacéutico',
+      lines: [
+        { label: 'Marca', value: equipment.frigorifico_marca || 'Sin informar' },
+        { label: 'Año', value: equipment.frigorifico_year || 'Sin informar' },
+        { label: 'Distribuidor', value: equipment.fridge_detail?.distribuidor || 'Sin informar' },
+        { label: 'Soporte', value: equipment.fridge_detail?.soporte || 'Sin informar' },
+        { label: 'Viteka', value: equipment.frigorifico_viteka ? 'Sí' : 'No' },
+      ],
+      notes: equipment.fridge_detail?.anotaciones || '',
+    },
+  }
+
+  return {
+    title: row.producto,
+    subtitle: byKey[row.key]?.subtitle || 'Detalle del equipamiento',
+    lines: byKey[row.key]?.lines || [],
+    notes: byKey[row.key]?.notes || '',
+  }
+}
+
 function SummaryCard({ title, value, detail, meta, items = [], icon: Icon, onClick, accent = 'teal', className = '' }) {
   const accentClass = accent === 'teal'
     ? 'border-teal-200 bg-teal-50/60 hover:border-teal-300 hover:bg-teal-50'
@@ -456,6 +619,65 @@ function getScheduleMetaItems({ schedule, scheduleOptions, hasGuards, observatio
   }
 }
 
+function EquipmentPreviewModal({ data, onClose, onEdit }) {
+  if (!data) return null
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/45 px-4 backdrop-blur-sm">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Producto</p>
+            <h3 className="mt-1 text-lg font-semibold text-slate-900">{data.title}</h3>
+            <p className="mt-1 text-sm text-slate-500">{data.subtitle}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+            aria-label="Cerrar"
+          >
+            <XMarkIcon className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="space-y-4 overflow-y-auto px-5 py-4">
+          <div className="grid gap-2 sm:grid-cols-2">
+            {data.lines.map(line => (
+              <div key={`${data.title}-${line.label}`} className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">{line.label}</p>
+                <p className="mt-1 text-sm font-semibold text-slate-800">{line.value || 'Sin informar'}</p>
+              </div>
+            ))}
+          </div>
+          {data.notes && (
+            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Anotaciones</p>
+              <p className="mt-1 text-sm leading-relaxed text-slate-700">{data.notes}</p>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center justify-end gap-3 border-t border-slate-100 bg-white px-5 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+          >
+            Cerrar
+          </button>
+          <button
+            type="button"
+            onClick={onEdit}
+            className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-teal-700"
+          >
+            <PencilSquareIcon className="h-4 w-4" />
+            Editar producto
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // â”€â”€ Pestañas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const TABS = [
   { key: 'general',   label: 'Datos generales',   icon: BuildingStorefrontIcon },
@@ -470,7 +692,7 @@ const TABS = [
 // â”€â”€ Tab: Datos generales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
   const [query, setQuery] = useState('')
-  const [collapsed, setCollapsed] = useState({})
+  const [collapsed, setCollapsed] = useState({ autonomo: true, cb: true, sl: true })
   const lType = pharmacy.legal_type || ''
   const hasAuto = lType.includes('autonomo')
   const hasCb   = lType.includes('cb')
@@ -523,9 +745,33 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
     setCollapsed(Object.fromEntries(groupKeys.map(key => [key, !allCollapsed])))
   }
 
+  const legalValue = LEGAL_LABEL[lType] || 'Sin informar'
+  const legalLines = [
+    pharmacy.owner_name ? { label: 'Titular', value: pharmacy.owner_name } : null,
+    pharmacy.razon_social ? { label: 'Razón social', value: pharmacy.razon_social } : null,
+    pharmacy.nif ? { label: 'NIF', value: pharmacy.nif } : null,
+    pharmacy.cif ? { label: 'CIF', value: pharmacy.cif } : null,
+  ].filter(Boolean)
+  const contactValue = [pharmacy.contact_phone, pharmacy.contact_email].filter(Boolean).join(' · ') || 'Sin informar'
+  const locationValue = [pharmacy.city, PROVINCE_LABEL[pharmacy.province] || pharmacy.province].filter(Boolean).join(', ') || 'Sin informar'
+  const locationLines = [
+    pharmacy.address ? { label: 'Dirección', value: pharmacy.address } : null,
+    pharmacy.postal_code ? { label: 'C.P.', value: pharmacy.postal_code } : null,
+    pharmacy.soe_number ? { label: 'SOE', value: pharmacy.soe_number } : null,
+  ].filter(Boolean)
+  const scheduleValue = mainSchedule.summary || 'Sin horario configurado'
+
   return (
     <div className="space-y-4">
-      <TabToolbar query={query} onQueryChange={setQuery} placeholder="Buscar en datos generales..." onCollapseAll={toggleAll} allCollapsed={allCollapsed} />
+      <div className="grid gap-2.5 xl:grid-cols-12">
+        <OverviewCard title="Figura jurídica" value={legalValue} lines={legalLines} className="xl:col-span-3" />
+        <OverviewCard title="Contacto" value={contactValue} lines={[
+          pharmacy.contact_phone ? { label: 'Teléfono', value: pharmacy.contact_phone } : null,
+          pharmacy.contact_email ? { label: 'Email', value: pharmacy.contact_email } : null,
+        ].filter(Boolean)} className="xl:col-span-3" />
+        <OverviewCard title="Ubicación" value={locationValue} lines={locationLines} className="xl:col-span-4" />
+        <OverviewCard title="Horario" value={scheduleValue} lines={scheduleMeta.detailLines} chips={scheduleMeta.chipLabels} className="xl:col-span-2" />
+      </div>
       {showAuto && (
         <SectionBlock title="Persona Jurídica." open={!collapsed.autonomo} onToggle={() => setCollapsed(prev => ({ ...prev, autonomo: !prev.autonomo }))}>
           <InfoGroup title="Identificación" className="xl:col-span-3">
@@ -776,6 +1022,7 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
           <ActivitySummaryCard pharmacy={pharmacy} summary={summaries} />
         </div>
       </div>
+      <TabToolbar query={query} onQueryChange={setQuery} placeholder="Buscar en datos generales..." onCollapseAll={toggleAll} allCollapsed={allCollapsed} />
     </div>
   )
 }
@@ -3416,6 +3663,7 @@ export default function PharmacyDetailPage() {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [selectedEquipmentSection, setSelectedEquipmentSection] = useState(null)
   const [selectedEquipmentLabel, setSelectedEquipmentLabel] = useState('')
+  const [selectedEquipmentPreview, setSelectedEquipmentPreview] = useState(null)
   const [lastActivity, setLastActivity] = useState(null)
   const [activityVersion, setActivityVersion] = useState(0)
   const requestedTab = searchParams.get('tab')
@@ -3443,8 +3691,14 @@ export default function PharmacyDetailPage() {
   }
 
   function handleEquipmentRowClick(row) {
-    setSelectedEquipmentSection(row.key)
-    setSelectedEquipmentLabel(row.producto)
+    setSelectedEquipmentPreview(row)
+  }
+
+  function handleEditEquipmentFromPreview() {
+    if (!selectedEquipmentPreview) return
+    setSelectedEquipmentSection(selectedEquipmentPreview.key)
+    setSelectedEquipmentLabel(selectedEquipmentPreview.producto)
+    setSelectedEquipmentPreview(null)
     setActiveTab('equipment')
     setIsEditOpen(true)
   }
@@ -3792,6 +4046,12 @@ export default function PharmacyDetailPage() {
           />
         )}
       </PharmacyEditDrawer>
+
+      <EquipmentPreviewModal
+        data={getEquipmentPreviewData(equipment, selectedEquipmentPreview)}
+        onClose={() => setSelectedEquipmentPreview(null)}
+        onEdit={handleEditEquipmentFromPreview}
+      />
     </div>
   )
 }
