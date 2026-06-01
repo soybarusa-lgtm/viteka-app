@@ -23,7 +23,7 @@ import EquipmentSummaryTable from '../components/pharmacy/EquipmentSummaryTable'
 import PharmacyEditDrawer from '../components/pharmacy/PharmacyEditDrawer'
 import EditGeneralModal from '../components/pharmacy/EditGeneralModal'
 import EditEquipmentModal from '../components/pharmacy/EditEquipmentModal'
-import { getScheduleOptionLabels, parseScheduleValue } from '../lib/pharmacySchedule'
+import { getScheduleDayRows, getScheduleOptionLabels, parseScheduleValue } from '../lib/pharmacySchedule'
 import { syncPharmacyOwnersAsPersons } from '../lib/pharmacyPersons'
 import {
   PERSON_ROLES, RESPONSIBILITY_AREAS, DOC_CATEGORIES, IT_TYPES,
@@ -59,7 +59,7 @@ function Field({ label, value, wide, className = '', emptyText = 'Sin informar' 
 
 function CollapsibleGroup({ title, count, open, onToggle, children, tone = 'slate' }) {
   return (
-    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <section className="overflow-visible rounded-xl border border-slate-200 bg-white shadow-sm">
       <button
         type="button"
         onClick={onToggle}
@@ -78,6 +78,87 @@ function CollapsibleGroup({ title, count, open, onToggle, children, tone = 'slat
       </button>
       {open && <div className="p-3">{children}</div>}
     </section>
+  )
+}
+
+function HoverPanel({
+  title,
+  subtitle,
+  lines = [],
+  chips = [],
+  placement = 'bottom',
+  widthClass = 'w-80',
+  children,
+}) {
+  const placementClass = placement === 'top'
+    ? 'bottom-full mb-2'
+    : 'top-full mt-2'
+
+  const safeLines = lines.filter(Boolean)
+  const safeChips = chips.filter(Boolean)
+
+  return (
+    <div className="group/hover relative min-w-0">
+      {children}
+      <div className={`pointer-events-none absolute left-0 z-40 hidden ${widthClass} max-w-[calc(100vw-2rem)] ${placementClass} rounded-xl border border-slate-200 bg-white p-3 shadow-[0_18px_50px_rgba(15,23,42,0.16)] group-hover/hover:block group-focus-within/hover:block`}>
+        <div className="space-y-2">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">{title}</p>
+            {subtitle && <p className="mt-1 text-sm font-semibold leading-snug text-slate-900">{subtitle}</p>}
+          </div>
+          {safeLines.length > 0 && (
+            <div className="space-y-1.5">
+              {safeLines.map((line, index) => (
+                <div key={`${title}-${index}`} className="flex items-start justify-between gap-3 text-xs text-slate-600">
+                  <span className="font-medium text-slate-500">{line.label}</span>
+                  <span className="text-right font-semibold text-slate-800">{line.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {safeChips.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 border-t border-slate-100 pt-2">
+              {safeChips.map(chip => (
+                <span key={`${title}-${chip}`} className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600">
+                  {chip}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DetailChip({ label, detail, tone = 'slate', className = '' }) {
+  const toneClass = tone === 'teal'
+    ? 'border-teal-200 bg-teal-50 text-teal-700'
+    : 'border-slate-200 bg-white text-slate-600'
+
+  return (
+    <HoverPanel title={label} subtitle={detail} placement="top" widthClass="w-72">
+      <div className={`inline-flex min-w-0 items-center rounded-lg border px-2.5 py-1 text-[11px] font-semibold shadow-sm ${toneClass} ${className}`}>
+        <span className="truncate">{label}</span>
+      </div>
+    </HoverPanel>
+  )
+}
+
+function CompactMetaBox({ label, value, detailTitle, detailSubtitle, detailLines = [], detailChips = [], className = '' }) {
+  return (
+    <HoverPanel
+      title={detailTitle || label}
+      subtitle={detailSubtitle || value}
+      lines={detailLines}
+      chips={detailChips}
+      widthClass="w-80"
+    >
+      <div className={`rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm transition-colors group-hover/hover:border-teal-200 group-hover/hover:bg-teal-50/50 ${className}`}>
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">{label}</p>
+        <p className="mt-1 truncate text-[13px] font-semibold text-slate-800">{value || 'Sin informar'}</p>
+      </div>
+    </HoverPanel>
   )
 }
 
@@ -263,7 +344,7 @@ function getEquipmentSummaryRows(equipment) {
   ]
 }
 
-function SummaryCard({ title, value, detail, meta, icon: Icon, onClick, tooltip, accent = 'teal', className = '' }) {
+function SummaryCard({ title, value, detail, meta, items = [], icon: Icon, onClick, accent = 'teal', className = '' }) {
   const accentClass = accent === 'teal'
     ? 'border-teal-200 bg-teal-50/60 hover:border-teal-300 hover:bg-teal-50'
     : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
@@ -272,7 +353,6 @@ function SummaryCard({ title, value, detail, meta, icon: Icon, onClick, tooltip,
     <button
       type="button"
       onClick={onClick}
-      title={tooltip}
       className={`group flex h-full min-h-[102px] w-full flex-col justify-between rounded-xl border px-3 py-2.5 text-left shadow-sm transition-all ${accentClass} ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -286,7 +366,20 @@ function SummaryCard({ title, value, detail, meta, icon: Icon, onClick, tooltip,
         </div>
       </div>
       <div className="mt-2">
-        {detail && <p className="line-clamp-2 text-xs leading-relaxed text-slate-500">{detail}</p>}
+        {items.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {items.map(item => (
+              <DetailChip
+                key={`${title}-${item.label}`}
+                label={item.label}
+                detail={item.detail}
+                tone={accent === 'teal' ? 'teal' : 'slate'}
+              />
+            ))}
+          </div>
+        ) : detail ? (
+          <p className="line-clamp-2 text-xs leading-relaxed text-slate-500">{detail}</p>
+        ) : null}
         <span className="mt-1 inline-flex text-[11px] font-semibold text-teal-700 transition-transform group-hover:translate-x-0.5">
           Ver detalle →
         </span>
@@ -295,7 +388,7 @@ function SummaryCard({ title, value, detail, meta, icon: Icon, onClick, tooltip,
   )
 }
 
-function MapSummaryCard({ title, value, detail, onClick, tooltip, className = '' }) {
+function MapSummaryCard({ title, value, detail, onClick, className = '' }) {
   const src = value && value !== 'Ubicación no informada'
     ? `https://www.google.com/maps?q=${encodeURIComponent(value)}&z=15&output=embed`
     : null
@@ -304,7 +397,6 @@ function MapSummaryCard({ title, value, detail, onClick, tooltip, className = ''
     <button
       type="button"
       onClick={onClick}
-      title={tooltip}
       className={`group relative flex min-h-[118px] w-full flex-col overflow-hidden rounded-xl border border-teal-200 bg-teal-50/60 px-3 py-2.5 text-left shadow-sm transition-all hover:border-teal-300 hover:bg-teal-50 ${className}`}
     >
       {src ? (
@@ -331,6 +423,37 @@ function MapSummaryCard({ title, value, detail, onClick, tooltip, className = ''
       </div>
     </button>
   )
+}
+
+function getScheduleDetailLines(schedule) {
+  const rows = schedule?.detail ? getScheduleDayRows(schedule.detail) : []
+  if (rows.length > 0) {
+    return rows.map(row => ({ label: row.day, value: row.hours }))
+  }
+  if (schedule?.summary) {
+    return [{ label: 'Horario', value: schedule.summary }]
+  }
+  return [{ label: 'Estado', value: 'Sin horario configurado' }]
+}
+
+function getScheduleMetaItems({ schedule, scheduleOptions, hasGuards, observations }) {
+  const detailLines = [
+    ...getScheduleDetailLines(schedule),
+    { label: 'Guardias', value: hasGuards ? 'Sí' : 'No' },
+    ...(schedule?.guardNotes ? [{ label: 'Indicaciones', value: schedule.guardNotes }] : []),
+    ...(observations ? [{ label: 'Observaciones', value: observations }] : []),
+  ]
+
+  const chipLabels = [
+    ...(scheduleOptions || []),
+    hasGuards ? 'Hace guardias' : null,
+    observations ? 'Tiene observaciones' : null,
+  ].filter(Boolean)
+
+  return {
+    detailLines,
+    chipLabels,
+  }
 }
 
 // â”€â”€ Pestañas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -364,6 +487,12 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
     hasCb && 'cb',
     hasSl && 'sl',
   ].filter(Boolean)
+  const scheduleMeta = getScheduleMetaItems({
+    schedule: mainSchedule,
+    scheduleOptions,
+    hasGuards: pharmacy.has_guards,
+    observations: pharmacy.observations,
+  })
   const allCollapsed = groupKeys.length > 0 && groupKeys.every(key => collapsed[key])
   const normalizedQuery = query.trim().toLocaleLowerCase('es')
   const matchesQuery = (...values) => (
@@ -394,21 +523,17 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
     setCollapsed(Object.fromEntries(groupKeys.map(key => [key, !allCollapsed])))
   }
 
-  const boolField = (label, val, wide) => (
-    <Field label={label} value={val === true ? 'Sí' : val === false ? 'No' : null} wide={wide} />
-  )
-
   return (
     <div className="space-y-4">
       <TabToolbar query={query} onQueryChange={setQuery} placeholder="Buscar en datos generales..." onCollapseAll={toggleAll} allCollapsed={allCollapsed} />
       {showAuto && (
         <SectionBlock title="Persona Jurídica." open={!collapsed.autonomo} onToggle={() => setCollapsed(prev => ({ ...prev, autonomo: !prev.autonomo }))}>
-          <InfoGroup title="Identificación" className="xl:col-span-4">
+          <InfoGroup title="Identificación" className="xl:col-span-3">
             <Field label="Titular"      value={pharmacy.owner_name} className="lg:col-span-2" />
             <Field label="NIF"          value={pharmacy.nif} />
             <Field label="Nº colegiado" value={pharmacy.collegiate_number} />
           </InfoGroup>
-          <InfoGroup title="Contacto y ubicación" className="xl:col-span-8">
+          <InfoGroup title="Contacto y ubicación" className="xl:col-span-6">
             <Field label="Teléfono"  value={pharmacy.contact_phone} />
             <Field label="Email"     value={pharmacy.contact_email} />
             <Field label="Dirección" value={pharmacy.address} className="lg:col-span-2" />
@@ -417,22 +542,47 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
             <Field label="C.P."      value={pharmacy.postal_code} />
             <Field label="SOE"       value={pharmacy.soe_number} />
           </InfoGroup>
-          <InfoGroup title="Horario y notas" className="xl:col-span-12">
-            <Field label="Horario" value={mainSchedule.summary} className="lg:col-span-2" />
-            {boolField('Guardias', pharmacy.has_guards)}
-            {scheduleOptions.length > 0 && <Field label="Aperturas especiales" value={scheduleOptions.join(' · ')} />}
-            {mainSchedule.guardNotes && <Field label="Indicaciones de guardias" value={mainSchedule.guardNotes} className="lg:col-span-2" />}
-            <Field label="Observaciones" value={pharmacy.observations} className="lg:col-span-2" />
+          <InfoGroup title="Horario y notas" className="xl:col-span-3">
+            <div className="col-span-full grid grid-cols-1 gap-2">
+              <CompactMetaBox
+                label="Horario"
+                value={mainSchedule.summary || 'Sin horario configurado'}
+                detailTitle="Detalle del horario"
+                detailSubtitle={mainSchedule.summary || 'Sin horario configurado'}
+                detailLines={scheduleMeta.detailLines}
+                detailChips={scheduleMeta.chipLabels}
+              />
+              <div className="flex flex-wrap gap-1.5">
+                <DetailChip
+                  label={pharmacy.has_guards ? 'Guardias: Sí' : 'Guardias: No'}
+                  detail={mainSchedule.guardNotes || 'Sin indicaciones adicionales'}
+                  tone="teal"
+                />
+                {scheduleOptions.length > 0 && (
+                  <DetailChip
+                    label={`${scheduleOptions.length} aperturas`}
+                    detail={scheduleOptions.join(' · ')}
+                    tone="teal"
+                  />
+                )}
+                {pharmacy.observations && (
+                  <DetailChip
+                    label="Observaciones"
+                    detail={pharmacy.observations}
+                  />
+                )}
+              </div>
+            </div>
           </InfoGroup>
         </SectionBlock>
       )}
       {showCb && (
         <SectionBlock title="Comunidad de Bienes (C.B.)" open={!collapsed.cb} onToggle={() => setCollapsed(prev => ({ ...prev, cb: !prev.cb }))}>
-          <InfoGroup title="Identificación" className="xl:col-span-4">
+          <InfoGroup title="Identificación" className="xl:col-span-3">
             <Field label="Razón social" value={pharmacy.razon_social} className="lg:col-span-2" />
             <Field label="CIF" value={pharmacy.cif} />
           </InfoGroup>
-          <InfoGroup title="Titulares" className="xl:col-span-8">
+          <InfoGroup title="Titulares" className="xl:col-span-5">
             {cbOwners.length === 0 && <p className="col-span-full text-xs italic text-gray-300">Sin titulares registrados</p>}
             {cbOwners.map((owner, index) => (
               <div key={index} className="col-span-full grid grid-cols-1 gap-2 rounded-lg border border-slate-100 bg-white px-3 py-2 sm:grid-cols-3">
@@ -452,21 +602,46 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
             <Field label="SOE"       value={pharmacy.soe_number} />
           </InfoGroup>
           <InfoGroup title="Horario y notas" className="xl:col-span-4">
-            <Field label="Horario" value={mainSchedule.summary} className="lg:col-span-2" />
-            {boolField('Guardias', pharmacy.has_guards)}
-            {scheduleOptions.length > 0 && <Field label="Aperturas especiales" value={scheduleOptions.join(' · ')} />}
-            {mainSchedule.guardNotes && <Field label="Indicaciones de guardias" value={mainSchedule.guardNotes} className="lg:col-span-2" />}
-            <Field label="Observaciones" value={pharmacy.observations} className="lg:col-span-2" />
+            <div className="col-span-full grid grid-cols-1 gap-2">
+              <CompactMetaBox
+                label="Horario"
+                value={mainSchedule.summary || 'Sin horario configurado'}
+                detailTitle="Detalle del horario"
+                detailSubtitle={mainSchedule.summary || 'Sin horario configurado'}
+                detailLines={scheduleMeta.detailLines}
+                detailChips={scheduleMeta.chipLabels}
+              />
+              <div className="flex flex-wrap gap-1.5">
+                <DetailChip
+                  label={pharmacy.has_guards ? 'Guardias: Sí' : 'Guardias: No'}
+                  detail={mainSchedule.guardNotes || 'Sin indicaciones adicionales'}
+                  tone="teal"
+                />
+                {scheduleOptions.length > 0 && (
+                  <DetailChip
+                    label={`${scheduleOptions.length} aperturas`}
+                    detail={scheduleOptions.join(' · ')}
+                    tone="teal"
+                  />
+                )}
+                {pharmacy.observations && (
+                  <DetailChip
+                    label="Observaciones"
+                    detail={pharmacy.observations}
+                  />
+                )}
+              </div>
+            </div>
           </InfoGroup>
         </SectionBlock>
       )}
       {showSl && (
         <SectionBlock title="Sociedad Limitada (S.L.)" open={!collapsed.sl} onToggle={() => setCollapsed(prev => ({ ...prev, sl: !prev.sl }))}>
-          <InfoGroup title="Identificación" className="xl:col-span-4">
+          <InfoGroup title="Identificación" className="xl:col-span-3">
             <Field label="Razón social" value={(hasAuto || hasCb) ? sl.razon_social : pharmacy.razon_social} className="lg:col-span-2" />
             <Field label="CIF" value={(hasAuto || hasCb) ? sl.cif : pharmacy.cif} />
           </InfoGroup>
-          <InfoGroup title="Contacto y ubicación" className="xl:col-span-8">
+          <InfoGroup title="Contacto y ubicación" className="xl:col-span-6">
             <Field label="Teléfono S.L." value={(hasAuto || hasCb) ? sl.phone : pharmacy.contact_phone} />
             <Field label="Email S.L." value={(hasAuto || hasCb) ? sl.email : pharmacy.contact_email} />
             <Field label="Dirección" value={(hasAuto || hasCb) ? sl.address : pharmacy.address} className="lg:col-span-2" />
@@ -474,12 +649,48 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
             <Field label="Provincia" value={PROVINCE_LABEL[(hasAuto || hasCb) ? sl.province : pharmacy.province]} />
             <Field label="C.P." value={(hasAuto || hasCb) ? sl.postal_code : pharmacy.postal_code} />
           </InfoGroup>
-          <InfoGroup title="Horario y notas" className="xl:col-span-12">
-            {!hasAuto && !hasCb && <Field label="Horario" value={mainSchedule.summary} className="lg:col-span-2" />}
-            {!hasAuto && !hasCb && boolField('Guardias', pharmacy.has_guards)}
-            {!hasAuto && !hasCb && scheduleOptions.length > 0 && <Field label="Aperturas especiales" value={scheduleOptions.join(' · ')} />}
-            {!hasAuto && !hasCb && mainSchedule.guardNotes && <Field label="Indicaciones de guardias" value={mainSchedule.guardNotes} className="lg:col-span-2" />}
-            <Field label="Observaciones" value={(hasAuto || hasCb) ? sl.observations : pharmacy.observations} className="lg:col-span-2" />
+          <InfoGroup title="Horario y notas" className="xl:col-span-3">
+            <div className="col-span-full grid grid-cols-1 gap-2">
+              {!hasAuto && !hasCb ? (
+                <>
+                  <CompactMetaBox
+                    label="Horario"
+                    value={mainSchedule.summary || 'Sin horario configurado'}
+                    detailTitle="Detalle del horario"
+                    detailSubtitle={mainSchedule.summary || 'Sin horario configurado'}
+                    detailLines={scheduleMeta.detailLines}
+                    detailChips={scheduleMeta.chipLabels}
+                  />
+                  <div className="flex flex-wrap gap-1.5">
+                    <DetailChip
+                      label={pharmacy.has_guards ? 'Guardias: Sí' : 'Guardias: No'}
+                      detail={mainSchedule.guardNotes || 'Sin indicaciones adicionales'}
+                      tone="teal"
+                    />
+                    {scheduleOptions.length > 0 && (
+                      <DetailChip
+                        label={`${scheduleOptions.length} aperturas`}
+                        detail={scheduleOptions.join(' · ')}
+                        tone="teal"
+                      />
+                    )}
+                    {(hasAuto || hasCb ? sl.observations : pharmacy.observations) && (
+                      <DetailChip
+                        label="Observaciones"
+                        detail={(hasAuto || hasCb) ? sl.observations : pharmacy.observations}
+                      />
+                    )}
+                  </div>
+                </>
+              ) : (
+                <CompactMetaBox
+                  label="Observaciones"
+                  value={(hasAuto || hasCb) ? sl.observations : pharmacy.observations}
+                  detailTitle="Observaciones"
+                  detailSubtitle={(hasAuto || hasCb) ? sl.observations : pharmacy.observations}
+                />
+              )}
+            </div>
           </InfoGroup>
         </SectionBlock>
       )}
@@ -499,7 +710,6 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
             if (!summaries.hasMapLocation) return
             window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(summaries.map)}`, '_blank', 'noopener,noreferrer')
           }}
-          tooltip={summaries.lastActionTooltip}
           className="sm:col-span-2 xl:col-span-2"
         />
         <SummaryCard
@@ -507,27 +717,27 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
           value={`${summaries.people.count} personas`}
           meta={`${summaries.people.responsibleCount} responsables`}
           detail={summaries.people.preview}
+          items={summaries.people.items}
           icon={UsersIcon}
           onClick={() => onNavigateTab('people')}
-          tooltip={summaries.lastActionTooltip}
         />
         <SummaryCard
           title="Equipamiento"
           value={`${summaries.equipment.count} productos activos`}
           meta={`${summaries.equipment.vitekaCount} gestionados por Viteka`}
           detail={summaries.equipment.detail}
+          items={summaries.equipment.items}
           icon={WrenchScrewdriverIcon}
           onClick={() => onNavigateTab('equipment')}
-          tooltip={summaries.lastActionTooltip}
         />
         <SummaryCard
           title="Equipos informáticos"
           value={`${summaries.it.count} equipos`}
           meta={`${summaries.it.typeCount} tipos registrados`}
           detail={summaries.it.detail}
+          items={summaries.it.items}
           icon={ComputerDesktopIcon}
           onClick={() => onNavigateTab('it')}
-          tooltip={summaries.lastActionTooltip}
         />
         <SummaryCard
           title="Proyectos"
@@ -535,7 +745,6 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
           detail="No hay proyectos asociados"
           icon={FolderOpenIcon}
           onClick={() => onNavigateTab('projects')}
-          tooltip={summaries.lastActionTooltip}
           accent="slate"
         />
         <SummaryCard
@@ -544,7 +753,6 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
           detail="No hay incidencias asociadas"
           icon={ExclamationTriangleIcon}
           onClick={() => onNavigateTab('incidents')}
-          tooltip={summaries.lastActionTooltip}
           accent="slate"
         />
         <SummaryCard
@@ -552,9 +760,9 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
           value={`${summaries.documents.count} documentos`}
           meta={`${summaries.documents.categoryCount} categorías`}
           detail={summaries.documents.detail}
+          items={summaries.documents.items}
           icon={DocumentTextIcon}
           onClick={() => onNavigateTab('documents')}
-          tooltip={summaries.lastActionTooltip}
         />
         <ActivitySummaryCard pharmacy={pharmacy} summary={summaries} />
       </div>
@@ -3270,12 +3478,36 @@ export default function PharmacyDetailPage() {
       const responsible = person.is_responsible ? ` · Sí #${person.responsibility_grade || ''}`.trim() : ''
       return [person.name, person.role].filter(Boolean).join(' · ') + responsible
     }).filter(Boolean).join(' | ')
+    const peopleItems = safePersons.slice(0, 4).map(person => ({
+      label: person.name || 'Sin nombre',
+      detail: [
+        person.role || 'Sin rol',
+        person.is_responsible ? `Responsable${person.responsibility_grade ? ` #${person.responsibility_grade}` : ''}` : 'No responsable',
+        person.phone || pharmacy?.contact_phone || '',
+        person.email || pharmacy?.contact_email || '',
+      ].filter(Boolean).join(' · '),
+    }))
 
     const itGroups = safeDevices.reduce((acc, device) => {
       const label = IT_LABEL[device.device_type] || device.device_type || 'Otro'
       acc[label] = (acc[label] || 0) + 1
       return acc
     }, {})
+    const itItems = Object.entries(itGroups).map(([label, count]) => {
+      const matchingDevices = safeDevices
+        .filter(device => (IT_LABEL[device.device_type] || device.device_type || 'Otro') === label)
+        .slice(0, 3)
+        .map(device => {
+          const parts = [device.name, resolveBrand(device).marca, resolveBrand(device).modelo].filter(Boolean)
+          return parts.join(' · ')
+        })
+        .filter(Boolean)
+
+      return {
+        label: `${label} · ${count}`,
+        detail: matchingDevices.length > 0 ? matchingDevices.join(' | ') : `${count} equipo(s)`,
+      }
+    })
     const itDetail = safeDevices.length > 0
       ? `${safeDevices.length} equipos · ${Object.entries(itGroups).map(([label, count]) => `${label}: ${count}`).join(' | ')}`
       : 'Sin equipos informáticos'
@@ -3285,9 +3517,33 @@ export default function PharmacyDetailPage() {
       acc[label] = (acc[label] || 0) + 1
       return acc
     }, {})
+    const documentItems = Object.entries(docGroups).map(([label, count]) => {
+      const names = safeDocuments
+        .filter(doc => (doc.category || 'Otros') === label)
+        .slice(0, 3)
+        .map(doc => doc.name || doc.file_name || 'Documento')
+        .filter(Boolean)
+
+      return {
+        label: `${label} · ${count}`,
+        detail: names.length > 0 ? names.join(' | ') : `${count} documento(s)`,
+      }
+    })
     const docDetail = safeDocuments.length > 0
       ? `${Object.entries(docGroups).slice(0, 3).map(([label, count]) => `${label}: ${count}`).join(' · ')}`
       : 'Sin documentos cargados'
+    const equipmentItems = equipmentRows.slice(0, 4).map(row => {
+      const detail = [
+        row.is_viteka ? 'Distribución o soporte Viteka' : null,
+        row.distribuidor ? `Distribuidor: ${row.distribuidor}` : null,
+        row.soporte ? `Soporte: ${row.soporte}` : null,
+      ].filter(Boolean).join(' · ')
+
+      return {
+        label: row.producto,
+        detail: detail || 'Activo sin detalle adicional',
+      }
+    })
 
     const mapText = [
       pharmacy?.address,
@@ -3307,6 +3563,7 @@ export default function PharmacyDetailPage() {
         count: safePersons.length,
         responsibleCount,
         preview: peoplePreview || 'Sin personas registradas',
+        items: peopleItems,
       },
       equipment: {
         count: equipmentRows.length,
@@ -3319,6 +3576,7 @@ export default function PharmacyDetailPage() {
               return source ? `${row.producto} · ${source}` : row.producto
             }).join(' · ')
           : 'Sin equipamiento registrado',
+        items: equipmentItems,
       },
       it: {
         count: safeDevices.length,
@@ -3326,6 +3584,7 @@ export default function PharmacyDetailPage() {
         detail: safeDevices.length > 0
           ? Object.entries(itGroups).map(([label, count]) => `${label}: ${count}`).join(' · ')
           : itDetail,
+        items: itItems,
       },
       projects: 'Vacío',
       incidents: 'Vacío',
@@ -3333,6 +3592,7 @@ export default function PharmacyDetailPage() {
         count: safeDocuments.length,
         categoryCount: Object.keys(docGroups).length,
         detail: docDetail,
+        items: documentItems,
       },
       lastActionText,
       lastChangeDetail,
