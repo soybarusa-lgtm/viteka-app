@@ -5,6 +5,7 @@ import {
   HomeIcon,
   BuildingStorefrontIcon,
   UsersIcon,
+  FolderOpenIcon,
   ArrowRightOnRectangleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -16,6 +17,7 @@ const NAV = [
   { to: '/', label: 'Dashboard', Icon: HomeIcon },
   { to: '/farmacias', label: 'Farmacias', Icon: BuildingStorefrontIcon },
   { to: '/personas', label: 'Personas', Icon: UsersIcon },
+  { to: '/proyectos', label: 'Proyectos', Icon: FolderOpenIcon },
 ]
 
 export default function AppLayout({ session }) {

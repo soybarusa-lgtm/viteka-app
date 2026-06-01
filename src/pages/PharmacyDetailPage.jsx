@@ -25,6 +25,7 @@ import EditGeneralModal from '../components/pharmacy/EditGeneralModal'
 import EditEquipmentModal from '../components/pharmacy/EditEquipmentModal'
 import { getScheduleDayRows, getScheduleOptionLabels, parseScheduleValue } from '../lib/pharmacySchedule'
 import { syncPharmacyOwnersAsPersons } from '../lib/pharmacyPersons'
+import { PROJECT_DIVISIONS, fmtDate as fmtProjectDate, getDivision, getStage, getStatus, normalizeText } from '../lib/projectManagement'
 import {
   PERSON_ROLES, RESPONSIBILITY_AREAS, DOC_CATEGORIES, IT_TYPES,
   CONNECTION_OPTIONS, MONITOR_CONN, DISK_TYPES, CAPA_OPTIONS, MONTHS, YEARS,
@@ -829,6 +830,68 @@ function PlaceholderTab({ icon, message, placeholder, title }) {
 }
 
 // â”€â”€ Tab: Equipamiento Informático â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function TabProjects({ pharmacyId, navigate }) {
+  const [projects, setProjects] = useState([])
+  const [query, setQuery] = useState('')
+  const [collapsed, setCollapsed] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadProjects() {
+      const { data } = await supabase
+        .from('projects')
+        .select('id, name, project_type, pipeline_stage, status, priority, start_date, expected_close_date')
+        .eq('pharmacy_id', pharmacyId)
+        .order('created_at', { ascending: false })
+      if (!cancelled) setProjects(data || [])
+    }
+    loadProjects().catch(() => {})
+    return () => { cancelled = true }
+  }, [pharmacyId])
+
+  const filtered = projects.filter(project => normalizeText([
+    project.name,
+    getDivision(project).label,
+    getStage(project).label,
+    getStatus(project.status).label,
+  ].join(' ')).includes(normalizeText(query)))
+
+  return (
+    <div className="space-y-4">
+      <TabToolbar query={query} onQueryChange={setQuery} placeholder="Buscar proyectos..." onCollapseAll={() => setCollapsed(prev => !prev)} allCollapsed={collapsed}>
+        <button type="button" onClick={() => navigate(`/proyectos?pharmacy_id=${pharmacyId}&create=1&type=commercial`)} className="btn-primary">
+          <PlusIcon className="h-4 w-4" /> Nuevo proyecto
+        </button>
+      </TabToolbar>
+
+      {projects.length === 0 ? (
+        <CollapsibleGroup title="Proyectos" open={!collapsed} onToggle={() => setCollapsed(prev => !prev)}>
+          <EmptyTab icon={FolderOpenIcon} message="No hay proyectos asociados" />
+        </CollapsibleGroup>
+      ) : PROJECT_DIVISIONS.map(division => {
+        const items = filtered.filter(project => getDivision(project).id === division.id)
+        if (!items.length) return null
+        return (
+          <CollapsibleGroup key={division.id} title={division.label} count={items.length} open={!collapsed} onToggle={() => setCollapsed(prev => !prev)} tone="teal">
+            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              {items.map(project => (
+                <button key={project.id} type="button" onClick={() => navigate(`/proyectos/${project.id}`)} className="rounded-xl border border-slate-200 bg-white p-3 text-left transition hover:border-teal-300 hover:bg-teal-50/40">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-bold text-slate-800">{project.name}</p>
+                    <span className={getStatus(project.status).badge}>{getStatus(project.status).label}</span>
+                  </div>
+                  <p className="mt-2 text-xs font-semibold text-teal-700">{getStage(project).label}</p>
+                  <p className="mt-1 text-[11px] text-slate-400">Objetivo: {fmtProjectDate(project.expected_close_date)}</p>
+                </button>
+              ))}
+            </div>
+          </CollapsibleGroup>
+        )
+      })}
+    </div>
+  )
+}
+
 const IT_LABEL = Object.fromEntries(IT_TYPES.map(t => [t.value, t.label]))
 
 function resolveBrand(device) {
@@ -3469,7 +3532,7 @@ export default function PharmacyDetailPage() {
     async function loadActivity() {
       const { data } = await supabase
         .from('activity_logs')
-        .select('action, entity_name, user_name, created_at, old_value, new_value')
+        .select('action, entity_name, created_at, old_value, new_value')
         .eq('entity_type', 'client')
         .eq('entity_id', id)
         .order('created_at', { ascending: false })
@@ -3747,7 +3810,7 @@ export default function PharmacyDetailPage() {
           />
         )}
         {activeTab === 'incidents' && <PlaceholderTab icon={ExclamationTriangleIcon} title="Incidencias" message="Módulo de incidencias próximamente" placeholder="Buscar incidencias..." />}
-        {activeTab === 'projects'  && <PlaceholderTab icon={FolderOpenIcon} title="Proyectos" message="Módulo de proyectos próximamente" placeholder="Buscar proyectos..." />}
+        {activeTab === 'projects'  && <TabProjects pharmacyId={id} navigate={navigate} />}
         {activeTab === 'documents' && <TabDocuments pharmacyId={id} companyId={pharmacy.company_id} />}
       </div>
 

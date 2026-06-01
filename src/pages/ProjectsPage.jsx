@@ -1,195 +1,219 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useProjects } from '../hooks/useProjects'
+import {
+  AcademicCapIcon,
+  BanknotesIcon,
+  CalendarDaysIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  ExclamationTriangleIcon,
+  LifebuoyIcon,
+  ListBulletIcon,
+  MagnifyingGlassIcon,
+  PlusIcon,
+  Squares2X2Icon,
+  WrenchScrewdriverIcon,
+  BriefcaseIcon,
+} from '@heroicons/react/24/outline'
 import CreateProjectModal from '../components/modals/CreateProjectModal'
+import { useToast } from '../context/ToastContext'
+import { useProjects } from '../hooks/useProjects'
+import {
+  PRIORITIES,
+  PROJECT_DIVISIONS,
+  PROJECT_STATUSES,
+  fmtCurrency,
+  fmtDate,
+  getDivision,
+  getPipeline,
+  getPriority,
+  getStage,
+  getStatus,
+  isOverdue,
+  normalizeText,
+} from '../lib/projectManagement'
 
-// ── Config ───────────────────────────────────────────────────────────────
-const COMMERCIAL_STAGES = [
-  { id: 'leads',       label: 'Leads',       dot: 'bg-gray-300'    },
-  { id: 'contactado',  label: 'Contactado',  dot: 'bg-sky-400'     },
-  { id: 'visita',      label: 'Visita',      dot: 'bg-amber-400'   },
-  { id: 'propuesta',   label: 'Propuesta',   dot: 'bg-orange-400'  },
-  { id: 'negociacion', label: 'Negociación', dot: 'bg-violet-400'  },
-  { id: 'cerrado',     label: 'Cerrado',     dot: 'bg-emerald-500' },
-  { id: 'perdido',     label: 'Perdido',     dot: 'bg-red-400'     },
+const DIVISION_ICONS = {
+  commercial: BriefcaseIcon,
+  support: LifebuoyIcon,
+  training: AcademicCapIcon,
+  installation: WrenchScrewdriverIcon,
+}
+
+const DIVISION_STYLE = {
+  commercial: 'border-teal-200 bg-teal-50 text-teal-800',
+  support: 'border-sky-200 bg-sky-50 text-sky-800',
+  training: 'border-amber-200 bg-amber-50 text-amber-800',
+  installation: 'border-violet-200 bg-violet-50 text-violet-800',
+}
+
+const VIEW_OPTIONS = [
+  { id: 'board', label: 'Tablero', Icon: Squares2X2Icon },
+  { id: 'list', label: 'Lista', Icon: ListBulletIcon },
+  { id: 'calendar', label: 'Calendario', Icon: CalendarDaysIcon },
 ]
 
-const SUPPORT_STATUS = [
-  { id: 'pending',   label: 'Pendiente',  badge: 'badge-gray'   },
-  { id: 'active',    label: 'En curso',   badge: 'badge-blue'   },
-  { id: 'completed', label: 'Completado', badge: 'badge-green'  },
-  { id: 'paused',    label: 'Pausado',    badge: 'badge-yellow' },
-  { id: 'cancelled', label: 'Cancelado',  badge: 'badge-red'    },
-]
-
-// ── Icons ───────────────────────────────────────────────────────────────
-function IcList()   { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> }
-function IcKanban() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="8" rx="1"/></svg> }
-function IcSearch() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> }
-function IcPlus()   { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> }
-function IcChevron(){ return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg> }
-
-// ── Kanban card ─────────────────────────────────────────────────────────────
-function KanbanCard({ p, navigate }) {
-  const overdue = p.expected_close_date && new Date(p.expected_close_date) < new Date()
+function MetricCard({ label, value, detail, Icon, alert = false }) {
   return (
-    <div
-      draggable
-      onClick={() => navigate('project-detail', { projectId: p.id })}
-      className="bg-white rounded-xl border border-gray-200 p-3 cursor-pointer
-                 hover:border-gray-300 hover:shadow-sm transition select-none space-y-2"
-    >
-      <p className="text-sm font-medium text-gray-900 leading-snug">{p.name}</p>
-      {p.pharmacy && (
-        <p className="text-xs text-gray-400 truncate">{p.pharmacy.pharmacy_name}</p>
-      )}
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        {p.amount ? (
-          <span className="text-xs font-semibold" style={{ color: '#1c473c' }}>
-            {Number(p.amount).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
-          </span>
-        ) : <span />}
-        {p.expected_close_date && (
-          <span className={`text-xs ${overdue ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
-            {new Date(p.expected_close_date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
-          </span>
-        )}
+    <div className={`rounded-xl border bg-white px-3 py-3 shadow-sm ${alert ? 'border-rose-200 bg-rose-50' : 'border-slate-200'}`}>
+      <div className="flex items-center justify-between gap-2">
+        <p className={`text-[11px] font-bold uppercase tracking-[0.12em] ${alert ? 'text-rose-600' : 'text-slate-400'}`}>{label}</p>
+        <Icon className={`h-4 w-4 ${alert ? 'text-rose-500' : 'text-teal-700'}`} />
       </div>
-      {p.commercial && (
-        <p className="text-xs text-gray-400">{p.commercial.full_name}</p>
-      )}
+      <div className="mt-2 flex items-baseline gap-2">
+        <p className={`font-display text-2xl font-extrabold ${alert ? 'text-rose-700' : 'text-slate-900'}`}>{value}</p>
+        {detail && <p className="truncate text-xs text-slate-400">{detail}</p>}
+      </div>
     </div>
   )
 }
 
-// ── Kanban view ────────────────────────────────────────────────────────────
-function KanbanView({ commercial, moveStage, navigate }) {
-  const [dragging, setDragging] = useState(null)
+function ProjectCard({ project, onOpen, onDragStart }) {
+  const division = getDivision(project)
+  const priority = getPriority(project.priority)
+  const stage = getStage(project)
+  return (
+    <button
+      type="button"
+      draggable
+      onDragStart={event => onDragStart(event, project)}
+      onClick={() => onOpen(project)}
+      className="w-full cursor-grab rounded-xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md active:cursor-grabbing"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm font-bold leading-snug text-slate-900">{project.name}</p>
+        <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${priority.dot}`} title={`Prioridad ${priority.label}`} />
+      </div>
+      <p className="mt-1 truncate text-xs text-slate-500">{project.pharmacy?.pharmacy_name || 'Sin farmacia asignada'}</p>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2">
+        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${DIVISION_STYLE[division.id]}`}>{stage.label}</span>
+        <span className={`text-[11px] ${isOverdue(project) ? 'font-bold text-rose-600' : 'text-slate-400'}`}>
+          {project.expected_close_date ? fmtDate(project.expected_close_date, { year: false }) : 'Sin fecha'}
+        </span>
+      </div>
+    </button>
+  )
+}
 
-  function onDragStart(e, p) { setDragging(p); e.dataTransfer.effectAllowed = 'move' }
-  function onDragOver(e)      { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }
-  async function onDrop(e, stageId) {
-    e.preventDefault()
+function BoardView({ projects, division, onOpen, onMove }) {
+  const [dragging, setDragging] = useState(null)
+  const pipeline = getPipeline(division)
+
+  function projectsForStage(stageId) {
+    return projects.filter(project => {
+      const stageExists = pipeline.some(stage => stage.id === project.pipeline_stage)
+      return project.pipeline_stage === stageId || (!stageExists && stageId === pipeline[0].id)
+    })
+  }
+
+  async function handleDrop(event, stageId) {
+    event.preventDefault()
     if (!dragging || dragging.pipeline_stage === stageId) return
-    await moveStage(dragging.id, stageId)
+    await onMove(dragging.id, stageId)
     setDragging(null)
   }
 
   return (
-    <div className="flex gap-3 overflow-x-auto pb-4 -mx-5 px-5">
-      {COMMERCIAL_STAGES.map(stage => {
-        const cards = commercial.filter(p => p.pipeline_stage === stage.id)
-        return (
-          <div
-            key={stage.id}
-            onDragOver={onDragOver}
-            onDrop={e => onDrop(e, stage.id)}
-            className="shrink-0 w-60 flex flex-col gap-2"
-          >
-            {/* Column header */}
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-1.5">
-                <span className={`h-2 w-2 rounded-full ${stage.dot}`} />
-                <span className="text-xs font-medium text-gray-700">{stage.label}</span>
-              </div>
-              <span className="text-xs text-gray-400">{cards.length}</span>
-            </div>
-            {/* Drop zone */}
-            <div
-              className={`min-h-20 rounded-2xl p-2 space-y-2 transition
-                ${ dragging ? 'bg-gray-100/60 ring-1 ring-gray-200' : 'bg-gray-50/80' }`}
+    <div className="-mx-3 overflow-x-auto px-3 pb-4 sm:-mx-5 sm:px-5 lg:-mx-6 lg:px-6">
+      <div className="flex min-w-max gap-3">
+        {pipeline.map(stage => {
+          const stageProjects = projectsForStage(stage.id)
+          return (
+            <section
+              key={stage.id}
+              onDragOver={event => event.preventDefault()}
+              onDrop={event => handleDrop(event, stage.id)}
+              className="w-64 shrink-0"
             >
-              {cards.map(p => (
-                <div key={p.id} draggable onDragStart={e => onDragStart(e, p)}>
-                  <KanbanCard p={p} navigate={navigate} />
+              <div className="mb-2 flex items-center justify-between px-1">
+                <div className="flex items-center gap-2">
+                  <span className={`h-2 w-2 rounded-full ${stage.color}`} />
+                  <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-slate-600">{stage.label}</h3>
                 </div>
-              ))}
-              {cards.length === 0 && (
-                <div className="flex items-center justify-center h-12">
-                  <span className="text-xs text-gray-300">Vacío</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )
-      })}
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-500">{stageProjects.length}</span>
+              </div>
+              <div className={`min-h-28 space-y-2 rounded-2xl border border-dashed p-2 transition ${dragging ? 'border-teal-300 bg-teal-50/50' : 'border-slate-200 bg-slate-100/60'}`}>
+                {stageProjects.map(project => (
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    onOpen={onOpen}
+                    onDragStart={(event, item) => {
+                      event.dataTransfer.effectAllowed = 'move'
+                      setDragging(item)
+                    }}
+                  />
+                ))}
+                {stageProjects.length === 0 && <p className="px-2 py-5 text-center text-[11px] text-slate-400">Suelta aquí</p>}
+              </div>
+            </section>
+          )
+        })}
+      </div>
     </div>
   )
 }
 
-// ── List view (comercial) ─────────────────────────────────────────────────
-function ListView({ commercial, navigate }) {
-  if (commercial.length === 0) return (
-    <div className="empty-state">
-      <p className="text-sm text-gray-500 font-medium">Sin proyectos comerciales</p>
-      <p className="mt-1 text-xs text-gray-400">Crea el primero con el botón de arriba</p>
-    </div>
-  )
+function ListView({ projects, onOpen }) {
+  if (!projects.length) return <EmptyProjects />
   return (
     <>
-      {/* Desktop table */}
-      <div className="hidden md:block table-container">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Proyecto</th>
-              <th>Farmacia</th>
-              <th>Etapa</th>
-              <th>Importe</th>
-              <th>Cierre est.</th>
-              <th>Comercial</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {commercial.map(p => {
-              const stage  = COMMERCIAL_STAGES.find(s => s.id === p.pipeline_stage)
-              const overdue = p.expected_close_date && new Date(p.expected_close_date) < new Date()
-              return (
-                <tr key={p.id} className="cursor-pointer" onClick={() => navigate('project-detail', { projectId: p.id })}>
-                  <td className="font-medium text-gray-900">{p.name}</td>
-                  <td className="text-gray-500">{p.pharmacy?.pharmacy_name || '—'}</td>
-                  <td>
-                    <span className="inline-flex items-center gap-1.5">
-                      {stage && <span className={`h-1.5 w-1.5 rounded-full ${stage.dot}`} />}
-                      <span className="text-gray-600">{stage?.label || p.pipeline_stage}</span>
-                    </span>
-                  </td>
-                  <td className="font-medium" style={{ color: '#1c473c' }}>
-                    {p.amount ? Number(p.amount).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' }) : '—'}
-                  </td>
-                  <td className={overdue ? 'text-red-500 font-medium' : 'text-gray-500'}>
-                    {p.expected_close_date ? new Date(p.expected_close_date).toLocaleDateString('es-ES') : '—'}
-                  </td>
-                  <td className="text-gray-500">{p.commercial?.full_name || '—'}</td>
-                  <td className="text-gray-300"><IcChevron /></td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+      <div className="hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:block">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-100 text-left text-sm">
+            <thead className="bg-slate-50">
+              <tr className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">
+                <th className="px-4 py-3">Proyecto</th>
+                <th className="px-4 py-3">Farmacia</th>
+                <th className="px-4 py-3">Etapa</th>
+                <th className="px-4 py-3">Prioridad</th>
+                <th className="px-4 py-3">Estado</th>
+                <th className="px-4 py-3">Fecha objetivo</th>
+                <th className="px-4 py-3">Responsable</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {projects.map(project => {
+                const priority = getPriority(project.priority)
+                const status = getStatus(project.status)
+                return (
+                  <tr key={project.id} onClick={() => onOpen(project)} className="cursor-pointer transition hover:bg-teal-50/50">
+                    <td className="px-4 py-3 font-bold text-slate-900">{project.name}</td>
+                    <td className="px-4 py-3 text-slate-600">{project.pharmacy?.pharmacy_name || 'Sin asignar'}</td>
+                    <td className="px-4 py-3 text-slate-600">{getStage(project).label}</td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center gap-1.5 text-slate-600"><span className={`h-2 w-2 rounded-full ${priority.dot}`} />{priority.label}</span>
+                    </td>
+                    <td className="px-4 py-3"><span className={status.badge}>{status.label}</span></td>
+                    <td className={`px-4 py-3 ${isOverdue(project) ? 'font-bold text-rose-600' : 'text-slate-600'}`}>{fmtDate(project.expected_close_date)}</td>
+                    <td className="px-4 py-3 text-slate-600">{project.commercial?.full_name || project.technician?.full_name || 'Sin asignar'}</td>
+                    <td className="px-4 py-3 text-slate-400"><ChevronRightIcon className="h-4 w-4" /></td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
-      {/* Mobile cards */}
-      <div className="md:hidden space-y-2">
-        {commercial.map(p => {
-          const stage  = COMMERCIAL_STAGES.find(s => s.id === p.pipeline_stage)
-          const overdue = p.expected_close_date && new Date(p.expected_close_date) < new Date()
+
+      <div className="space-y-2 md:hidden">
+        {projects.map(project => {
+          const priority = getPriority(project.priority)
           return (
-            <button key={p.id} onClick={() => navigate('project-detail', { projectId: p.id })}
-              className="card w-full text-left p-4 flex items-center gap-3 hover:border-gray-300 transition">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{p.name}</p>
-                <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
-                  {stage && <span className={`h-1.5 w-1.5 rounded-full ${stage.dot}`} />}
-                  <span className="text-xs text-gray-400">{stage?.label}</span>
-                  {p.pharmacy && <><span className="text-gray-300">·</span><span className="text-xs text-gray-400 truncate">{p.pharmacy.pharmacy_name}</span></>}
+            <button key={project.id} type="button" onClick={() => onOpen(project)} className="w-full rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-slate-900">{project.name}</p>
+                  <p className="mt-1 truncate text-xs text-slate-500">{project.pharmacy?.pharmacy_name || 'Sin farmacia asignada'}</p>
                 </div>
+                <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${priority.dot}`} />
               </div>
-              <div className="text-right shrink-0">
-                {p.amount && <p className="text-sm font-semibold" style={{ color: '#1c473c' }}>{Number(p.amount).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>}
-                {p.expected_close_date && <p className={`text-xs ${overdue ? 'text-red-500' : 'text-gray-400'}`}>{new Date(p.expected_close_date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</p>}
+              <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-2 text-xs">
+                <span className="text-slate-500">{getStage(project).label}</span>
+                <span className={isOverdue(project) ? 'font-bold text-rose-600' : 'text-slate-400'}>{fmtDate(project.expected_close_date)}</span>
               </div>
-              <span className="text-gray-300 shrink-0"><IcChevron /></span>
             </button>
           )
         })}
@@ -198,211 +222,218 @@ function ListView({ commercial, navigate }) {
   )
 }
 
-// ── Support view ─────────────────────────────────────────────────────────────
-function SupportView({ support, navigate }) {
-  const [search, setSearch] = useState('')
-  const filtered = support.filter(p => {
-    const q = search.toLowerCase()
-    return !q || p.name?.toLowerCase().includes(q) || p.pharmacy?.pharmacy_name?.toLowerCase().includes(q)
+function CalendarView({ projects, month, setMonth, onOpen }) {
+  const firstDay = new Date(month.getFullYear(), month.getMonth(), 1)
+  const lastDay = new Date(month.getFullYear(), month.getMonth() + 1, 0)
+  const leadingDays = (firstDay.getDay() + 6) % 7
+  const cells = Array.from({ length: Math.ceil((leadingDays + lastDay.getDate()) / 7) * 7 }, (_, index) => {
+    const day = index - leadingDays + 1
+    return day >= 1 && day <= lastDay.getDate() ? day : null
   })
+  const monthKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`
+
+  function itemsForDay(day) {
+    const dayKey = `${monthKey}-${String(day).padStart(2, '0')}`
+    return projects.filter(project => project.expected_close_date === dayKey || project.start_date === dayKey)
+  }
 
   return (
-    <div className="space-y-4">
-      {/* Search */}
-      <div className="relative max-w-xs">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><IcSearch /></span>
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar proyecto o farmacia"
-          className="input pl-9"
-        />
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+        <button type="button" aria-label="Mes anterior" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100">
+          <ChevronLeftIcon className="h-4 w-4" />
+        </button>
+        <h3 className="font-display text-sm font-extrabold capitalize text-slate-900">{month.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</h3>
+        <button type="button" aria-label="Mes siguiente" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100">
+          <ChevronRightIcon className="h-4 w-4" />
+        </button>
       </div>
-
-      {filtered.length === 0 ? (
-        <div className="empty-state">
-          <p className="text-sm text-gray-500 font-medium">
-            {support.length === 0 ? 'Sin proyectos de soporte' : 'Sin resultados'}
-          </p>
-          <p className="mt-1 text-xs text-gray-400">
-            {support.length === 0 ? 'Crea el primero con el botón de arriba' : 'Prueba con otro término'}
-          </p>
-        </div>
-      ) : (
-        <>
-          {/* Desktop table */}
-          <div className="hidden md:block table-container">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Proyecto</th>
-                  <th>Farmacia</th>
-                  <th>Estado</th>
-                  <th>Técnico</th>
-                  <th>Inicio</th>
-                  <th>Cierre prev.</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(p => {
-                  const st = SUPPORT_STATUS.find(s => s.id === p.status)
-                  return (
-                    <tr key={p.id} className="cursor-pointer" onClick={() => navigate('project-detail', { projectId: p.id })}>
-                      <td className="font-medium text-gray-900">{p.name}</td>
-                      <td className="text-gray-500">{p.pharmacy?.pharmacy_name || '—'}</td>
-                      <td><span className={st?.badge || 'badge-gray'}>{st?.label || p.status}</span></td>
-                      <td className="text-gray-500">{p.technician?.full_name || '—'}</td>
-                      <td className="text-gray-500">{p.start_date ? new Date(p.start_date).toLocaleDateString('es-ES') : '—'}</td>
-                      <td className="text-gray-500">{p.expected_close_date ? new Date(p.expected_close_date).toLocaleDateString('es-ES') : '—'}</td>
-                      <td className="text-gray-300"><IcChevron /></td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile cards */}
-          <div className="md:hidden space-y-2">
-            {filtered.map(p => {
-              const st = SUPPORT_STATUS.find(s => s.id === p.status)
-              return (
-                <button key={p.id} onClick={() => navigate('project-detail', { projectId: p.id })}
-                  className="card w-full text-left p-4 flex items-center gap-3 hover:border-gray-300 transition">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{p.name}</p>
-                    {p.pharmacy && <p className="mt-0.5 text-xs text-gray-400 truncate">{p.pharmacy.pharmacy_name}</p>}
-                    {p.technician && <p className="mt-0.5 text-xs text-gray-400">{p.technician.full_name}</p>}
-                  </div>
-                  <div className="shrink-0 flex flex-col items-end gap-1.5">
-                    <span className={st?.badge || 'badge-gray'}>{st?.label || p.status}</span>
-                  </div>
-                  <span className="text-gray-300 shrink-0"><IcChevron /></span>
-                </button>
-              )
-            })}
-          </div>
-        </>
-      )}
+      <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50">
+        {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(day => <div key={day} className="px-2 py-2 text-center text-[10px] font-bold text-slate-400">{day}</div>)}
+      </div>
+      <div className="grid grid-cols-7">
+        {cells.map((day, index) => {
+          const items = day ? itemsForDay(day) : []
+          return (
+            <div key={`${day}-${index}`} className="min-h-20 border-b border-r border-slate-100 p-1 sm:min-h-28 sm:p-2">
+              {day && <p className="text-[11px] font-bold text-slate-500">{day}</p>}
+              <div className="mt-1 space-y-1">
+                {items.slice(0, 3).map(project => (
+                  <button key={project.id} type="button" onClick={() => onOpen(project)} className="block w-full truncate rounded bg-teal-50 px-1.5 py-1 text-left text-[10px] font-bold text-teal-800 hover:bg-teal-100">
+                    {project.name}
+                  </button>
+                ))}
+                {items.length > 3 && <p className="text-[10px] font-bold text-slate-400">+{items.length - 3} más</p>}
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
 
-// ── Main page ───────────────────────────────────────────────────────────────
-export default function ProjectsPage({ navigate: navigateProp }) {
-  const { projects, loading, error, moveStage } = useProjects()
-  const navigateHook = useNavigate()
-  const navigate = navigateProp || navigateHook
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [tab,        setTab]        = useState('commercial')
-  const [view,       setView]       = useState('kanban')
-  const [showCreate, setShowCreate] = useState(null)
-  const [defaultPharmacyId, setDefaultPharmacyId] = useState('')
-  const autoOpenRef = useRef(false)
+function EmptyProjects() {
+  return (
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 px-5 py-14 text-center">
+      <BriefcaseIcon className="mx-auto h-8 w-8 text-teal-500" />
+      <p className="mt-3 text-sm font-bold text-slate-700">No hay proyectos en esta vista</p>
+      <p className="mt-1 text-xs text-slate-400">Crea uno nuevo o ajusta los filtros.</p>
+    </div>
+  )
+}
 
-  const commercial = projects.filter(p => p.project_type === 'commercial')
-  const support    = projects.filter(p => p.project_type === 'support')
+export default function ProjectsPage() {
+  const { projects, loading, error, createProject, moveStage } = useProjects()
+  const navigate = useNavigate()
+  const toast = useToast()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [division, setDivision] = useState('commercial')
+  const [view, setView] = useState('board')
+  const [search, setSearch] = useState('')
+  const [status, setStatus] = useState('all')
+  const [priority, setPriority] = useState('all')
+  const [createDivision, setCreateDivision] = useState(null)
+  const [defaultPharmacyId, setDefaultPharmacyId] = useState('')
+  const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
+  const autoOpened = useRef(false)
 
   useEffect(() => {
-    const shouldOpen = searchParams.get('create') === '1'
-    if (!shouldOpen || autoOpenRef.current) return
-    setShowCreate(searchParams.get('type') === 'support' ? 'support' : 'commercial')
+    if (searchParams.get('create') !== '1' || autoOpened.current) return
+    const requestedType = PROJECT_DIVISIONS.some(item => item.id === searchParams.get('type')) ? searchParams.get('type') : 'commercial'
+    setDivision(requestedType)
+    setCreateDivision(requestedType)
     setDefaultPharmacyId(searchParams.get('pharmacy_id') || '')
     setSearchParams({}, { replace: true })
-    autoOpenRef.current = true
-  }, [searchParams, setSearchParams, autoOpenRef])
+    autoOpened.current = true
+  }, [searchParams, setSearchParams])
+
+  const counts = useMemo(() => ({
+    total: projects.length,
+    active: projects.filter(project => ['active', 'in_progress'].includes(project.status)).length,
+    overdue: projects.filter(isOverdue).length,
+    amount: projects.filter(project => getDivision(project).id === 'commercial').reduce((sum, project) => sum + Number(project.amount || 0), 0),
+  }), [projects])
+
+  const divisionCounts = useMemo(() => Object.fromEntries(
+    PROJECT_DIVISIONS.map(item => [item.id, projects.filter(project => getDivision(project).id === item.id).length]),
+  ), [projects])
+
+  const filtered = useMemo(() => projects.filter(project => {
+    const haystack = normalizeText([
+      project.name,
+      project.pharmacy?.pharmacy_name,
+      project.pharmacy?.city,
+      project.pharmacy?.province,
+      project.commercial?.full_name,
+      project.technician?.full_name,
+      getStage(project).label,
+    ].join(' '))
+    return getDivision(project).id === division
+      && (!search || haystack.includes(normalizeText(search)))
+      && (status === 'all' || project.status === status)
+      && (priority === 'all' || (project.priority || 'medium') === priority)
+  }), [division, priority, projects, search, status])
+
+  async function handleCreate(payload) {
+    const created = await createProject(payload)
+    toast('Proyecto creado correctamente.', 'success')
+    navigate(`/proyectos/${created.id}`)
+  }
+
+  async function handleMove(projectId, stageId) {
+    try {
+      await moveStage(projectId, stageId)
+      toast('Etapa actualizada.', 'success', 1800)
+    } catch (moveError) {
+      toast(moveError.message, 'error')
+    }
+  }
 
   return (
-    <div className="page-container">
-
-      {/* Header */}
-      <div className="page-header">
+    <div className="space-y-5 px-3 py-4 sm:px-5 lg:px-6">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="page-title">Proyectos</h1>
-          <p className="page-subtitle">
-            {commercial.length} comerciales · {support.length} de soporte
-          </p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-teal-700">Centro operativo</p>
+          <h1 className="font-display text-2xl font-extrabold text-slate-950 sm:text-3xl">Proyectos</h1>
+          <p className="mt-1 text-sm text-slate-500">Planifica, coordina y conecta cada trabajo con su farmacia.</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => setShowCreate('support')}   className="btn-secondary">Soporte</button>
-          <button onClick={() => setShowCreate('commercial')} className="btn-primary">
-            <IcPlus /> Comercial
-          </button>
-        </div>
+        <button type="button" onClick={() => setCreateDivision(division)} className="btn-primary self-start sm:self-auto">
+          <PlusIcon className="h-4 w-4" /> Nuevo proyecto
+        </button>
+      </header>
+
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+        <MetricCard label="Cartera total" value={counts.total} detail="proyectos" Icon={BriefcaseIcon} />
+        <MetricCard label="En marcha" value={counts.active} detail="activos" Icon={ClockIcon} />
+        <MetricCard label="Vencidos" value={counts.overdue} detail="requieren atención" Icon={ExclamationTriangleIcon} alert={counts.overdue > 0} />
+        <MetricCard label="Pipeline comercial" value={fmtCurrency(counts.amount)} detail="estimado" Icon={BanknotesIcon} />
       </div>
 
-      {/* Tabs + view toggle */}
-      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
-        {/* Tabs */}
-        <div className="flex">
-          {[['commercial', 'Comercial'], ['support', 'Soporte']].map(([id, label]) => (
-            <button
-              key={id}
-              onClick={() => setTab(id)}
-              className={`px-4 py-2 text-sm transition border-b-2 ${
-                tab === id
-                  ? 'border-[#1c473c] text-[#1c473c] font-medium'
-                  : 'border-transparent text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              {label}
+      <section className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+        <div className="grid grid-cols-2 gap-1 lg:grid-cols-4">
+          {PROJECT_DIVISIONS.map(item => {
+            const Icon = DIVISION_ICONS[item.id]
+            return (
+              <button key={item.id} type="button" onClick={() => setDivision(item.id)} className={`rounded-xl px-3 py-3 text-left transition ${division === item.id ? 'bg-teal-700 text-white shadow-md' : 'hover:bg-slate-50'}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <Icon className={`h-5 w-5 ${division === item.id ? 'text-teal-100' : 'text-teal-700'}`} />
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${division === item.id ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-500'}`}>{divisionCounts[item.id]}</span>
+                </div>
+                <p className={`mt-2 text-sm font-extrabold ${division === item.id ? 'text-white' : 'text-slate-900'}`}>{item.label}</p>
+                <p className={`mt-0.5 hidden text-[11px] lg:block ${division === item.id ? 'text-teal-100' : 'text-slate-400'}`}>{item.description}</p>
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm lg:flex-row lg:items-center">
+        <div className="relative min-w-0 flex-1">
+          <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input className="input pl-9" value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar proyecto, farmacia o responsable..." />
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:flex">
+          <select className="input min-w-0 sm:w-36" value={status} onChange={event => setStatus(event.target.value)}>
+            <option value="all">Todos los estados</option>
+            {PROJECT_STATUSES.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+          </select>
+          <select className="input min-w-0 sm:w-36" value={priority} onChange={event => setPriority(event.target.value)}>
+            <option value="all">Toda prioridad</option>
+            {PRIORITIES.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+          </select>
+        </div>
+        <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+          {VIEW_OPTIONS.map(option => (
+            <button key={option.id} type="button" onClick={() => setView(option.id)} title={option.label} className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-bold transition sm:flex-none ${view === option.id ? 'bg-white text-teal-800 shadow-sm' : 'text-slate-400 hover:text-slate-700'}`}>
+              <option.Icon className="h-4 w-4" /><span className="hidden sm:inline">{option.label}</span>
             </button>
           ))}
         </div>
+      </section>
 
-        {/* View toggle — solo en comercial */}
-        {tab === 'commercial' && (
-          <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
-            {[['kanban', <IcKanban key="k" />, 'Kanban'], ['list', <IcList key="l" />, 'Lista']].map(([id, icon, label]) => (
-              <button
-                key={id}
-                onClick={() => setView(id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                  view === id ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {icon}{label}
-              </button>
-            ))}
-          </div>
-        )}
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">{filtered.length} proyectos visibles</p>
+        <p className="hidden text-xs text-slate-400 sm:block">Arrastra tarjetas para actualizar el pipeline</p>
       </div>
 
-      {/* Loading */}
-      {loading && (
-        <div className="flex items-center justify-center py-20">
-          <div className="h-6 w-6 rounded-full border-2 border-[#1c473c] border-t-transparent animate-spin" />
-        </div>
+      {error && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
+      {loading ? (
+        <div className="flex justify-center py-24"><div className="h-7 w-7 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" /></div>
+      ) : view === 'board' ? (
+        filtered.length ? <BoardView projects={filtered} division={division} onOpen={project => navigate(`/proyectos/${project.id}`)} onMove={handleMove} /> : <EmptyProjects />
+      ) : view === 'list' ? (
+        <ListView projects={filtered} onOpen={project => navigate(`/proyectos/${project.id}`)} />
+      ) : (
+        <CalendarView projects={filtered} month={month} setMonth={setMonth} onOpen={project => navigate(`/proyectos/${project.id}`)} />
       )}
 
-      {/* Error */}
-      {error && (
-        <div className="rounded-2xl bg-red-50 border border-red-100 px-5 py-4 text-sm text-red-600">
-          {error}
-        </div>
-      )}
-
-      {/* Content */}
-      {!loading && !error && (
-        <>
-          {tab === 'commercial' && view === 'kanban' && (
-            <KanbanView commercial={commercial} moveStage={moveStage} navigate={navigate} />
-          )}
-          {tab === 'commercial' && view === 'list' && (
-            <ListView commercial={commercial} navigate={navigate} />
-          )}
-          {tab === 'support' && (
-            <SupportView support={support} navigate={navigate} />
-          )}
-        </>
-      )}
-
-      {showCreate && (
+      {createDivision && (
         <CreateProjectModal
-          defaultType={showCreate}
+          defaultType={createDivision}
           defaultPharmacyId={defaultPharmacyId}
-          onClose={() => setShowCreate(null)}
+          onClose={() => setCreateDivision(null)}
+          onCreate={handleCreate}
         />
       )}
     </div>

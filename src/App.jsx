@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import { ToastProvider } from './context/ToastContext'
 import AppLayout from './layouts/AppLayout'
@@ -11,21 +11,15 @@ import NewPharmacyPage from './pages/NewPharmacyPage'
 import PharmacyEditPage from './pages/PharmacyEditPage'
 import PeoplePage from './pages/PeoplePage'
 import IncidentsPage from './pages/IncidentsPage'
-import ProjectsPage from './pages/ProjectsPage'
 import DocumentsPage from './pages/DocumentsPage'
+
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
+const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'))
 
 // Protege rutas autenticadas
 function PrivateRoute({ session, children }) {
   if (session === undefined) return null // Cargando sesión
   return session ? children : <Navigate to="/login" replace />
-}
-
-// Protege rutas solo para el rol 'admin'
-function AdminRoute({ session, profile, children }) {
-  if (session === undefined || profile === undefined) return null
-  if (!session) return <Navigate to="/login" replace />
-  if (profile?.role !== 'admin') return <Navigate to="/" replace />
-  return children
 }
 
 // Compatibilidad con rutas antiguas en inglés (/pharmacies/*)
@@ -39,14 +33,27 @@ function LegacyPharmacyRedirect({ toEdit = false }) {
   )
 }
 
-function ProjectsRoute() {
-  const navigate = useNavigate()
-  return <ProjectsPage navigate={navigate} />
+function ProjectRoute({ detail = false }) {
+  const Page = detail ? ProjectDetailPage : ProjectsPage
+  return (
+    <Suspense fallback={<div className="flex justify-center py-24"><div className="h-7 w-7 animate-spin rounded-full border-2 border-teal-700 border-t-transparent" /></div>}>
+      <Page />
+    </Suspense>
+  )
 }
 
 export default function App() {
   const [session, setSession] = useState(undefined)
   const [profile, setProfile] = useState(undefined)
+
+  async function loadProfile(userId) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('role, company_id')
+      .eq('id', userId)
+      .maybeSingle()
+    setProfile(data ?? null)
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -63,15 +70,6 @@ export default function App() {
     })
     return () => subscription.unsubscribe()
   }, [])
-
-  async function loadProfile(userId) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('role, company_id')
-      .eq('id', userId)
-      .maybeSingle()
-    setProfile(data ?? null)
-  }
 
   return (
     <ToastProvider>
@@ -97,7 +95,8 @@ export default function App() {
             <Route path="farmacias/:id/editar" element={<PharmacyEditPage />} />
             <Route path="personas" element={<PeoplePage />} />
             <Route path="incidencias" element={<IncidentsPage profile={profile} />} />
-            <Route path="proyectos" element={<ProjectsRoute />} />
+            <Route path="proyectos" element={<ProjectRoute />} />
+            <Route path="proyectos/:id" element={<ProjectRoute detail />} />
             <Route path="documentos" element={<DocumentsPage profile={profile} />} />
           </Route>
 

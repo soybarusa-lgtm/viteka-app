@@ -23,7 +23,7 @@ export async function logActivity({ entity_type, entity_id, entity_name, action,
 
     if (!profile) return
 
-    await supabase.from('activity_logs').insert({
+    const payload = {
       company_id: profile.company_id,
       user_id: user.id,
       user_name: profile.full_name,
@@ -33,7 +33,13 @@ export async function logActivity({ entity_type, entity_id, entity_name, action,
       action,
       old_value,
       new_value,
-    })
+    }
+    const { error } = await supabase.from('activity_logs').insert(payload)
+    if (error?.code === 'PGRST204' && error.message?.includes("'user_name'")) {
+      const legacyPayload = { ...payload }
+      delete legacyPayload.user_name
+      await supabase.from('activity_logs').insert(legacyPayload)
+    }
   } catch (err) {
     // El log no debe romper el flujo principal
     console.error('Error al registrar actividad:', err)
