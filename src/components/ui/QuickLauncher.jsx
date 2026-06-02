@@ -8,6 +8,8 @@ import {
   SquaresPlusIcon,
   UsersIcon,
   XMarkIcon,
+  LifebuoyIcon,
+  TicketIcon,
 } from '@heroicons/react/24/outline'
 
 const CREATE_ACTIONS = [
@@ -25,12 +27,20 @@ const CREATE_ACTIONS = [
     Icon: FolderOpenIcon,
     tone: 'bg-sky-50 text-sky-700 ring-sky-100',
   },
+  {
+    to: '/cliente/soporte/tickets/nuevo',
+    label: 'Nuevo ticket',
+    detail: 'Registra una incidencia o consulta',
+    Icon: TicketIcon,
+    tone: 'bg-amber-50 text-amber-700 ring-amber-100',
+  },
 ]
 
 const NAV_ACTIONS = [
   { to: '/farmacias', label: 'Farmacias', detail: 'Directorio y filtros', Icon: BuildingStorefrontIcon },
   { to: '/personas', label: 'Personas', detail: 'Contactos y responsables', Icon: UsersIcon },
   { to: '/proyectos', label: 'Proyectos', detail: 'Pipelines, calendario y tareas', Icon: FolderOpenIcon },
+  { to: '/soporte/dashboard', label: 'Soporte', detail: 'Incidencias, tickets y seguimiento', Icon: LifebuoyIcon },
   { to: '/documentos', label: 'Documentación', detail: 'Biblioteca corporativa', Icon: DocumentTextIcon },
 ]
 
@@ -139,7 +149,7 @@ export default function QuickLauncher({ open, onClose }) {
 
         <footer className="mt-5 flex items-center gap-2 rounded-xl bg-teal-50 px-3 py-2.5 text-xs text-teal-800">
           <SquaresPlusIcon className="h-4 w-4 shrink-0" />
-          Incidencias se incorporará como portal conectado en una siguiente fase.
+          Incidencias ya dispone de un portal conectado para equipo interno y clientes.
         </footer>
       </section>
     </div>

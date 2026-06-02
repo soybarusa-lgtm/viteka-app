@@ -14,6 +14,9 @@ import {
   ChevronRightIcon,
   Bars3Icon,
   XMarkIcon,
+  LifebuoyIcon,
+  TicketIcon,
+  ChartBarIcon,
 } from '@heroicons/react/24/outline'
 
 const NAV = [
@@ -21,6 +24,9 @@ const NAV = [
   { to: '/farmacias', label: 'Farmacias', Icon: BuildingStorefrontIcon },
   { to: '/personas', label: 'Personas', Icon: UsersIcon },
   { to: '/proyectos', label: 'Proyectos', Icon: FolderOpenIcon },
+  { to: '/soporte/dashboard', label: 'Soporte', Icon: LifebuoyIcon },
+  { to: '/soporte/tickets', label: 'Tickets', Icon: TicketIcon },
+  { to: '/soporte/estadisticas', label: 'Estadísticas soporte', Icon: ChartBarIcon },
   { to: '/documentos', label: 'Documentación', Icon: DocumentTextIcon },
 ]
 
