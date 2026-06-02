@@ -124,6 +124,8 @@ export function usePharmacies(companyId) {
     setLoading(false)
   }, [companyId])
 
+  // Loading on mount intentionally synchronizes this hook with Supabase.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [load])
 
   async function createPharmacy(payload) {
@@ -142,7 +144,8 @@ export function usePharmacies(companyId) {
       .single()
 
     if (err && isMissingCommercialStatusColumn(err)) {
-      const { commercial_status, ...legacyPayload } = insertPayload
+      const legacyPayload = { ...insertPayload }
+      delete legacyPayload.commercial_status
       const legacyResult = await supabase
         .from('pharmacies')
         .insert(legacyPayload)
@@ -180,7 +183,8 @@ export function usePharmacies(companyId) {
       .single()
 
     if (err && isMissingCommercialStatusColumn(err)) {
-      const { commercial_status, ...legacyPayload } = nextPayload
+      const legacyPayload = { ...nextPayload }
+      delete legacyPayload.commercial_status
       const legacyResult = await supabase
         .from('pharmacies')
         .update(legacyPayload)

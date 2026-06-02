@@ -9,18 +9,13 @@ import {
   MagnifyingGlassIcon, PlusIcon, BuildingStorefrontIcon, MapPinIcon,
   Bars3Icon, ChevronUpDownIcon, ChevronUpIcon, ChevronDownIcon, ArrowDownTrayIcon,
   EllipsisVerticalIcon, PencilSquareIcon, WrenchScrewdriverIcon, ComputerDesktopIcon,
-  UsersIcon, ExclamationTriangleIcon, FolderOpenIcon, DocumentTextIcon,
+  UsersIcon, FolderOpenIcon, DocumentTextIcon,
 } from '@heroicons/react/24/outline'
 
 const PROVINCE_LABEL = {
   almeria: 'Almería', cadiz: 'Cádiz', cordoba: 'Córdoba', granada: 'Granada',
   huelva: 'Huelva', jaen: 'Jaén', malaga: 'Málaga', sevilla: 'Sevilla',
 }
-const LEGAL_LABEL = {
-  autonomo: 'Persona Jurídica.', cb: 'C.B.', sl: 'S.L.',
-  autonomo_sl: 'Persona Jurídica. + S.L.', cb_sl: 'C.B. + S.L.',
-}
-
 const DEFAULT_COLUMNS = [
   { key: 'pharmacy_name', label: 'Nombre de la farmacia' },
   { key: 'owners', label: 'Nombre del titular/es' },
@@ -194,9 +189,17 @@ function matchesSelectValue(value, filterValue) {
   return String(value || '') === filterValue
 }
 
+function normalizeText(value = '') {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('es')
+    .trim()
+}
+
 function matchesTextValue(value, filterValue) {
   if (!filterValue) return true
-  return String(value || '').toLowerCase().includes(filterValue.toLowerCase())
+  return normalizeText(value).includes(normalizeText(filterValue))
 }
 
 function countActiveAdvancedFilters(filters, selectedProvinces, selectedVitekaProducts) {
@@ -477,7 +480,6 @@ function RowActionsMenu({ pharmacy }) {
     { label: 'Editar equipamiento', icon: WrenchScrewdriverIcon, to: `/farmacias/${pharmacy.id}?tab=equipment&action=edit` },
     { label: 'Crear equipo informático', icon: ComputerDesktopIcon, to: `/farmacias/${pharmacy.id}?tab=it&action=new-it` },
     { label: 'Crear persona', icon: UsersIcon, to: `/farmacias/${pharmacy.id}?tab=people&action=new-person` },
-    { label: 'Crear ticket', icon: ExclamationTriangleIcon, to: `/incidencias?pharmacy_id=${pharmacy.id}&open=1` },
     { label: 'Crear proyecto', icon: FolderOpenIcon, to: `/proyectos?pharmacy_id=${pharmacy.id}&create=1&type=commercial` },
     { label: 'Subir documentos', icon: DocumentTextIcon, to: `/documentos?open=1` },
   ]
@@ -1230,9 +1232,9 @@ export default function PharmaciesPage() {
       p.schedule,
       p.contact_phone,
       p.contact_email,
-    ].filter(Boolean).join(' ').toLowerCase()
+    ].filter(Boolean).join(' ')
 
-    const matchSearch = searchValue.includes(search.toLowerCase())
+    const matchSearch = normalizeText(searchValue).includes(normalizeText(search))
     const matchProv = selectedProvinces.length === 0 || selectedProvinces.includes(p.province)
     const vitekaProducts = getVitekaEquipmentProducts(p)
     const matchViteka = selectedVitekaProducts.length === 0 || selectedVitekaProducts.some(product => vitekaProducts.includes(product))
@@ -1492,9 +1494,7 @@ export default function PharmaciesPage() {
     }
 
     function drawHeader() {
-      let currentX = left
       pdf.setTextColor(55, 65, 81)
-      currentX = left
       drawTableRow(exportHeaders, { fill: true, fontStyle: 'bold' })
       pdf.setFont('helvetica', 'normal')
       pdf.setTextColor(75, 85, 99)

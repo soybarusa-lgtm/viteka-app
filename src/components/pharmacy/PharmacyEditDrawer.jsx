@@ -25,6 +25,8 @@ export default function PharmacyEditDrawer({ isOpen, onClose, title, subtitle, c
     return () => window.removeEventListener('keydown', handler)
   }, [isOpen, onClose])
 
+  if (!isOpen) return null
+
   return (
     <>
       {/* Overlay */}
@@ -35,7 +37,7 @@ export default function PharmacyEditDrawer({ isOpen, onClose, title, subtitle, c
         className={`
           fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm
           transition-opacity duration-300 ease-in-out
-          ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}
+          opacity-100 pointer-events-auto
         `}
       />
 
@@ -49,7 +51,7 @@ export default function PharmacyEditDrawer({ isOpen, onClose, title, subtitle, c
           w-full sm:w-[600px] max-w-full
           bg-white shadow-2xl
           transition-transform duration-300 ease-in-out
-          ${isOpen ? 'translate-x-0' : 'translate-x-full'}
+          translate-x-0
         `}
       >
         {/* Header */}

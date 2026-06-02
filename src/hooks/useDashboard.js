@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 export function useDashboard(companyId) {
@@ -6,12 +6,12 @@ export function useDashboard(companyId) {
   const [loading, setLoading] = useState(true)
   const [error, setError]   = useState(null)
 
-  useEffect(() => {
-    if (!companyId) return
-    load()
-  }, [companyId])
-
-  async function load() {
+  const load = useCallback(async () => {
+    if (!companyId) {
+      setData(null)
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError(null)
     try {
@@ -22,9 +22,7 @@ export function useDashboard(companyId) {
         { count: projectsActive },
         { count: tasksPending },
         { count: tasksOverdue },
-        { count: incidentsOpen },
         { data: recentProjects },
-        { data: recentIncidents },
         { data: allProjects },
       ] = await Promise.all([
         supabase.from('pharmacies').select('*', { count: 'exact', head: true }).eq('company_id', companyId).eq('is_active', true),
@@ -32,16 +30,13 @@ export function useDashboard(companyId) {
         supabase.from('projects').select('*', { count: 'exact', head: true }).eq('company_id', companyId).in('status', ['active', 'in_progress']),
         supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('company_id', companyId).in('status', ['pending', 'in_progress']),
         supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'pending').lt('due_date', today),
-        supabase.from('incidents').select('*', { count: 'exact', head: true }).eq('company_id', companyId).in('status', ['open', 'in_progress']),
         supabase.from('projects').select('id, name, status, priority, expected_close_date, pharmacy_id').eq('company_id', companyId).order('created_at', { ascending: false }).limit(5),
-        supabase.from('incidents').select('id, title, status, priority, created_at, pharmacy_id').eq('company_id', companyId).in('status', ['open', 'in_progress']).order('created_at', { ascending: false }).limit(5),
         supabase.from('projects').select('status').eq('company_id', companyId),
       ])
 
       // Enriquecer con nombre de farmacia
       const ids = [
         ...(recentProjects  || []).map(p => p.pharmacy_id),
-        ...(recentIncidents || []).map(i => i.pharmacy_id),
       ].filter(Boolean)
       let names = {}
       if (ids.length) {
@@ -65,9 +60,7 @@ export function useDashboard(companyId) {
         projectsActive: projectsActive|| 0,
         tasksPending:   tasksPending  || 0,
         tasksOverdue:   tasksOverdue  || 0,
-        incidentsOpen:  incidentsOpen || 0,
         recentProjects:  enrich(recentProjects),
-        recentIncidents: enrich(recentIncidents),
         projectsByStatus,
       })
     } catch (err) {
@@ -75,7 +68,11 @@ export function useDashboard(companyId) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [companyId])
+
+  // Loading on mount intentionally synchronizes this hook with Supabase.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { load() }, [load])
 
   return { data, loading, error, refresh: load }
 }

@@ -86,6 +86,11 @@ h3,
   color: var(--v-black);
 }
 
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid rgba(0, 105, 92, 0.72);
+  outline-offset: 2px;
+}
+
 .brand-app-shell {
   background:
     linear-gradient(180deg, rgba(244, 249, 248, 0.98) 0%, #eef6f4 100%),
@@ -264,10 +269,58 @@ h3,
   display: none;
 }
 
+.scrollbar-none {
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+:where(.badge-gray, .badge-blue, .badge-green, .badge-yellow, .badge-orange, .badge-red) {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.badge-gray {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.badge-blue {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.badge-green {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.badge-yellow {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.badge-orange {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.badge-red {
+  background: #fff1f2;
+  color: #be123c;
+}
+
 .page-wrapper {
   padding: 1rem;
-  max-width: 80rem;
-  margin: 0 auto;
+  width: 100%;
 }
 
 @media (min-width: 640px) {

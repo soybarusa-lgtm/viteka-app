@@ -35,11 +35,9 @@ export function usePharmacy(id) {
     }
   }, [id])
 
-  useEffect(() => {
-    let cancelled = false
-    load().catch(() => {})
-    return () => { cancelled = true }
-  }, [load])
+  // Loading on mount intentionally synchronizes this hook with Supabase.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { load().catch(() => {}) }, [load])
 
   return { pharmacy, equipment, loading, error, refetch: load }
 }

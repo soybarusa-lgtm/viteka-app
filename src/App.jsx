@@ -1,20 +1,19 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import { ToastProvider } from './context/ToastContext'
 import AppLayout from './layouts/AppLayout'
 import LoginPage from './pages/LoginPage'
-import DashboardPage from './pages/DashboardPage'
-import PharmaciesPage from './pages/PharmaciesPage'
-import PharmacyDetailPage from './pages/PharmacyDetailPage'
-import NewPharmacyPage from './pages/NewPharmacyPage'
-import PharmacyEditPage from './pages/PharmacyEditPage'
-import PeoplePage from './pages/PeoplePage'
-import IncidentsPage from './pages/IncidentsPage'
-import DocumentsPage from './pages/DocumentsPage'
 
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const PharmaciesPage = lazy(() => import('./pages/PharmaciesPage'))
+const PharmacyDetailPage = lazy(() => import('./pages/PharmacyDetailPage'))
+const NewPharmacyPage = lazy(() => import('./pages/NewPharmacyPage'))
+const PharmacyEditPage = lazy(() => import('./pages/PharmacyEditPage'))
+const PeoplePage = lazy(() => import('./pages/PeoplePage'))
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
 const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'))
+const DocumentsPage = lazy(() => import('./pages/DocumentsPage'))
 
 // Protege rutas autenticadas
 function PrivateRoute({ session, children }) {
@@ -33,27 +32,30 @@ function LegacyPharmacyRedirect({ toEdit = false }) {
   )
 }
 
-function ProjectRoute({ detail = false }) {
-  const Page = detail ? ProjectDetailPage : ProjectsPage
+function PageFallback() {
   return (
-    <Suspense fallback={<div className="flex justify-center py-24"><div className="h-7 w-7 animate-spin rounded-full border-2 border-teal-700 border-t-transparent" /></div>}>
-      <Page />
-    </Suspense>
+    <div className="flex justify-center py-24">
+      <div className="h-7 w-7 animate-spin rounded-full border-2 border-teal-700 border-t-transparent" />
+    </div>
   )
+}
+
+function LazyRoute({ children }) {
+  return <Suspense fallback={<PageFallback />}>{children}</Suspense>
 }
 
 export default function App() {
   const [session, setSession] = useState(undefined)
   const [profile, setProfile] = useState(undefined)
 
-  async function loadProfile(userId) {
+  const loadProfile = useCallback(async (userId) => {
     const { data } = await supabase
       .from('profiles')
-      .select('role, company_id')
+      .select('id, role, company_id')
       .eq('id', userId)
       .maybeSingle()
     setProfile(data ?? null)
-  }
+  }, [])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -69,7 +71,7 @@ export default function App() {
       else setProfile(null)
     })
     return () => subscription.unsubscribe()
-  }, [])
+  }, [loadProfile])
 
   return (
     <ToastProvider>
@@ -84,20 +86,20 @@ export default function App() {
               <AppLayout session={session} />
             </PrivateRoute>
           }>
-            <Route index element={<DashboardPage />} />
+            <Route index element={<LazyRoute><DashboardPage /></LazyRoute>} />
             <Route path="pharmacies" element={<Navigate to="/farmacias" replace />} />
             <Route path="pharmacies/new" element={<Navigate to="/farmacias/nueva" replace />} />
             <Route path="pharmacies/:id" element={<LegacyPharmacyRedirect />} />
             <Route path="pharmacies/:id/edit" element={<LegacyPharmacyRedirect toEdit />} />
-            <Route path="farmacias" element={<PharmaciesPage />} />
-            <Route path="farmacias/nueva" element={<NewPharmacyPage />} />
-            <Route path="farmacias/:id" element={<PharmacyDetailPage />} />
-            <Route path="farmacias/:id/editar" element={<PharmacyEditPage />} />
-            <Route path="personas" element={<PeoplePage />} />
-            <Route path="incidencias" element={<IncidentsPage profile={profile} />} />
-            <Route path="proyectos" element={<ProjectRoute />} />
-            <Route path="proyectos/:id" element={<ProjectRoute detail />} />
-            <Route path="documentos" element={<DocumentsPage profile={profile} />} />
+            <Route path="farmacias" element={<LazyRoute><PharmaciesPage /></LazyRoute>} />
+            <Route path="farmacias/nueva" element={<LazyRoute><NewPharmacyPage /></LazyRoute>} />
+            <Route path="farmacias/:id" element={<LazyRoute><PharmacyDetailPage /></LazyRoute>} />
+            <Route path="farmacias/:id/editar" element={<LazyRoute><PharmacyEditPage /></LazyRoute>} />
+            <Route path="personas" element={<LazyRoute><PeoplePage /></LazyRoute>} />
+            <Route path="incidencias" element={<Navigate to="/proyectos" replace />} />
+            <Route path="proyectos" element={<LazyRoute><ProjectsPage /></LazyRoute>} />
+            <Route path="proyectos/:id" element={<LazyRoute><ProjectDetailPage /></LazyRoute>} />
+            <Route path="documentos" element={<LazyRoute><DocumentsPage profile={profile} /></LazyRoute>} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -20,10 +20,12 @@ const PROVINCES = [
 function ScheduleEditorModal({ isOpen, value, fallbackSummary, onClose, onApply }) {
   const [draft, setDraft] = useState(() => cloneScheduleDetail(value || buildEmptyScheduleDetail()))
 
+  /* eslint-disable react-hooks/set-state-in-effect -- Reopening the editor intentionally resets its draft from the saved schedule. */
   useEffect(() => {
     if (!isOpen) return
     setDraft(cloneScheduleDetail(value || buildEmptyScheduleDetail()))
   }, [isOpen, value])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const summary = useMemo(() => formatScheduleSummary(draft, fallbackSummary), [draft, fallbackSummary])
 

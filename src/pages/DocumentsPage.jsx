@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { createNotification } from '../lib/notifications'
-
-const COMPANY_ID = '53d152e5-8459-4996-aa9e-e27ecd97892d'
+import { normalizeText } from '../lib/projectManagement'
 
 const CATEGORIES = [
   { value: 'general',  label: 'General' },
@@ -25,18 +24,13 @@ function IconDownload() { return (<svg width="13" height="13" viewBox="0 0 24 24
 function IconTrash()    { return (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>) }
 function IconSearch()   { return (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>) }
 
-function fmtSize(bytes) {
-  if (!bytes) return ''
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / 1048576).toFixed(1)} MB`
-}
 function fmtDate(str) {
   if (!str) return ''
   return new Date(str).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 export default function DocumentsPage({ profile }) {
+  const companyId = profile?.company_id
   const [documents, setDocuments] = useState([])
   const [search, setSearch]       = useState('')
   const [catFilter, setCatFilter] = useState('all')
@@ -50,7 +44,22 @@ export default function DocumentsPage({ profile }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const autoOpenedRef = useRef(false)
 
-  useEffect(() => { load() }, [])
+  const load = useCallback(async () => {
+    if (!companyId) {
+      setDocuments([])
+      return
+    }
+    const { data } = await supabase
+      .from('company_documents')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false })
+    setDocuments(data || [])
+  }, [companyId])
+
+  // Loading on mount intentionally synchronizes this page with Supabase.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { load() }, [load])
 
   useEffect(() => {
     const shouldOpen = searchParams.get('open') === '1'
@@ -60,22 +69,17 @@ export default function DocumentsPage({ profile }) {
     autoOpenedRef.current = true
   }, [searchParams, setSearchParams])
 
-  async function load() {
-    const { data } = await supabase.from('company_documents').select('*').order('created_at', { ascending: false })
-    setDocuments(data || [])
-  }
-
   async function uploadDocument(file) {
     if (!file || !title.trim()) { alert('Título obligatorio.'); return }
+    if (!companyId) { alert('No se ha podido identificar la empresa del usuario.'); return }
     setUploading(true)
     const ext = file.name.split('.').pop()
-    const filePath = `documents/${Date.now()}.${ext}`
+    const filePath = `${companyId}/documents/${Date.now()}.${ext}`
     const { error: uploadError } = await supabase.storage.from('company-documents').upload(filePath, file)
     if (uploadError) { setUploading(false); alert(uploadError.message); return }
-    const { data: urlData } = supabase.storage.from('company-documents').getPublicUrl(filePath)
     const { data, error } = await supabase.from('company_documents').insert({
-      company_id: COMPANY_ID, title, description, category,
-      file_name: file.name, file_path: filePath, file_url: urlData.publicUrl,
+      company_id: companyId, title, description, category,
+      file_name: file.name, file_path: filePath, file_url: '',
       mime_type: file.type, visible_to_client: visibleToClient, uploaded_by: profile?.id || null,
     }).select().single()
     setUploading(false)
@@ -92,9 +96,24 @@ export default function DocumentsPage({ profile }) {
     setDocuments(prev => prev.filter(d => d.id !== id))
   }
 
+  async function openDocument(doc) {
+    const previewWindow = window.open('', '_blank')
+    const { data } = doc.file_path
+      ? await supabase.storage.from('company-documents').createSignedUrl(doc.file_path, 60 * 10)
+      : { data: null }
+    const url = data?.signedUrl || doc.file_url
+    if (!url) {
+      previewWindow?.close()
+      alert('No se ha podido generar un enlace temporal para este documento.')
+      return
+    }
+    if (previewWindow) previewWindow.location.href = url
+    else window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
   const filtered = documents.filter(d => {
-    const text = [d.title, d.description, d.file_name, d.category].join(' ').toLowerCase()
-    return (!search || text.includes(search.toLowerCase())) && (catFilter === 'all' || d.category === catFilter)
+    const text = normalizeText([d.title, d.description, d.file_name, d.category].join(' '))
+    return (!search || text.includes(normalizeText(search))) && (catFilter === 'all' || d.category === catFilter)
   })
 
   return (
@@ -189,10 +208,10 @@ export default function DocumentsPage({ profile }) {
                 <span>{fmtDate(doc.created_at)}</span>
               </div>
               <div className="mt-4 flex items-center gap-2 border-t border-[#F1F5F9] pt-4">
-                <a href={doc.file_url} target="_blank" rel="noreferrer"
+                <button type="button" onClick={() => openDocument(doc)}
                   className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#005643] py-1.5 text-[12px] font-medium text-white transition hover:bg-[#00442f]">
                   <IconDownload /> Abrir
-                </a>
+                </button>
                 <button type="button" onClick={() => deleteDocument(doc.id, doc.file_path)}
                   className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#FEE2E2] text-[#991B1B] transition hover:bg-[#fecaca]">
                   <IconTrash />

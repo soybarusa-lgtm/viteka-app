@@ -157,9 +157,9 @@ function QuickFilterMenu({
   const [search, setSearch] = useState('')
 
   const filteredOptions = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase('es')
+    const term = normalizeText(search)
     if (!term) return options
-    return options.filter(option => option.toLocaleLowerCase('es').includes(term))
+    return options.filter(option => normalizeText(option).includes(term))
   }, [options, search])
 
   const allSelected = options.length > 0 && options.every(option => selectedValues.includes(option))
@@ -631,10 +631,10 @@ export default function PeoplePage() {
   }, [advancedFilters, selectedPharmacies, selectedRoles, selectedProvinces])
 
   const filteredPeople = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase('es')
+    const term = normalizeText(search)
 
     return people.filter(person => {
-      const matchSearch = !term || [
+      const matchSearch = !term || normalizeText([
         person.name,
         person.role,
         person.phone,
@@ -644,20 +644,20 @@ export default function PeoplePage() {
         person.provinceLabel || person.province,
         person.is_responsible ? 'responsable' : '',
         person.responsiblePriority,
-      ].filter(Boolean).join(' ').toLocaleLowerCase('es').includes(term)
+      ].filter(Boolean).join(' ')).includes(term)
 
       const matchPharmacy = selectedPharmacies.length === 0 || selectedPharmacies.includes(person.pharmacyName)
       const matchRole = selectedRoles.length === 0 || selectedRoles.includes(person.role)
       const matchProvince = selectedProvinces.length === 0 || selectedProvinces.includes(person.provinceLabel)
-      const matchName = !advancedFilters.name || String(person.name || '').toLocaleLowerCase('es').includes(advancedFilters.name.toLocaleLowerCase('es'))
+      const matchName = !advancedFilters.name || normalizeText(person.name).includes(normalizeText(advancedFilters.name))
       const matchPharmacyText = !advancedFilters.pharmacy || String(person.pharmacyName || '') === advancedFilters.pharmacy
       const matchRoleText = !advancedFilters.role || String(person.role || '') === advancedFilters.role
       const matchProvinceText =
         !advancedFilters.province ||
         String(person.provinceLabel || person.province || '') === advancedFilters.province
       const matchCity = !advancedFilters.city || String(person.city || '') === advancedFilters.city
-      const matchPhone = !advancedFilters.phone || String(person.phone || '').toLocaleLowerCase('es').includes(advancedFilters.phone.toLocaleLowerCase('es'))
-      const matchEmail = !advancedFilters.email || String(person.email || '').toLocaleLowerCase('es').includes(advancedFilters.email.toLocaleLowerCase('es'))
+      const matchPhone = !advancedFilters.phone || normalizeText(person.phone).includes(normalizeText(advancedFilters.phone))
+      const matchEmail = !advancedFilters.email || normalizeText(person.email).includes(normalizeText(advancedFilters.email))
       const matchResponsible =
         !advancedFilters.responsible ||
         (advancedFilters.responsible === 'yes' && person.is_responsible) ||

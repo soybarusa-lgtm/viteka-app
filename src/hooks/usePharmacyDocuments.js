@@ -39,6 +39,8 @@ export function usePharmacyDocuments(pharmacyId) {
     setLoading(false)
   }, [pharmacyId])
 
+  // Loading on mount intentionally synchronizes this hook with Supabase.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [load])
 
   // Firma: uploadDocument(file, { name, category, pharmacy_id, company_id })

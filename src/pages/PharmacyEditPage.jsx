@@ -436,8 +436,8 @@ export default function PharmacyEditPage() {
             {form.erp === 'Nixfarma' && (
               <div><Label>Licencia</Label><Input value={form.erp_license} onChange={e => set('erp_license',e.target.value)} /></div>
             )}
-            <div><Label>N? puestos</Label><Input type="number" min="1" value={form.erp_seats} onChange={e => set('erp_seats',e.target.value)} /></div>
-            <div><Label>A?o inicio</Label><YearSelect value={form.erp_start_year} onChange={e => set('erp_start_year',e.target.value)} /></div>
+            <div><Label>Nº puestos</Label><Input type="number" min="1" value={form.erp_seats} onChange={e => set('erp_seats',e.target.value)} /></div>
+            <div><Label>Año inicio</Label><YearSelect value={form.erp_start_year} onChange={e => set('erp_start_year',e.target.value)} /></div>
           </div>
           <VitekaCheck value={form.erp_viteka} onChange={v => set('erp_viteka',v)} />
           {!form.erp_viteka && <div><Label>Grado de satisfacción</Label><SatisfactionSelect value={form.erp_satisfaction} onChange={e => set('erp_satisfaction',e.target.value)} /></div>}

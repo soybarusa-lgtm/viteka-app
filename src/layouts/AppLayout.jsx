@@ -1,11 +1,14 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import QuickLauncher from '../components/ui/QuickLauncher'
 import {
   HomeIcon,
   BuildingStorefrontIcon,
   UsersIcon,
   FolderOpenIcon,
+  DocumentTextIcon,
+  SquaresPlusIcon,
   ArrowRightOnRectangleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -18,6 +21,7 @@ const NAV = [
   { to: '/farmacias', label: 'Farmacias', Icon: BuildingStorefrontIcon },
   { to: '/personas', label: 'Personas', Icon: UsersIcon },
   { to: '/proyectos', label: 'Proyectos', Icon: FolderOpenIcon },
+  { to: '/documentos', label: 'Documentación', Icon: DocumentTextIcon },
 ]
 
 export default function AppLayout({ session }) {
@@ -25,6 +29,7 @@ export default function AppLayout({ session }) {
   const [pinned, setPinned] = useState(false)
   const [hovered, setHovered] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [launcherOpen, setLauncherOpen] = useState(false)
 
   const isOpen = pinned || hovered
 
@@ -32,6 +37,8 @@ export default function AppLayout({ session }) {
     await supabase.auth.signOut()
     navigate('/login')
   }
+
+  const closeLauncher = useCallback(() => setLauncherOpen(false), [])
 
   const navLinkClass = ({ isActive }) =>
     `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
@@ -46,6 +53,9 @@ export default function AppLayout({ session }) {
         <img src="/brand/logo-full-color.svg" alt="Viteka" className="h-9 w-auto max-w-[132px] object-contain" />
         <button
           onClick={() => setMobileOpen(o => !o)}
+          type="button"
+          aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'}
+          aria-expanded={mobileOpen}
           className="p-2 rounded-lg text-gray-500 hover:bg-teal-50 hover:text-teal-800 transition-colors"
         >
           {mobileOpen ? <XMarkIcon className="w-5 h-5" /> : <Bars3Icon className="w-5 h-5" />}
@@ -53,28 +63,45 @@ export default function AppLayout({ session }) {
       </header>
 
       {mobileOpen && (
-        <div className="md:hidden absolute top-14 left-0 right-0 bg-white/95 border-b border-teal-900/10 shadow-lg z-10 px-4 py-3 space-y-1">
-          {NAV.map(({ to, label, Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              onClick={() => setMobileOpen(false)}
-              className={navLinkClass}
-            >
-              <Icon className="w-5 h-5 shrink-0" />
-              {label}
-            </NavLink>
-          ))}
-          <div className="pt-2 mt-2 border-t border-gray-100 space-y-1">
-            <p className="px-3 py-1 text-xs text-gray-400 truncate">{session?.user?.email}</p>
+        <div className="fixed inset-0 top-14 z-40 flex md:hidden">
+          <button type="button" aria-label="Cerrar menú" onClick={() => setMobileOpen(false)} className="absolute inset-0 bg-slate-950/30 backdrop-blur-[2px]" />
+          <div className="relative flex h-full w-[min(88vw,320px)] flex-col border-r border-teal-900/10 bg-white px-3 py-4 shadow-2xl">
             <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+              type="button"
+              onClick={() => {
+                setMobileOpen(false)
+                setLauncherOpen(true)
+              }}
+              className="mb-3 flex items-center gap-3 rounded-xl bg-teal-700 px-3 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-teal-800"
             >
-              <ArrowRightOnRectangleIcon className="w-5 h-5 shrink-0" />
-              Cerrar sesión
+              <SquaresPlusIcon className="h-5 w-5" />
+              Acceso rápido
             </button>
+            <nav className="flex-1 space-y-1">
+              {NAV.map(({ to, label, Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={to === '/'}
+                  onClick={() => setMobileOpen(false)}
+                  className={navLinkClass}
+                >
+                  <Icon className="w-5 h-5 shrink-0" />
+                  {label}
+                </NavLink>
+              ))}
+            </nav>
+            <div className="pt-2 mt-2 border-t border-gray-100 space-y-1">
+              <p className="px-3 py-1 text-xs text-gray-400 truncate">{session?.user?.email}</p>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+              >
+                <ArrowRightOnRectangleIcon className="w-5 h-5 shrink-0" />
+                Cerrar sesión
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -119,6 +146,17 @@ export default function AppLayout({ session }) {
         </div>
 
         <nav className="flex-1 px-2 py-3 space-y-1">
+          <button
+            type="button"
+            onClick={() => setLauncherOpen(true)}
+            title={!isOpen ? 'Acceso rápido' : undefined}
+            className="mb-3 flex w-full items-center gap-3 rounded-lg bg-teal-700 px-2 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-teal-800"
+          >
+            <SquaresPlusIcon className="w-5 h-5 shrink-0" />
+            <span className={`truncate transition-all duration-200 ${isOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'}`}>
+              Acceso rápido
+            </span>
+          </button>
           {NAV.map(({ to, label, Icon }) => (
             <NavLink
               key={to}
@@ -158,9 +196,10 @@ export default function AppLayout({ session }) {
         </div>
       </aside>
 
-      <main className="brand-main flex-1 overflow-y-auto">
+      <main className="brand-main min-w-0 flex-1 overflow-y-auto">
         <Outlet />
       </main>
+      <QuickLauncher open={launcherOpen} onClose={closeLauncher} />
     </div>
   )
 }

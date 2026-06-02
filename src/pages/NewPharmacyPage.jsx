@@ -13,7 +13,7 @@ import ContactBlock from '../components/pharmacy/ContactBlock'
 import CbOwners from '../components/pharmacy/CbOwners'
 import {
   ERP_OPTIONS, CAJA_OPTIONS, ESL_OPTIONS, BASCULA_OPTIONS, ANTIHURTO_OPTIONS,
-  CONSULTORIA_OPTIONS, ROBOT_OPTIONS, CRUZ_OPTIONS, MONTHS, mkContact,
+  CONSULTORIA_OPTIONS, ROBOT_OPTIONS, MONTHS, mkContact,
 } from '../components/pharmacy/PHARMACY_CONSTANTS'
 import { serializeScheduleValue } from '../lib/pharmacySchedule'
 
@@ -227,8 +227,8 @@ export default function NewPharmacyPage() {
             {form.erp === 'Nixfarma' && (
               <div><Label>Licencia</Label><Input value={form.erp_detail.licencia} onChange={e => setNested('erp_detail','licencia',e.target.value)} /></div>
             )}
-            <div><Label>N? puestos</Label><Input type="number" min="1" value={form.erp_detail.puestos} onChange={e => setNested('erp_detail','puestos',e.target.value)} /></div>
-            <div><Label>A?o inicio</Label><YearSelect value={form.erp_detail.year} onChange={e => setNested('erp_detail','year',e.target.value)} /></div>
+            <div><Label>Nº puestos</Label><Input type="number" min="1" value={form.erp_detail.puestos} onChange={e => setNested('erp_detail','puestos',e.target.value)} /></div>
+            <div><Label>Año inicio</Label><YearSelect value={form.erp_detail.year} onChange={e => setNested('erp_detail','year',e.target.value)} /></div>
           </div>
           <VitekaCheck value={form.erp_viteka} onChange={v => set('erp_viteka', v)} />
           {!form.erp_viteka && <div><Label>Grado de satisfacción</Label><SatisfactionSelect value={form.erp_satisfaction} onChange={e => set('erp_satisfaction', e.target.value)} /></div>}

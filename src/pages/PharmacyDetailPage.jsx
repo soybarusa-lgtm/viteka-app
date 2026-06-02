@@ -4,6 +4,7 @@ import { usePharmacy } from '../hooks/usePharmacy'
 import { usePharmacyPersons } from '../hooks/usePharmacyPersons'
 import { usePharmacyDocuments } from '../hooks/usePharmacyDocuments'
 import { usePharmacyIT } from '../hooks/usePharmacyIT'
+import { useProjects } from '../hooks/useProjects'
 import { supabase } from '../lib/supabase'
 import {
   ArrowLeftIcon, PencilSquareIcon,
@@ -32,7 +33,7 @@ import {
 } from '../components/pharmacy/PHARMACY_CONSTANTS'
 import { Label, Input, Select, Textarea } from '../components/pharmacy/PharmacyFormAtoms'
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Helpers
 const PROVINCE_LABEL = {
   almeria:'Almería',cadiz:'Cádiz',cordoba:'Córdoba',granada:'Granada',
   huelva:'Huelva',jaen:'Jaén',malaga:'Málaga',sevilla:'Sevilla',
@@ -457,18 +458,17 @@ function getScheduleMetaItems({ schedule, scheduleOptions, hasGuards, observatio
   }
 }
 
-// â”€â”€ Pestañas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Tabs
 const TABS = [
   { key: 'general',   label: 'Datos generales',   icon: BuildingStorefrontIcon },
   { key: 'equipment', label: 'Equipamiento',       icon: WrenchScrewdriverIcon  },
   { key: 'it',        label: 'Equip. Informático', icon: ComputerDesktopIcon    },
   { key: 'people',    label: 'Personas',           icon: UsersIcon              },
-  { key: 'incidents', label: 'Incidencias',        icon: ExclamationTriangleIcon},
   { key: 'projects',  label: 'Proyectos',          icon: FolderOpenIcon         },
   { key: 'documents', label: 'Documentos',         icon: DocumentTextIcon       },
 ]
 
-// â”€â”€ Tab: Datos generales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Tab: Datos generales
 function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
   const [query, setQuery] = useState('')
   const [collapsed, setCollapsed] = useState({})
@@ -495,9 +495,9 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
     observations: pharmacy.observations,
   })
   const allCollapsed = groupKeys.length > 0 && groupKeys.every(key => collapsed[key])
-  const normalizedQuery = query.trim().toLocaleLowerCase('es')
+  const normalizedQuery = normalizeText(query)
   const matchesQuery = (...values) => (
-    !normalizedQuery || values.filter(Boolean).join(' ').toLocaleLowerCase('es').includes(normalizedQuery)
+    !normalizedQuery || normalizeText(values.filter(Boolean).join(' ')).includes(normalizedQuery)
   )
   const showAuto = hasAuto && matchesQuery(
     'Persona Jurídica.', pharmacy.owner_name, pharmacy.nif, pharmacy.collegiate_number, pharmacy.soe_number,
@@ -751,27 +751,20 @@ function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
           onClick={() => onNavigateTab('documents')}
         />
         <SummaryCard
-          title="Incidencias"
-          value="Sin registros"
-          detail="No hay incidencias asociadas"
-          icon={ExclamationTriangleIcon}
-          onClick={() => onNavigateTab('incidents')}
-          accent="slate"
-        />
-        <SummaryCard
           title="Proyectos"
-          value="Sin registros"
-          detail="No hay proyectos asociados"
+          value={`${summaries.projects.count} proyectos`}
+          meta={`${summaries.projects.activeCount} activos`}
+          detail={summaries.projects.detail}
+          items={summaries.projects.items}
           icon={FolderOpenIcon}
           onClick={() => onNavigateTab('projects')}
-          accent="slate"
         />
       </div>
     </div>
   )
 }
 
-// â”€â”€ Tab: Equipamiento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Tab: Equipamiento
 function TabEquipment({ equipment, onEditItem }) {
   const [query, setQuery] = useState('')
   const [collapsed, setCollapsed] = useState(false)
@@ -816,20 +809,7 @@ function ActivitySummaryCard({ pharmacy, summary, className = '' }) {
   )
 }
 
-function PlaceholderTab({ icon, message, placeholder, title }) {
-  const [query, setQuery] = useState('')
-  const [collapsed, setCollapsed] = useState(false)
-  return (
-    <div className="space-y-4">
-      <TabToolbar query={query} onQueryChange={setQuery} placeholder={placeholder} onCollapseAll={() => setCollapsed(prev => !prev)} allCollapsed={collapsed} />
-      <CollapsibleGroup title={title} open={!collapsed} onToggle={() => setCollapsed(prev => !prev)}>
-        <EmptyTab icon={icon} message={message} />
-      </CollapsibleGroup>
-    </div>
-  )
-}
-
-// â”€â”€ Tab: Equipamiento Informático â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Tab: Equipamiento informatico
 function TabProjects({ pharmacyId, navigate }) {
   const [projects, setProjects] = useState([])
   const [query, setQuery] = useState('')
@@ -991,7 +971,7 @@ function formatBytes(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-// â”€â”€ Modal base con guard de cambios sin guardar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Modal base con proteccion de cambios sin guardar
 function DeviceModal({
   isOpen,
   isDirty,
@@ -1127,7 +1107,7 @@ function DeviceModal({
   )
 }
 
-// â”€â”€ Card Grid (vista âŠž) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Tarjetas
 function ITDeviceCard({ device, onOpen, onDelete, onDuplicate }) {
   const { marca, modelo } = resolveBrand(device)
   const chips    = buildChips(device)
@@ -1231,7 +1211,7 @@ function ITDeviceCard({ device, onOpen, onDelete, onDuplicate }) {
   )
 }
 
-// â”€â”€ Fila de dispositivo (vista â‰¡) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Fila de dispositivo
 function ITDeviceRow({ device, onOpen, onDelete, onDuplicate }) {
   const { marca, modelo } = resolveBrand(device)
   const chips    = buildChips(device)
@@ -1325,7 +1305,7 @@ function ITDeviceRow({ device, onOpen, onDelete, onDuplicate }) {
   )
 }
 
-// â”€â”€ Bloque colapsable por tipo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Bloque colapsable por tipo
 function ITTypeBlock({ typeKey, devices, isOpen, onToggle, onOpen, onDelete, onDuplicate, onAddSameType, viewMode }) {
   const total = devices.length
   const vitekaCount = devices.filter(d => d.is_viteka).length
@@ -1417,7 +1397,7 @@ function ITTypeBlock({ typeKey, devices, isOpen, onToggle, onOpen, onDelete, onD
   )
 }
 
-// â”€â”€ Hook: persistencia localStorage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Hook: persistencia localStorage
 function useLocalStorageState(key, initialValue) {
   const [state, setState] = useState(() => {
     if (typeof window === 'undefined') return initialValue
@@ -1448,7 +1428,7 @@ function createEmptyITDevice(deviceType = 'servidor') {
   }
 }
 
-// â”€â”€ Formulario de equipo (dentro del modal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Formulario de equipo
 function DevicePhotoModal({ photo, onClose }) {
   const [photoUrl, setPhotoUrl] = useState('')
   const [error, setError] = useState('')
@@ -1939,7 +1919,7 @@ function ITDeviceFormInner({ form, setForm, pharmacyId, companyId }) {
   )
 }
 
-// â”€â”€ Vistas de solo lectura â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Vistas de solo lectura
 function ReadOnlyField({ label, value, wide = false }) {
   const isEmpty = value === null || value === undefined || value === ''
   return (
@@ -2096,7 +2076,7 @@ function ITDeviceReadView({ device }) {
   )
 }
 
-// â”€â”€ Modal unificado: ver / editar equipo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Modal unificado: ver o editar equipo
 function ITDeviceModal({ device, pharmacyId, companyId, onSave, onClose }) {
   const isNew = !device?.id
   const [form, setForm] = useState(device || createEmptyITDevice())
@@ -2109,10 +2089,12 @@ function ITDeviceModal({ device, pharmacyId, companyId, onSave, onClose }) {
     [device?.id]
   )
 
+  /* eslint-disable react-hooks/set-state-in-effect -- The open modal intentionally mirrors the selected record. */
   useEffect(() => {
     setForm(device || createEmptyITDevice())
     setMode(device?.id ? 'view' : 'edit')
   }, [device])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const isDirty = JSON.stringify(form) !== baseSnapshot
 
@@ -2214,7 +2196,7 @@ function ITDeviceModal({ device, pharmacyId, companyId, onSave, onClose }) {
   )
 }
 
-// â”€â”€ Modal: Copiar equipos de otra farmacia â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Modal: copiar equipos de otra farmacia
 function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }) {
   const [pharmacies, setPharmacies] = useState([])
   const [sourceId, setSourceId]     = useState('')
@@ -2238,6 +2220,7 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
     fetchPharmacies()
   }, [companyId, currentPharmacyId])
 
+  /* eslint-disable react-hooks/set-state-in-effect -- Reset dependent selection when the source pharmacy changes. */
   useEffect(() => {
     if (!sourceId) { setSourceDevices([]); return }
     setLoadingDev(true)
@@ -2248,6 +2231,7 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
       .order('created_at')
       .then(({ data }) => { setSourceDevices(data ?? []); setSelected([]); setLoadingDev(false) })
   }, [sourceId])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function toggleSelect(id) {
     setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
@@ -2338,10 +2322,10 @@ function CopyFromPharmacyModal({ currentPharmacyId, companyId, onCopy, onClose }
   )
 }
 
-// â”€â”€ Constante umbral auto-switch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Umbral de cambio automatico
 const AUTO_LIST_THRESHOLD = 6
 
-// â”€â”€ TabIT principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// TabIT principal
 function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
   const { devices, loading, createDevice, updateDevice, deleteDevice } = usePharmacyIT(pharmacyId)
   const toast = useToast()
@@ -2370,11 +2354,13 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
     setModalDevice(createEmptyITDevice(type))
   }
 
+  /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps -- A URL action opens the matching modal once. */
   useEffect(() => {
     if (initialAction !== 'new-it') return
     openNewForm(draftType)
     onActionHandled?.()
   }, [initialAction])
+  /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 
   function closeModal() {
     setModalDevice(null)
@@ -2510,7 +2496,7 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
         </div>
 
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-          {/* Toggle de vista âŠž / â‰¡ */}
+          {/* Selector de vista */}
           {totalDevices > 0 && (
             <div className="flex w-full items-center justify-center rounded-xl border border-gray-200 bg-white overflow-hidden sm:w-auto">
               <button
@@ -2627,7 +2613,7 @@ function TabIT({ pharmacyId, companyId, initialAction, onActionHandled }) {
   )
 }
 
-// â”€â”€ Tab: Personas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Tab: Personas
 function TabPeople({ pharmacyId, companyId, pharmacy, initialAction, initialPersonId, onActionHandled }) {
   const { persons, loading, createPerson, updatePerson, deletePerson, reload } = usePharmacyPersons(pharmacyId)
   const toast = useToast()
@@ -2766,6 +2752,7 @@ function TabPeople({ pharmacyId, companyId, pharmacy, initialAction, initialPers
     }
   }
 
+  /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps -- URL actions hydrate the editor once and are consumed immediately. */
   useEffect(() => {
     if (initialAction !== 'new-person') return
     setEditing(normalizePersonForm(empty))
@@ -2783,6 +2770,7 @@ function TabPeople({ pharmacyId, companyId, pharmacy, initialAction, initialPers
     setEditing(normalizePersonForm(targetPerson))
     onActionHandled?.()
   }, [initialAction, initialPersonId, persons])
+  /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 
   useEffect(() => {
     let cancelled = false
@@ -2948,7 +2936,7 @@ function TabPeople({ pharmacyId, companyId, pharmacy, initialAction, initialPers
       {confirmDel && (
         <ConfirmDialog
           title="Eliminar persona"
-          message={`¿Seguro que quieres eliminar a \"${confirmDel.name}\"?`}
+          message={`¿Seguro que quieres eliminar a "${confirmDel.name}"?`}
           confirmLabel={deletingId === confirmDel.id ? 'Eliminando...' : 'Eliminar'}
           variant="danger"
           disabled={deletingId === confirmDel.id}
@@ -3095,7 +3083,7 @@ function canPreviewInline(doc) {
   return ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'txt', 'csv', 'md', 'json'].includes(ext)
 }
 
-// â”€â”€ Tab: Documentos// â”€â”€ Tab: Documentos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Tab: Documentos
 function TabDocuments({ pharmacyId, companyId }) {
   const {
     documents,
@@ -3456,7 +3444,7 @@ function TabDocuments({ pharmacyId, companyId }) {
   )
 }
 
-// â”€â”€ Página principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Pagina principal
 export default function PharmacyDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -3465,6 +3453,7 @@ export default function PharmacyDetailPage() {
   const { persons } = usePharmacyPersons(id)
   const { documents } = usePharmacyDocuments(id)
   const { devices } = usePharmacyIT(id)
+  const { projects } = useProjects()
   const [activeTab, setActiveTab] = useState('general')
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [selectedEquipmentSection, setSelectedEquipmentSection] = useState(null)
@@ -3548,6 +3537,7 @@ export default function PharmacyDetailPage() {
     const safePersons = Array.isArray(persons) ? persons : []
     const safeDocuments = Array.isArray(documents) ? documents : []
     const safeDevices = Array.isArray(devices) ? devices : []
+    const safeProjects = Array.isArray(projects) ? projects.filter(project => project.pharmacy_id === id) : []
     const equipmentRows = getEquipmentSummaryRows(equipment).filter(row => row.estado === 'SI')
     const vitekaRows = equipmentRows.filter(row => row.is_viteka)
     const responsibleCount = safePersons.filter(person => person.is_responsible).length
@@ -3622,6 +3612,15 @@ export default function PharmacyDetailPage() {
         detail: detail || 'Activo sin detalle adicional',
       }
     })
+    const projectItems = safeProjects.slice(0, 4).map(project => ({
+      label: project.name || 'Proyecto sin nombre',
+      detail: [
+        getDivision(project).label,
+        getStage(project).label,
+        getStatus(project.status).label,
+        project.expected_close_date ? `Objetivo: ${fmtProjectDate(project.expected_close_date)}` : null,
+      ].filter(Boolean).join(' · '),
+    }))
 
     const mapText = [
       pharmacy?.address,
@@ -3664,8 +3663,14 @@ export default function PharmacyDetailPage() {
           : itDetail,
         items: itItems,
       },
-      projects: 'Vacío',
-      incidents: 'Vacío',
+      projects: {
+        count: safeProjects.length,
+        activeCount: safeProjects.filter(project => ['active', 'in_progress'].includes(project.status)).length,
+        detail: safeProjects.length > 0
+          ? safeProjects.slice(0, 3).map(project => `${project.name} · ${getStage(project).label}`).join(' · ')
+          : 'Sin proyectos asociados',
+        items: projectItems,
+      },
       documents: {
         count: safeDocuments.length,
         categoryCount: Object.keys(docGroups).length,
@@ -3676,8 +3681,9 @@ export default function PharmacyDetailPage() {
       lastChangeDetail,
       lastActionTooltip,
     }
-  }, [documents, equipment, lastActivity, persons, pharmacy, devices])
+  }, [documents, equipment, id, lastActivity, persons, pharmacy, devices, projects])
 
+  /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps -- Tabs and edit drawers intentionally synchronize with URL actions. */
   useEffect(() => {
     if (!requestedTab) return
     const isValidTab = TABS.some(tab => tab.key === requestedTab)
@@ -3693,6 +3699,7 @@ export default function PharmacyDetailPage() {
     setIsEditOpen(true)
     clearRequestedAction()
   }, [requestedAction, requestedTab])
+  /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 
   if (loading) {
     return (
@@ -3809,7 +3816,6 @@ export default function PharmacyDetailPage() {
             onActionHandled={clearRequestedAction}
           />
         )}
-        {activeTab === 'incidents' && <PlaceholderTab icon={ExclamationTriangleIcon} title="Incidencias" message="Módulo de incidencias próximamente" placeholder="Buscar incidencias..." />}
         {activeTab === 'projects'  && <TabProjects pharmacyId={id} navigate={navigate} />}
         {activeTab === 'documents' && <TabDocuments pharmacyId={id} companyId={pharmacy.company_id} />}
       </div>

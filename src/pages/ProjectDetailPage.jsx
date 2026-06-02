@@ -8,9 +8,7 @@ import {
   CheckCircleIcon,
   ClockIcon,
   DocumentCheckIcon,
-  ExclamationTriangleIcon,
   FlagIcon,
-  LifebuoyIcon,
   PencilSquareIcon,
   PlusIcon,
   TrashIcon,
@@ -42,11 +40,9 @@ const TABS = [
   { id: 'tasks', label: 'Tareas', Icon: CheckCircleIcon },
   { id: 'calendar', label: 'Calendario', Icon: CalendarDaysIcon },
   { id: 'messages', label: 'Comunicaciones', Icon: ChatBubbleLeftRightIcon },
-  { id: 'incidents', label: 'Incidencias', Icon: LifebuoyIcon },
 ]
 
 const EMPTY_TASK = { title: '', description: '', status: 'pending', priority: 'medium', due_date: '' }
-const EMPTY_INCIDENT = { title: '', description: '', status: 'open', priority: 'medium' }
 const EMPTY_MILESTONE = { title: '', milestone_type: 'milestone', status: 'pending', start_at: '', notes: '' }
 const EMPTY_MESSAGE = { audience: 'internal', channel: 'note', subject: '', message: '' }
 
@@ -164,12 +160,11 @@ function ProjectEditDrawer({ project, onClose, onSave }) {
   )
 }
 
-function OverviewTab({ project, tasks, incidents, milestones, onTab }) {
+function OverviewTab({ project, tasks, milestones, onTab }) {
   const division = getDivision(project)
   const stage = getStage(project)
   const priority = getPriority(project.priority)
   const pendingTasks = tasks.filter(task => task.status !== 'completed' && !task.title?.startsWith('[Hito] ')).slice(0, 4)
-  const openIncidents = incidents.filter(incident => !['resolved', 'closed'].includes(incident.status)).slice(0, 4)
   const upcomingMilestones = milestones.filter(item => item.status !== 'completed').slice(0, 4)
 
   return (
@@ -213,14 +208,11 @@ function OverviewTab({ project, tasks, incidents, milestones, onTab }) {
           onOpen={() => onTab('tasks')}
           render={item => <><span className="truncate font-bold text-slate-700">{item.title}</span><span className="text-xs text-slate-400">{fmtDate(item.due_date)}</span></>}
         />
-        <OverviewList
-          title="Incidencias abiertas"
-          Icon={LifebuoyIcon}
-          empty="Sin incidencias abiertas."
-          items={openIncidents}
-          onOpen={() => onTab('incidents')}
-          render={item => <><span className="truncate font-bold text-slate-700">{item.title}</span><span className={getPriority(item.priority).badge}>{getPriority(item.priority).label}</span></>}
-        />
+        <aside className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-4 text-sky-900">
+          <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-sky-600">Próxima fase</p>
+          <p className="mt-2 text-sm font-extrabold">Portal de incidencias conectado</p>
+          <p className="mt-1 text-xs leading-relaxed text-sky-700">Se incorporará después como flujo enlazado a este proyecto y a su farmacia.</p>
+        </aside>
       </div>
     </div>
   )
@@ -446,69 +438,6 @@ function MessagesTab({ messages, onCreate }) {
   )
 }
 
-function IncidentsTab({ incidents, onCreate, onUpdate, onDelete }) {
-  const [open, setOpen] = useState(false)
-  const [form, setForm] = useState(EMPTY_INCIDENT)
-  const [saving, setSaving] = useState(false)
-
-  async function save(event) {
-    event.preventDefault()
-    setSaving(true)
-    try {
-      await onCreate(form)
-      setForm(EMPTY_INCIDENT)
-      setOpen(false)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div className="space-y-4">
-      <SectionHeader title="Incidencias vinculadas" text="Preparado para conectar el futuro portal de soporte">
-        <button type="button" className="btn-primary" onClick={() => setOpen(true)}><PlusIcon className="h-4 w-4" /> Nueva incidencia</button>
-      </SectionHeader>
-      {!incidents.length ? <EmptyState Icon={LifebuoyIcon} title="Sin incidencias" text="Las incidencias creadas aquí quedan vinculadas al proyecto y a la farmacia." /> : (
-        <div className="space-y-2">
-          {incidents.map(incident => {
-            const priority = getPriority(incident.priority)
-            return (
-              <article key={incident.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                  <ExclamationTriangleIcon className={`h-5 w-5 shrink-0 ${priority.id === 'critical' ? 'text-rose-600' : 'text-amber-500'}`} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-sm font-extrabold text-slate-800">{incident.title}</h3>
-                      <span className={priority.badge}>{priority.label}</span>
-                      <span className={['resolved', 'closed'].includes(incident.status) ? 'badge-green' : 'badge-yellow'}>{incident.status === 'open' ? 'Abierta' : incident.status === 'in_progress' ? 'En curso' : incident.status === 'resolved' ? 'Resuelta' : 'Cerrada'}</span>
-                    </div>
-                    {incident.description && <p className="mt-2 text-sm leading-relaxed text-slate-500">{incident.description}</p>}
-                    <p className="mt-2 text-[11px] text-slate-400">Creada {fmtDateTime(incident.created_at)}</p>
-                  </div>
-                  <div className="flex gap-1">
-                    {!['resolved', 'closed'].includes(incident.status) && <button type="button" className="btn-ghost px-2 py-1 text-xs" onClick={() => onUpdate(incident.id, { ...incident, status: 'resolved', resolved_at: new Date().toISOString().slice(0, 10) })}>Resolver</button>}
-                    <button type="button" aria-label={`Eliminar incidencia ${incident.title}`} onClick={() => window.confirm('¿Eliminar esta incidencia?') && onDelete(incident.id)} className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"><TrashIcon className="h-4 w-4" /></button>
-                  </div>
-                </div>
-              </article>
-            )
-          })}
-        </div>
-      )}
-      {open && (
-        <Drawer title="Nueva incidencia" subtitle="Proyecto enlazado" onClose={() => setOpen(false)}>
-          <form onSubmit={save} className="space-y-4 p-5">
-            <div><label className="label">Título *</label><input className="input" value={form.title} onChange={event => setForm(prev => ({ ...prev, title: event.target.value }))} required /></div>
-            <div><label className="label">Descripción</label><textarea rows={4} className="input" value={form.description} onChange={event => setForm(prev => ({ ...prev, description: event.target.value }))} /></div>
-            <div><label className="label">Prioridad</label><select className="input" value={form.priority} onChange={event => setForm(prev => ({ ...prev, priority: event.target.value }))}>{PRIORITIES.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></div>
-            <div className="flex justify-end gap-2"><button type="button" className="btn-ghost" onClick={() => setOpen(false)}>Cancelar</button><button className="btn-primary" disabled={saving}>{saving ? 'Guardando...' : 'Crear incidencia'}</button></div>
-          </form>
-        </Drawer>
-      )}
-    </div>
-  )
-}
-
 function SectionHeader({ title, text, children }) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -532,9 +461,8 @@ export default function ProjectDetailPage() {
   const [editing, setEditing] = useState(false)
 
   const {
-    project, tasks, incidents, milestones, messages, loading, error, refetch,
+    project, tasks, milestones, messages, loading, error, refetch,
     createTask, updateTask, deleteTask,
-    createIncident, updateIncident, deleteIncident,
     createMilestone, createMessage,
   } = detail
 
@@ -543,10 +471,9 @@ export default function ProjectDetailPage() {
     return {
       completed: actualTasks.filter(task => task.status === 'completed').length,
       tasks: actualTasks.length,
-      openIncidents: incidents.filter(incident => !['resolved', 'closed'].includes(incident.status)).length,
       milestones: milestones.filter(item => item.status !== 'completed').length,
     }
-  }, [incidents, milestones, tasks])
+  }, [milestones, tasks])
 
   if (loading) return <div className="flex justify-center py-32"><div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-700 border-t-transparent" /></div>
   if (error || !project) return <div className="p-6"><p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error || 'Proyecto no encontrado.'}</p></div>
@@ -598,7 +525,7 @@ export default function ProjectDetailPage() {
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         <ProjectStat label="Tareas" value={`${counts.completed}/${counts.tasks}`} detail="completadas" Icon={CheckCircleIcon} />
         <ProjectStat label="Próximos hitos" value={counts.milestones} detail="planificados" Icon={CalendarDaysIcon} />
-        <ProjectStat label="Incidencias" value={counts.openIncidents} detail="abiertas" Icon={LifebuoyIcon} alert={counts.openIncidents > 0} />
+        <ProjectStat label="Comunicaciones" value={messages.length} detail="registradas" Icon={ChatBubbleLeftRightIcon} />
         <ProjectStat label={division.id === 'commercial' ? 'Importe estimado' : 'Fecha objetivo'} value={division.id === 'commercial' ? fmtCurrency(project.amount) : fmtDate(project.expected_close_date)} detail={division.id === 'commercial' ? 'pipeline comercial' : stage.label} Icon={division.id === 'commercial' ? DocumentCheckIcon : ClockIcon} alert={overdue} />
       </div>
 
@@ -606,7 +533,7 @@ export default function ProjectDetailPage() {
         <nav className="flex min-w-max gap-1">
           {TABS.map(item => {
             const Icon = item.Icon
-            const count = item.id === 'tasks' ? counts.tasks : item.id === 'incidents' ? counts.openIncidents : item.id === 'calendar' ? milestones.length : item.id === 'messages' ? messages.length : null
+            const count = item.id === 'tasks' ? counts.tasks : item.id === 'calendar' ? milestones.length : item.id === 'messages' ? messages.length : null
             return (
               <button key={item.id} type="button" onClick={() => setTab(item.id)} className={`flex items-center gap-1.5 border-b-2 px-3 py-3 text-xs font-bold transition ${tab === item.id ? 'border-teal-700 text-teal-800' : 'border-transparent text-slate-400 hover:text-slate-700'}`}>
                 <Icon className="h-4 w-4" />{item.label}{count !== null && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">{count}</span>}
@@ -616,12 +543,10 @@ export default function ProjectDetailPage() {
         </nav>
       </div>
 
-      {tab === 'overview' && <OverviewTab project={project} tasks={tasks} incidents={incidents} milestones={milestones} onTab={setTab} />}
+      {tab === 'overview' && <OverviewTab project={project} tasks={tasks} milestones={milestones} onTab={setTab} />}
       {tab === 'tasks' && <TasksTab tasks={tasks} onCreate={payload => perform(() => createTask(payload), 'Tarea creada.')} onUpdate={(taskId, payload) => perform(() => updateTask(taskId, payload), 'Tarea actualizada.')} onDelete={taskId => perform(() => deleteTask(taskId), 'Tarea eliminada.')} />}
       {tab === 'calendar' && <CalendarTab milestones={milestones} tasks={tasks} onCreate={payload => perform(() => createMilestone(payload), 'Hito creado.')} />}
       {tab === 'messages' && <MessagesTab messages={messages} onCreate={payload => perform(() => createMessage(payload), 'Comunicación registrada.')} />}
-      {tab === 'incidents' && <IncidentsTab incidents={incidents} onCreate={payload => perform(() => createIncident(payload), 'Incidencia creada.')} onUpdate={(incidentId, payload) => perform(() => updateIncident(incidentId, payload), 'Incidencia actualizada.')} onDelete={incidentId => perform(() => deleteIncident(incidentId), 'Incidencia eliminada.')} />}
-
       {editing && <ProjectEditDrawer project={project} onClose={() => setEditing(false)} onSave={saveProject} />}
     </div>
   )

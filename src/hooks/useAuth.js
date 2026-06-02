@@ -1,9 +1,20 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 export function useAuth() {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  const loadProfile = useCallback(async (userId) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*, companies(name)')
+      .eq('id', userId)
+      .maybeSingle()
+    if (error) console.error('[useAuth] loadProfile error:', error.message)
+    setProfile(data ?? null)
+    setLoading(false)
+  }, [])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -16,18 +27,7 @@ export function useAuth() {
       else { setProfile(null); setLoading(false) }
     })
     return () => subscription.unsubscribe()
-  }, [])
-
-  async function loadProfile(userId) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*, companies(name)')
-      .eq('id', userId)
-      .maybeSingle()          // nunca lanza 406 aunque haya 0 filas
-    if (error) console.error('[useAuth] loadProfile error:', error.message)
-    setProfile(data ?? null)
-    setLoading(false)
-  }
+  }, [loadProfile])
 
   return { profile, loading }
 }

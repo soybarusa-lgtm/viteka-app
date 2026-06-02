@@ -194,6 +194,7 @@ export default function EditEquipmentModal({ pharmacy, equipment, onClose, onSav
   const [saving, setSaving] = useState(false)
   const [openSections, setOpenSections] = useState(() => buildSectionState(initialSection))
 
+  /* eslint-disable react-hooks/set-state-in-effect -- The drawer mirrors the selected equipment record and section. */
   useEffect(() => {
     setForm(eqToForm(equipment))
   }, [equipment, initialSection])
@@ -201,6 +202,7 @@ export default function EditEquipmentModal({ pharmacy, equipment, onClose, onSav
   useEffect(() => {
     setOpenSections(buildSectionState(initialSection))
   }, [initialSection])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const set = useCallback((key, value) => setForm(prev => ({ ...prev, [key]: value })), [])
   const setDetail = useCallback((section, key, value) => {
@@ -368,11 +370,11 @@ export default function EditEquipmentModal({ pharmacy, equipment, onClose, onSav
               </div>
             )}
             <div>
-              <Label>N? puestos</Label>
+              <Label>Nº puestos</Label>
               <Input type="number" min="1" value={form.erp_seats} onChange={event => set('erp_seats', event.target.value)} />
             </div>
             <div>
-              <Label>A?o inicio</Label>
+              <Label>Año inicio</Label>
               <YearSelect value={form.erp_start_year} onChange={event => set('erp_start_year', event.target.value)} />
             </div>
           </div>

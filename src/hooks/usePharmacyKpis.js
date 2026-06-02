@@ -54,6 +54,8 @@ export function usePharmacyKpis(companyId) {
     finally { setLoading(false) }
   }, [companyId])
 
+  // Loading on mount intentionally synchronizes this hook with Supabase.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [load])
   return { rows, totals, loading, error, refetch: load }
 }
