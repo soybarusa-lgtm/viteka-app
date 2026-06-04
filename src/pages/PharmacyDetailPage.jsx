@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { usePharmacy } from '../hooks/usePharmacy'
 import { usePharmacyPersons } from '../hooks/usePharmacyPersons'
@@ -16,7 +16,7 @@ import {
   CalendarDaysIcon, ShieldCheckIcon, EyeIcon,
   Squares2X2Icon, ListBulletIcon, PhotoIcon,
   ArrowDownTrayIcon, ArrowPathIcon, ArrowTopRightOnSquareIcon,
-  ClipboardDocumentIcon, MapPinIcon, ClockIcon,
+  ClipboardDocumentIcon, MapPinIcon,
 } from '@heroicons/react/24/outline'
 import { useToast } from '../context/ToastContext'
 import ConfirmDialog from '../components/pharmacy/ConfirmDialog'
@@ -144,40 +144,6 @@ function DetailChip({ label, detail, tone = 'slate', className = '' }) {
         <span className="truncate">{label}</span>
       </div>
     </HoverPanel>
-  )
-}
-
-function CompactMetaBox({ label, value, detailTitle, detailSubtitle, detailLines = [], detailChips = [], className = '' }) {
-  return (
-    <HoverPanel
-      title={detailTitle || label}
-      subtitle={detailSubtitle || value}
-      lines={detailLines}
-      chips={detailChips}
-      widthClass="w-80"
-    >
-      <div className={`rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm transition-colors group-hover/hover:border-teal-200 group-hover/hover:bg-teal-50/50 ${className}`}>
-        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">{label}</p>
-        <p className="mt-1 truncate text-[13px] font-semibold text-slate-800">{value || 'Sin informar'}</p>
-      </div>
-    </HoverPanel>
-  )
-}
-
-function SectionBlock({ title, open, onToggle, children }) {
-  return (
-    <CollapsibleGroup title={title} open={open} onToggle={onToggle}>
-      <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-12">{children}</div>
-    </CollapsibleGroup>
-  )
-}
-
-function InfoGroup({ title, children, className = '' }) {
-  return (
-    <section className={`rounded-lg border border-slate-100 bg-slate-50/45 px-3 py-2 ${className}`}>
-      <h3 className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-teal-700">{title}</h3>
-      <dl className="grid grid-cols-1 gap-x-3 gap-y-1.5 sm:grid-cols-2 lg:grid-cols-4">{children}</dl>
-    </section>
   )
 }
 
@@ -314,8 +280,8 @@ function getLastChangeDetail(log) {
   const label = ACTIVITY_FIELD_LABELS[key] || key
   const previous = formatActivityValue(log.old_value[key])
   const next = formatActivityValue(log.new_value[key])
-  const extra = changes.length > 1 ? ` · +${changes.length - 1} campos` : ''
-  return `${label}: ${previous} → ${next}${extra}`
+  const extra = changes.length > 1 ? ` - +${changes.length - 1} campos` : ''
+  return `${label}: ${previous} -> ${next}${extra}`
 }
 
 function getEquipmentSummaryRows(equipment) {
@@ -383,7 +349,7 @@ function SummaryCard({ title, value, detail, meta, items = [], icon: Icon, onCli
           <p className="line-clamp-2 text-xs leading-relaxed text-slate-500">{detail}</p>
         ) : null}
         <span className="mt-1 inline-flex text-[11px] font-semibold text-teal-700 transition-transform group-hover:translate-x-0.5">
-          Ver detalle →
+          Ver detalle {'->'}
         </span>
       </div>
     </button>
@@ -469,297 +435,322 @@ const TABS = [
 ]
 
 // Tab: Datos generales
-function TabGeneral({ pharmacy, summaries, onNavigateTab }) {
-  const [query, setQuery] = useState('')
-  const [collapsed, setCollapsed] = useState({})
+function CompactDataCard({ title, children, className = '' }) {
+  return (
+    <section className={`rounded-2xl border border-slate-200 bg-white p-3 shadow-sm ${className}`}>
+      <h2 className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-slate-500">{title}</h2>
+      {children}
+    </section>
+  )
+}
+
+function GeneralInfoCard({ pharmacy, matchesQuery }) {
   const lType = pharmacy.legal_type || ''
   const hasAuto = lType.includes('autonomo')
-  const hasCb   = lType.includes('cb')
-  const hasSl   = lType.includes('sl')
+  const hasCb = lType.includes('cb')
+  const hasSl = lType.includes('sl')
   const sl = pharmacy.sl_data || {}
   const cbOwners = Array.isArray(pharmacy.cb_owners) ? pharmacy.cb_owners : []
   const mainSchedule = parseScheduleValue(pharmacy.schedule)
-  const scheduleOptions = getScheduleOptionLabels({
-    days: mainSchedule.detail?.days,
-    options: mainSchedule.options,
-  })
-  const groupKeys = [
-    hasAuto && 'autonomo',
-    hasCb && 'cb',
-    hasSl && 'sl',
-  ].filter(Boolean)
+  const scheduleOptions = getScheduleOptionLabels({ days: mainSchedule.detail?.days, options: mainSchedule.options })
   const scheduleMeta = getScheduleMetaItems({
     schedule: mainSchedule,
     scheduleOptions,
     hasGuards: pharmacy.has_guards,
     observations: pharmacy.observations,
   })
-  const allCollapsed = groupKeys.length > 0 && groupKeys.every(key => collapsed[key])
+  const legalValue = LEGAL_LABEL[pharmacy.legal_type] || pharmacy.legal_type || 'Sin informar'
+  const slIdentity = [
+    hasSl ? ((hasAuto || hasCb) ? sl.razon_social : pharmacy.razon_social) : null,
+    hasSl ? ((hasAuto || hasCb) ? sl.cif : pharmacy.cif) : null,
+  ].filter(Boolean).join(' · ')
+  const cbOwnersText = cbOwners.map((owner, index) => [
+    `${index + 1}. ${owner.name || 'Titular sin nombre'}`,
+    owner.nif ? `NIF ${owner.nif}` : null,
+    owner.collegiate ? `Col. ${owner.collegiate}` : null,
+  ].filter(Boolean).join(' · ')).join(' | ')
+
+  const fields = [
+    { area: 'Identificación', label: 'Tipo', value: legalValue },
+    { area: 'Identificación', label: hasAuto ? 'Titular' : 'Titular / contacto', value: pharmacy.owner_name },
+    { area: 'Identificación', label: 'NIF', value: pharmacy.nif },
+    { area: 'Identificación', label: 'Nº colegiado', value: pharmacy.collegiate_number },
+    { area: 'Identificación', label: 'Razón social', value: pharmacy.razon_social || sl.razon_social },
+    { area: 'Identificación', label: 'CIF', value: pharmacy.cif || sl.cif },
+    { area: 'Identificación', label: 'Titulares C.B.', value: cbOwnersText, wide: true },
+    { area: 'Contacto y ubicación', label: 'Teléfono', value: pharmacy.contact_phone },
+    { area: 'Contacto y ubicación', label: 'Email', value: pharmacy.contact_email },
+    { area: 'Contacto y ubicación', label: 'Dirección', value: pharmacy.address, wide: true },
+    { area: 'Contacto y ubicación', label: 'Población', value: pharmacy.city },
+    { area: 'Contacto y ubicación', label: 'Provincia', value: PROVINCE_LABEL[pharmacy.province] || pharmacy.province },
+    { area: 'Contacto y ubicación', label: 'C.P.', value: pharmacy.postal_code },
+    { area: 'Contacto y ubicación', label: 'SOE', value: pharmacy.soe_number },
+    { area: 'Horario y notas', label: 'Horario', value: mainSchedule.summary || 'Sin horario configurado', schedule: true },
+    { area: 'Horario y notas', label: 'Guardias', value: pharmacy.has_guards ? 'Sí' : 'No' },
+    { area: 'Horario y notas', label: 'Indicaciones guardias', value: mainSchedule.guardNotes, wide: true },
+    { area: 'Horario y notas', label: 'Observaciones', value: pharmacy.observations, wide: true },
+    { area: 'S.L.', label: 'Datos S.L.', value: slIdentity, wide: true, hidden: !hasSl || !slIdentity },
+    { area: 'S.L.', label: 'Teléfono S.L.', value: sl.phone, hidden: !hasSl || !(hasAuto || hasCb) },
+    { area: 'S.L.', label: 'Email S.L.', value: sl.email, hidden: !hasSl || !(hasAuto || hasCb) },
+    { area: 'S.L.', label: 'Dirección S.L.', value: sl.address, wide: true, hidden: !hasSl || !(hasAuto || hasCb) },
+  ].filter(field => !field.hidden)
+
+  const visibleFields = fields.filter(field => matchesQuery(field.area, field.label, field.value))
+  const grouped = ['Identificación', 'Contacto y ubicación', 'Horario y notas', 'S.L.'].map(area => ({
+    area,
+    fields: visibleFields.filter(field => field.area === area && (field.value || field.schedule || field.label === 'Guardias')),
+  })).filter(group => group.fields.length > 0)
+
+  return (
+    <CompactDataCard title="Ficha legal y operativa">
+      <div className="grid gap-3 xl:grid-cols-3">
+        {grouped.map(group => (
+          <div key={group.area} className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
+            <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-teal-700">{group.area}</p>
+            <dl className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+              {group.fields.map(field => field.schedule ? (
+                <div key={`${group.area}-${field.label}`} className="sm:col-span-2 xl:col-span-1 2xl:col-span-2">
+                  <dt className="mb-0.5 text-[11px] font-medium text-slate-400">{field.label}</dt>
+                  <HoverPanel
+                    title="Detalle del horario"
+                    subtitle={mainSchedule.summary || 'Sin horario configurado'}
+                    lines={scheduleMeta.detailLines}
+                    chips={scheduleMeta.chipLabels}
+                    widthClass="w-96"
+                  >
+                    <dd className="truncate rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[13px] font-semibold text-slate-800">
+                      {mainSchedule.summary || 'Sin horario configurado'}
+                    </dd>
+                  </HoverPanel>
+                </div>
+              ) : (
+                <Field
+                  key={`${group.area}-${field.label}`}
+                  label={field.label}
+                  value={field.value}
+                  className={field.wide ? 'sm:col-span-2 xl:col-span-1 2xl:col-span-2' : ''}
+                />
+              ))}
+            </dl>
+            {group.area === 'Horario y notas' && scheduleOptions.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {scheduleOptions.map(option => <span key={option} className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-semibold text-teal-800">{option}</span>)}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </CompactDataCard>
+  )
+}
+
+function PharmacyOperationalSummary({ summaries, onNavigateTab, matchesQuery }) {
+  const cards = [
+    { key: 'equipment', title: 'Equipamiento', value: `${summaries.equipment.count} activos`, meta: `${summaries.equipment.vitekaCount} Viteka`, detail: summaries.equipment.detail, items: summaries.equipment.items, icon: WrenchScrewdriverIcon, tone: 'teal' },
+    { key: 'it', title: 'Equipos informáticos', value: `${summaries.it.count} equipos`, meta: `${summaries.it.typeCount} tipos`, detail: summaries.it.detail, items: summaries.it.items, icon: ComputerDesktopIcon },
+    { key: 'people', title: 'Personas', value: `${summaries.people.count} personas`, meta: `${summaries.people.responsibleCount} responsables`, detail: summaries.people.preview, items: summaries.people.items, icon: UsersIcon },
+    { key: 'documents', title: 'Documentos', value: `${summaries.documents.count} docs`, meta: `${summaries.documents.categoryCount} tipos`, detail: summaries.documents.detail, items: summaries.documents.items, icon: DocumentTextIcon },
+    { key: 'projects', title: 'Proyectos', value: `${summaries.projects.count} proyectos`, meta: `${summaries.projects.activeCount} activos`, detail: summaries.projects.detail, items: summaries.projects.items, icon: FolderOpenIcon },
+  ].filter(card => matchesQuery(card.title, card.value, card.meta, card.detail, ...(card.items || []).flatMap(item => [item.label, item.detail])))
+
+  if (!cards.length) return null
+
+  return (
+    <CompactDataCard title="Resumen operativo">
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        {cards.map(card => (
+          <SummaryCard
+            key={card.key}
+            title={card.title}
+            value={card.value}
+            meta={card.meta}
+            detail={card.detail}
+            items={card.items}
+            icon={card.icon}
+            accent={card.tone || 'slate'}
+            onClick={() => onNavigateTab(card.key)}
+          />
+        ))}
+      </div>
+    </CompactDataCard>
+  )
+}
+
+function SupportStatusPill({ children, tone = 'slate' }) {
+  const className = {
+    red: 'bg-red-50 text-red-700 ring-red-100',
+    amber: 'bg-amber-50 text-amber-700 ring-amber-100',
+    blue: 'bg-blue-50 text-blue-700 ring-blue-100',
+    green: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
+    slate: 'bg-slate-50 text-slate-600 ring-slate-100',
+  }[tone] || 'bg-slate-50 text-slate-600 ring-slate-100'
+  return <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ${className}`}>{children}</span>
+}
+
+function getSupportTone(ticket) {
+  const status = ticket.internal_status || ticket.status || ticket.client_status
+  const priority = ticket.priority_internal || ticket.priority || ticket.priority_client
+  if (priority === 'urgente') return 'red'
+  if (['esperando_cliente', 'esperando_proveedor'].includes(status)) return 'amber'
+  if (['resuelto', 'cerrado'].includes(status)) return 'green'
+  return 'blue'
+}
+
+function isPendingSupportRow(row) {
+  const status = String(row?.internal_status || row?.status || row?.client_status || '').toLowerCase()
+  return !['resuelto', 'cerrado', 'archivado', 'eliminado', 'deleted'].includes(status)
+}
+
+function normalizeSupportRow(row, source = 'support_tickets') {
+  return {
+    ...row,
+    source,
+    subject: row.subject || row.title || row.name || row.description || 'Ticket sin asunto',
+    product: row.product || row.category || row.type || '',
+    requester_name: row.requester_name || row.contact_name || row.created_by_name || '',
+    updated_at: row.updated_at || row.modified_at || row.created_at,
+    internal_status: row.internal_status || row.status || row.client_status || 'nuevo',
+    priority_internal: row.priority_internal || row.priority || row.priority_client || 'medio',
+  }
+}
+
+function PharmacySupportPending({ tickets = [], loading, onOpenSupport, matchesQuery }) {
+  const visible = tickets
+    .filter(ticket => matchesQuery(ticket.subject, ticket.product, ticket.type, ticket.internal_status, ticket.priority_internal, ticket.requester_name))
+    .slice(0, 5)
+
+  return (
+    <CompactDataCard title="Soporte pendiente">
+      {loading ? (
+        <p className="py-4 text-sm text-slate-400">Cargando soporte...</p>
+      ) : visible.length ? (
+        <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-100">
+          {visible.map(ticket => {
+            const tone = getSupportTone(ticket)
+            const status = ticket.internal_status || ticket.status || ticket.client_status || 'nuevo'
+            const priority = ticket.priority_internal || ticket.priority || ticket.priority_client || 'medio'
+            return (
+              <button
+                key={ticket.id}
+                type="button"
+                onClick={() => onOpenSupport(ticket)}
+                className="flex w-full items-center justify-between gap-3 bg-white px-3 py-2.5 text-left transition hover:bg-slate-50"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-slate-900">{ticket.subject || ticket.title || 'Ticket sin asunto'}</p>
+                  <p className="mt-0.5 truncate text-[11px] text-slate-500">
+                    {[ticket.public_ticket_number ? `#${ticket.public_ticket_number}` : null, ticket.product, ticket.requester_name, formatDateTime(ticket.updated_at || ticket.created_at)].filter(Boolean).join(' · ')}
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                  <SupportStatusPill tone={tone}>{status.replaceAll('_', ' ')}</SupportStatusPill>
+                  <SupportStatusPill>{priority}</SupportStatusPill>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-5 text-center">
+          <p className="text-sm font-bold text-slate-700">Sin soporte pendiente</p>
+          <p className="mt-1 text-xs text-slate-400">No hay tickets abiertos vinculados a esta farmacia.</p>
+        </div>
+      )}
+    </CompactDataCard>
+  )
+}
+
+function PharmacySidePanel({ pharmacy, summaries, recentActivity = [], onNavigateTab, onEditGeneral, onCreateTicket, matchesQuery }) {
+  const hasSideContent = matchesQuery('mapa ubicación actividad acciones soporte editar')
+  if (!hasSideContent) return null
+
+  return (
+    <aside className="space-y-3 xl:sticky xl:top-[116px] xl:self-start">
+      <MapSummaryCard
+        title="Ubicación"
+        value={summaries.map}
+        detail={summaries.hasMapLocation ? 'Abrir en Google Maps ->' : 'Completar dirección'}
+        onClick={() => {
+          if (!summaries.hasMapLocation) return
+          window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(summaries.map)}`, '_blank', 'noopener,noreferrer')
+        }}
+      />
+
+      <CompactDataCard title="Actividad reciente">
+        <div title={summaries.lastActionTooltip} className="mb-2 rounded-xl bg-slate-50 px-3 py-2">
+          <p className="text-xs font-bold text-slate-900">{summaries.lastChangeDetail}</p>
+          <p className="mt-1 text-[11px] text-slate-500">{summaries.lastActionText}</p>
+        </div>
+        <div className="space-y-2">
+          {(recentActivity.length ? recentActivity : []).slice(0, 4).map((activity, index) => (
+            <div key={`${activity.created_at}-${index}`} title={getLastChangeDetail(activity)} className="rounded-lg border border-slate-100 px-2.5 py-2">
+              <p className="line-clamp-1 text-xs font-bold text-slate-800">{getLastChangeDetail(activity)}</p>
+              <p className="mt-0.5 text-[11px] text-slate-400">{formatDateTime(activity.created_at)}</p>
+            </div>
+          ))}
+          {!recentActivity.length && <p className="text-xs text-slate-400">Sin actividad registrada todavía.</p>}
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-slate-500">
+          <span>Creada<br /><strong className="text-slate-800">{formatDateTime(pharmacy.created_at)}</strong></span>
+          <span>Modificada<br /><strong className="text-slate-800">{formatDateTime(pharmacy.updated_at)}</strong></span>
+        </div>
+      </CompactDataCard>
+
+      <CompactDataCard title="Acciones rápidas">
+        <div className="grid gap-2">
+          <button type="button" onClick={onEditGeneral} className="btn-secondary justify-center text-xs"><PencilSquareIcon className="h-4 w-4" /> Editar datos</button>
+          <button type="button" onClick={onCreateTicket} className="btn-primary justify-center text-xs"><PlusIcon className="h-4 w-4" /> Crear ticket</button>
+          <button type="button" onClick={() => onNavigateTab('equipment')} className="btn-ghost justify-center text-xs"><WrenchScrewdriverIcon className="h-4 w-4" /> Equipamiento</button>
+          <button type="button" onClick={() => onNavigateTab('documents')} className="btn-ghost justify-center text-xs"><DocumentTextIcon className="h-4 w-4" /> Documentos</button>
+        </div>
+      </CompactDataCard>
+    </aside>
+  )
+}
+
+function TabGeneral({ pharmacy, summaries, supportTickets, supportLoading, recentActivity, onNavigateTab, onEditGeneral, onCreateTicket, onOpenSupport }) {
+  const [query, setQuery] = useState('')
   const normalizedQuery = normalizeText(query)
   const matchesQuery = (...values) => (
     !normalizedQuery || normalizeText(values.filter(Boolean).join(' ')).includes(normalizedQuery)
   )
-  const showAuto = hasAuto && matchesQuery(
-    'Persona Jurídica.', pharmacy.owner_name, pharmacy.nif, pharmacy.collegiate_number, pharmacy.soe_number,
-    pharmacy.contact_phone, pharmacy.contact_email, pharmacy.address, pharmacy.city, pharmacy.province,
-    pharmacy.postal_code, mainSchedule.summary, scheduleOptions.join(' '), mainSchedule.guardNotes,
-    pharmacy.observations
+  const hasResults = matchesQuery(
+    pharmacy.pharmacy_name,
+    pharmacy.owner_name,
+    pharmacy.contact_phone,
+    pharmacy.contact_email,
+    summaries.map,
+    summaries.equipment.detail,
+    summaries.it.detail,
+    summaries.people.preview,
+    summaries.documents.detail,
+    summaries.projects.detail,
+    summaries.lastActionText,
+    ...(supportTickets || []).flatMap(ticket => [ticket.subject, ticket.product, ticket.internal_status]),
   )
-  const showCb = hasCb && matchesQuery(
-    'Comunidad de Bienes C.B.', pharmacy.razon_social, pharmacy.cif,
-    ...cbOwners.flatMap(owner => [owner.name, owner.nif, owner.collegiate]),
-    pharmacy.contact_phone, pharmacy.contact_email, pharmacy.address, pharmacy.city, pharmacy.province,
-    pharmacy.postal_code, pharmacy.soe_number, mainSchedule.summary, scheduleOptions.join(' '),
-    mainSchedule.guardNotes, pharmacy.observations
-  )
-  const showSl = hasSl && matchesQuery(
-    'Sociedad Limitada S.L.', (hasAuto || hasCb) ? sl.razon_social : pharmacy.razon_social,
-    (hasAuto || hasCb) ? sl.cif : pharmacy.cif, (hasAuto || hasCb) ? sl.phone : pharmacy.contact_phone,
-    (hasAuto || hasCb) ? sl.email : pharmacy.contact_email, (hasAuto || hasCb) ? sl.address : pharmacy.address,
-    (hasAuto || hasCb) ? sl.city : pharmacy.city, (hasAuto || hasCb) ? sl.province : pharmacy.province,
-    (hasAuto || hasCb) ? sl.postal_code : pharmacy.postal_code, (hasAuto || hasCb) ? sl.observations : pharmacy.observations
-  )
-
-  function toggleAll() {
-    setCollapsed(Object.fromEntries(groupKeys.map(key => [key, !allCollapsed])))
-  }
 
   return (
     <div className="space-y-4">
-      <TabToolbar query={query} onQueryChange={setQuery} placeholder="Buscar en datos generales..." onCollapseAll={toggleAll} allCollapsed={allCollapsed} />
-      {showAuto && (
-        <SectionBlock title="Persona Jurídica." open={!collapsed.autonomo} onToggle={() => setCollapsed(prev => ({ ...prev, autonomo: !prev.autonomo }))}>
-          <InfoGroup title="Identificación" className="xl:col-span-3">
-            <Field label="Titular"      value={pharmacy.owner_name} className="lg:col-span-2" />
-            <Field label="NIF"          value={pharmacy.nif} />
-            <Field label="Nº colegiado" value={pharmacy.collegiate_number} />
-          </InfoGroup>
-          <InfoGroup title="Contacto y ubicación" className="xl:col-span-6">
-            <Field label="Teléfono"  value={pharmacy.contact_phone} />
-            <Field label="Email"     value={pharmacy.contact_email} />
-            <Field label="Dirección" value={pharmacy.address} className="lg:col-span-2" />
-            <Field label="Población" value={pharmacy.city} />
-            <Field label="Provincia" value={PROVINCE_LABEL[pharmacy.province] || pharmacy.province} />
-            <Field label="C.P."      value={pharmacy.postal_code} />
-            <Field label="SOE"       value={pharmacy.soe_number} />
-          </InfoGroup>
-          <InfoGroup title="Horario y notas" className="xl:col-span-3">
-            <div className="col-span-full grid grid-cols-1 gap-2">
-              <CompactMetaBox
-                label="Horario"
-                value={mainSchedule.summary || 'Sin horario configurado'}
-                detailTitle="Detalle del horario"
-                detailSubtitle={mainSchedule.summary || 'Sin horario configurado'}
-                detailLines={scheduleMeta.detailLines}
-                detailChips={scheduleMeta.chipLabels}
-              />
-              <div className="flex flex-wrap gap-1.5">
-                <DetailChip
-                  label={pharmacy.has_guards ? 'Guardias: Sí' : 'Guardias: No'}
-                  detail={mainSchedule.guardNotes || 'Sin indicaciones adicionales'}
-                  tone="teal"
-                />
-                {scheduleOptions.length > 0 && (
-                  <DetailChip
-                    label={`${scheduleOptions.length} aperturas`}
-                    detail={scheduleOptions.join(' · ')}
-                    tone="teal"
-                  />
-                )}
-                {pharmacy.observations && (
-                  <DetailChip
-                    label="Observaciones"
-                    detail={pharmacy.observations}
-                  />
-                )}
-              </div>
-            </div>
-          </InfoGroup>
-        </SectionBlock>
-      )}
-      {showCb && (
-        <SectionBlock title="Comunidad de Bienes (C.B.)" open={!collapsed.cb} onToggle={() => setCollapsed(prev => ({ ...prev, cb: !prev.cb }))}>
-          <InfoGroup title="Identificación" className="xl:col-span-3">
-            <Field label="Razón social" value={pharmacy.razon_social} className="lg:col-span-2" />
-            <Field label="CIF" value={pharmacy.cif} />
-          </InfoGroup>
-          <InfoGroup title="Titulares" className="xl:col-span-5">
-            {cbOwners.length === 0 && <p className="col-span-full text-xs italic text-gray-300">Sin titulares registrados</p>}
-            {cbOwners.map((owner, index) => (
-              <div key={index} className="col-span-full grid grid-cols-1 gap-2 rounded-lg border border-slate-100 bg-white px-3 py-2 sm:grid-cols-3">
-                <Field label={`Titular ${index + 1}`} value={owner.name} />
-                <Field label="NIF" value={owner.nif} />
-                <Field label="Colegiado" value={owner.collegiate} />
-              </div>
-            ))}
-          </InfoGroup>
-          <InfoGroup title="Contacto y ubicación" className="xl:col-span-8">
-            <Field label="Teléfono"  value={pharmacy.contact_phone} />
-            <Field label="Email"     value={pharmacy.contact_email} />
-            <Field label="Dirección" value={pharmacy.address} className="lg:col-span-2" />
-            <Field label="Población" value={pharmacy.city} />
-            <Field label="Provincia" value={PROVINCE_LABEL[pharmacy.province] || pharmacy.province} />
-            <Field label="C.P."      value={pharmacy.postal_code} />
-            <Field label="SOE"       value={pharmacy.soe_number} />
-          </InfoGroup>
-          <InfoGroup title="Horario y notas" className="xl:col-span-4">
-            <div className="col-span-full grid grid-cols-1 gap-2">
-              <CompactMetaBox
-                label="Horario"
-                value={mainSchedule.summary || 'Sin horario configurado'}
-                detailTitle="Detalle del horario"
-                detailSubtitle={mainSchedule.summary || 'Sin horario configurado'}
-                detailLines={scheduleMeta.detailLines}
-                detailChips={scheduleMeta.chipLabels}
-              />
-              <div className="flex flex-wrap gap-1.5">
-                <DetailChip
-                  label={pharmacy.has_guards ? 'Guardias: Sí' : 'Guardias: No'}
-                  detail={mainSchedule.guardNotes || 'Sin indicaciones adicionales'}
-                  tone="teal"
-                />
-                {scheduleOptions.length > 0 && (
-                  <DetailChip
-                    label={`${scheduleOptions.length} aperturas`}
-                    detail={scheduleOptions.join(' · ')}
-                    tone="teal"
-                  />
-                )}
-                {pharmacy.observations && (
-                  <DetailChip
-                    label="Observaciones"
-                    detail={pharmacy.observations}
-                  />
-                )}
-              </div>
-            </div>
-          </InfoGroup>
-        </SectionBlock>
-      )}
-      {showSl && (
-        <SectionBlock title="Sociedad Limitada (S.L.)" open={!collapsed.sl} onToggle={() => setCollapsed(prev => ({ ...prev, sl: !prev.sl }))}>
-          <InfoGroup title="Identificación" className="xl:col-span-3">
-            <Field label="Razón social" value={(hasAuto || hasCb) ? sl.razon_social : pharmacy.razon_social} className="lg:col-span-2" />
-            <Field label="CIF" value={(hasAuto || hasCb) ? sl.cif : pharmacy.cif} />
-          </InfoGroup>
-          <InfoGroup title="Contacto y ubicación" className="xl:col-span-6">
-            <Field label="Teléfono S.L." value={(hasAuto || hasCb) ? sl.phone : pharmacy.contact_phone} />
-            <Field label="Email S.L." value={(hasAuto || hasCb) ? sl.email : pharmacy.contact_email} />
-            <Field label="Dirección" value={(hasAuto || hasCb) ? sl.address : pharmacy.address} className="lg:col-span-2" />
-            <Field label="Población" value={(hasAuto || hasCb) ? sl.city : pharmacy.city} />
-            <Field label="Provincia" value={PROVINCE_LABEL[(hasAuto || hasCb) ? sl.province : pharmacy.province]} />
-            <Field label="C.P." value={(hasAuto || hasCb) ? sl.postal_code : pharmacy.postal_code} />
-          </InfoGroup>
-          <InfoGroup title="Horario y notas" className="xl:col-span-3">
-            <div className="col-span-full grid grid-cols-1 gap-2">
-              {!hasAuto && !hasCb ? (
-                <>
-                  <CompactMetaBox
-                    label="Horario"
-                    value={mainSchedule.summary || 'Sin horario configurado'}
-                    detailTitle="Detalle del horario"
-                    detailSubtitle={mainSchedule.summary || 'Sin horario configurado'}
-                    detailLines={scheduleMeta.detailLines}
-                    detailChips={scheduleMeta.chipLabels}
-                  />
-                  <div className="flex flex-wrap gap-1.5">
-                    <DetailChip
-                      label={pharmacy.has_guards ? 'Guardias: Sí' : 'Guardias: No'}
-                      detail={mainSchedule.guardNotes || 'Sin indicaciones adicionales'}
-                      tone="teal"
-                    />
-                    {scheduleOptions.length > 0 && (
-                      <DetailChip
-                        label={`${scheduleOptions.length} aperturas`}
-                        detail={scheduleOptions.join(' · ')}
-                        tone="teal"
-                      />
-                    )}
-                    {(hasAuto || hasCb ? sl.observations : pharmacy.observations) && (
-                      <DetailChip
-                        label="Observaciones"
-                        detail={(hasAuto || hasCb) ? sl.observations : pharmacy.observations}
-                      />
-                    )}
-                  </div>
-                </>
-              ) : (
-                <CompactMetaBox
-                  label="Observaciones"
-                  value={(hasAuto || hasCb) ? sl.observations : pharmacy.observations}
-                  detailTitle="Observaciones"
-                  detailSubtitle={(hasAuto || hasCb) ? sl.observations : pharmacy.observations}
-                />
-              )}
-            </div>
-          </InfoGroup>
-        </SectionBlock>
-      )}
-      {!showAuto && !showCb && !showSl && <EmptyTab icon={BuildingStorefrontIcon} message="Sin resultados en datos generales" />}
-      <div className="flex items-end justify-between gap-3 pt-1">
-        <div>
-          <h2 className="text-sm font-bold text-slate-800">Resumen operativo</h2>
-          <p className="mt-0.5 text-xs text-slate-400">Vista rápida y homogénea de los módulos clave de la farmacia.</p>
+      <TabToolbar query={query} onQueryChange={setQuery} placeholder="Buscar en esta farmacia..." />
+      {!hasResults && <EmptyTab icon={BuildingStorefrontIcon} message="Sin resultados en esta farmacia" />}
+      {hasResults && (
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="space-y-4 min-w-0">
+            <GeneralInfoCard pharmacy={pharmacy} matchesQuery={matchesQuery} />
+            <PharmacyOperationalSummary summaries={summaries} onNavigateTab={onNavigateTab} matchesQuery={matchesQuery} />
+            <PharmacySupportPending tickets={supportTickets} loading={supportLoading} onOpenSupport={onOpenSupport} matchesQuery={matchesQuery} />
+          </div>
+          <PharmacySidePanel
+            pharmacy={pharmacy}
+            summaries={summaries}
+            recentActivity={recentActivity}
+            onNavigateTab={onNavigateTab}
+            onEditGeneral={onEditGeneral}
+            onCreateTicket={onCreateTicket}
+            matchesQuery={matchesQuery}
+          />
         </div>
-      </div>
-      <div className="grid auto-rows-fr gap-2.5 lg:grid-cols-2 xl:grid-cols-3">
-        <MapSummaryCard
-          title="Mapa"
-          value={summaries.map}
-          detail="Abrir ubicación →"
-          onClick={() => {
-            if (!summaries.hasMapLocation) return
-            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(summaries.map)}`, '_blank', 'noopener,noreferrer')
-          }}
-          className="lg:col-span-2 xl:col-span-1"
-        />
-        <ActivitySummaryCard pharmacy={pharmacy} summary={summaries} />
-        <SummaryCard
-          title="Equipamiento"
-          value={`${summaries.equipment.count} productos activos`}
-          meta={`${summaries.equipment.vitekaCount} gestionados por Viteka`}
-          detail={summaries.equipment.detail}
-          items={summaries.equipment.items}
-          icon={WrenchScrewdriverIcon}
-          onClick={() => onNavigateTab('equipment')}
-        />
-        <SummaryCard
-          title="Equipos informáticos"
-          value={`${summaries.it.count} equipos`}
-          meta={`${summaries.it.typeCount} tipos registrados`}
-          detail={summaries.it.detail}
-          items={summaries.it.items}
-          icon={ComputerDesktopIcon}
-          onClick={() => onNavigateTab('it')}
-        />
-        <SummaryCard
-          title="Personas"
-          value={`${summaries.people.count} personas`}
-          meta={`${summaries.people.responsibleCount} responsables`}
-          detail={summaries.people.preview}
-          items={summaries.people.items}
-          icon={UsersIcon}
-          onClick={() => onNavigateTab('people')}
-        />
-        <SummaryCard
-          title="Documentos"
-          value={`${summaries.documents.count} documentos`}
-          meta={`${summaries.documents.categoryCount} categorías`}
-          detail={summaries.documents.detail}
-          items={summaries.documents.items}
-          icon={DocumentTextIcon}
-          onClick={() => onNavigateTab('documents')}
-        />
-        <SummaryCard
-          title="Proyectos"
-          value={`${summaries.projects.count} proyectos`}
-          meta={`${summaries.projects.activeCount} activos`}
-          detail={summaries.projects.detail}
-          items={summaries.projects.items}
-          icon={FolderOpenIcon}
-          onClick={() => onNavigateTab('projects')}
-        />
-      </div>
+      )}
     </div>
   )
 }
@@ -781,30 +772,6 @@ function TabEquipment({ equipment, onEditItem }) {
       <CollapsibleGroup title="Equipamiento registrado" open={!collapsed} onToggle={() => setCollapsed(prev => !prev)}>
         <EquipmentSummaryTable equipment={equipment} searchQuery={query} onRowClick={onEditItem} />
       </CollapsibleGroup>
-    </div>
-  )
-}
-
-function ActivitySummaryCard({ pharmacy, summary, className = '' }) {
-  return (
-    <div
-      title={summary.lastActionTooltip}
-      className={`flex min-h-[96px] flex-col justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 ${className}`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Actividad</p>
-          <p className="mt-0.5 text-[13px] font-semibold leading-snug text-slate-900">{summary.lastChangeDetail}</p>
-        </div>
-        <div className="rounded-lg bg-slate-50 p-2 text-teal-700 ring-1 ring-inset ring-slate-100">
-          <ClockIcon className="h-4 w-4" />
-        </div>
-      </div>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
-        <span>Creación: <strong className="font-semibold text-slate-700">{formatDateTime(pharmacy.created_at)}</strong></span>
-        <span>Modificación: <strong className="font-semibold text-slate-700">{formatDateTime(pharmacy.updated_at)}</strong></span>
-      </div>
-      <p className="mt-1.5 line-clamp-2 text-xs text-slate-500">{summary.lastActionText}</p>
     </div>
   )
 }
@@ -896,7 +863,7 @@ function buildChips(device) {
   }
 
   const ip = Array.isArray(s.ip) && s.ip.filter(Boolean).length > 0
-    ? `IP · ${s.ip.filter(Boolean)[0]}`
+    ? `IP ? ${s.ip.filter(Boolean)[0]}`
     : null
   const disk = Array.isArray(s.disks) && s.disks.length > 0 && s.disks[0].capacity
     ? `${s.disks[0].type} ${s.disks[0].capacity}`
@@ -1164,7 +1131,7 @@ function ITDeviceCard({ device, onOpen, onDelete, onDuplicate }) {
 
       {/* Marca / modelo */}
       {(marca || modelo) && (
-        <p className="text-xs text-gray-400 truncate">{[marca, modelo].filter(Boolean).join(' · ')}</p>
+        <p className="text-xs text-gray-400 truncate">{[marca, modelo].filter(Boolean).join(' ? ')}</p>
       )}
 
       {/* Pie: fechas + acciones */}
@@ -1276,7 +1243,7 @@ function ITDeviceRow({ device, onOpen, onDelete, onDuplicate }) {
         )}
 
         {(marca || modelo) && (
-          <p className="text-xs text-gray-400 mt-1 truncate">{[marca, modelo].filter(Boolean).join(' · ')}</p>
+          <p className="text-xs text-gray-400 mt-1 truncate">{[marca, modelo].filter(Boolean).join(' ? ')}</p>
         )}
       </div>
 
@@ -1974,10 +1941,10 @@ function ITDeviceReadView({ device }) {
             <ReadOnlyField label="RAM" value={s.ram} />
             <ReadOnlyField label="Gráfica" value={s.gpu} />
             <ReadOnlyField label="Fuente de alimentación" value={s.psu} />
-            <ReadOnlyField label="Direcciones IP" value={ips.join(' · ')} wide />
+            <ReadOnlyField label="Direcciones IP" value={ips.join(' ? ')} wide />
             <ReadOnlyField
               label="Discos duros"
-              value={disks.map(d => `${d.type || ''} ${d.capacity || ''}`.trim()).join(' · ')}
+              value={disks.map(d => `${d.type || ''} ${d.capacity || ''}`.trim()).join(' ? ')}
               wide
             />
           </ReadOnlySection>
@@ -1993,7 +1960,7 @@ function ITDeviceReadView({ device }) {
                       monitor.color,
                       monitor.conn,
                       monitor.tactil ? 'Táctil' : null,
-                    ].filter(Boolean).join(' · ')
+                    ].filter(Boolean).join(' ? ')
                   : ''
               }
             />
@@ -2003,7 +1970,7 @@ function ITDeviceReadView({ device }) {
               label="Lector tarjetas"
               value={
                 s.card_reader && s.card_reader !== 'NO'
-                  ? [s.card_reader.modelo, s.card_reader.ano].filter(Boolean).join(' · ')
+                  ? [s.card_reader.modelo, s.card_reader.ano].filter(Boolean).join(' ? ')
                   : s.card_reader === 'NO' ? 'No' : ''
               }
             />
@@ -2011,7 +1978,7 @@ function ITDeviceReadView({ device }) {
               label="Lector QR 2D"
               value={
                 s.qr_reader && s.qr_reader !== 'NO'
-                  ? [s.qr_reader.tipo, s.qr_reader.modelo].filter(Boolean).join(' · ')
+                  ? [s.qr_reader.tipo, s.qr_reader.modelo].filter(Boolean).join(' ? ')
                   : s.qr_reader === 'NO' ? 'No' : ''
               }
             />
@@ -2021,7 +1988,7 @@ function ITDeviceReadView({ device }) {
             <ReadOnlySection title="Conexiones Remotas">
               <ReadOnlyField
                 label="Nº Conexión"
-                value={conexiones.map(c => c.numero).filter(Boolean).join(' · ')}
+                value={conexiones.map(c => c.numero).filter(Boolean).join(' ? ')}
                 wide
               />
             </ReadOnlySection>
@@ -2043,7 +2010,7 @@ function ITDeviceReadView({ device }) {
           <ReadOnlyField label="Prioridad" value={s.priority} />
           <ReadOnlyField
             label="Contacto del proveedor"
-            value={[s.contact_name, s.contact_role, s.contact_phone, s.contact_email].filter(Boolean).join(' · ')}
+            value={[s.contact_name, s.contact_role, s.contact_phone, s.contact_email].filter(Boolean).join(' ? ')}
             wide
           />
         </ReadOnlySection>
@@ -2055,7 +2022,7 @@ function ITDeviceReadView({ device }) {
           <ReadOnlyField label="Año" value={s.year} />
           <ReadOnlyField label="Capa" value={s.layer} />
           <ReadOnlyField label="Gestionable" value={s.managed ? 'Sí' : 'No'} />
-          <ReadOnlyField label="Soporta PoE" value={s.poe ? `Sí · ${s.poe.ports || 'Sin indicar'} puertos` : 'No'} />
+          <ReadOnlyField label="Soporta PoE" value={s.poe ? `Sí ? ${s.poe.ports || 'Sin indicar'} puertos` : 'No'} />
         </ReadOnlySection>
       )}
 
@@ -2145,7 +2112,7 @@ function ITDeviceModal({ device, pharmacyId, companyId, onSave, onClose }) {
         <span className={`text-xs font-medium transition-colors ${
           isDirty ? 'text-amber-600' : 'text-gray-400'
         }`}>
-          {isDirty ? '● Cambios sin guardar' : isReadMode ? 'Modo lectura' : isNew ? 'Nuevo equipo' : 'Sin cambios'}
+          {isDirty ? 'Cambios sin guardar' : isReadMode ? 'Modo lectura' : isNew ? 'Nuevo equipo' : 'Sin cambios'}
         </span>
 
         <div className="flex gap-2">
@@ -3395,7 +3362,7 @@ function TabDocuments({ pharmacyId, companyId }) {
             <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-4 py-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-gray-900">{getDocumentName(preview.doc)}</p>
-                <p className="text-xs text-gray-400">{[preview.doc.category, getDocumentExt(preview.doc), formatBytes(preview.doc.size_bytes)].filter(Boolean).join(' · ')}</p>
+                <p className="text-xs text-gray-400">{[preview.doc.category, getDocumentExt(preview.doc), formatBytes(preview.doc.size_bytes)].filter(Boolean).join(' ? ')}</p>
               </div>
               <div className="flex items-center gap-1">
                 <button type="button" onClick={() => handleOpen(preview.doc)} title="Abrir en pestaña" className="rounded-lg p-2 text-gray-400 hover:bg-teal-50 hover:text-teal-700">
@@ -3459,11 +3426,13 @@ export default function PharmacyDetailPage() {
   const [selectedEquipmentSection, setSelectedEquipmentSection] = useState(null)
   const [selectedEquipmentLabel, setSelectedEquipmentLabel] = useState('')
   const [lastActivity, setLastActivity] = useState(null)
+  const [recentActivity, setRecentActivity] = useState([])
+  const [supportTickets, setSupportTickets] = useState([])
+  const [supportLoading, setSupportLoading] = useState(false)
   const [activityVersion, setActivityVersion] = useState(0)
   const requestedTab = searchParams.get('tab')
   const requestedAction = searchParams.get('action')
   const requestedPersonId = searchParams.get('person')
-  const isEditableTab = activeTab === 'general' || activeTab === 'equipment'
   const editTitle = activeTab === 'general'
     ? 'Editar datos generales'
     : activeTab === 'equipment'
@@ -3471,17 +3440,29 @@ export default function PharmacyDetailPage() {
         ? `Editar ${selectedEquipmentLabel}`
         : 'Editar equipamiento'
       : 'Editar farmacia'
-  const editLabel = activeTab === 'general'
-    ? 'Editar datos generales'
-    : activeTab === 'equipment'
-      ? 'Editar equipamiento'
-      : 'Editar'
 
-  function handleEditClick() {
-    if (!isEditableTab) return
+  function openTab(tabKey) {
+    setActiveTab(tabKey)
+    setTabInUrl(tabKey)
+  }
+
+  function handleEditGeneral() {
+    setActiveTab('general')
     setSelectedEquipmentSection(null)
     setSelectedEquipmentLabel('')
     setIsEditOpen(true)
+  }
+
+  function handleCreateTicket() {
+    navigate(`/soporte/tickets?pharmacy_id=${encodeURIComponent(id)}`)
+  }
+
+  function handleOpenSupport(ticket) {
+    if (ticket?.source === 'support_tickets' && ticket.id) {
+      navigate(`/soporte/tickets/${ticket.id}`)
+      return
+    }
+    navigate(`/soporte/tickets?pharmacy_id=${encodeURIComponent(id)}`)
   }
 
   function handleEquipmentRowClick(row) {
@@ -3519,17 +3500,71 @@ export default function PharmacyDetailPage() {
     if (!id) return
     let cancelled = false
     async function loadActivity() {
-      const { data } = await supabase
+      let { data, error: activityError } = await supabase
         .from('activity_logs')
-        .select('action, entity_name, created_at, old_value, new_value')
+        .select('action, entity_name, created_at, old_value, new_value, user_name')
         .eq('entity_type', 'client')
         .eq('entity_id', id)
         .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-      if (!cancelled) setLastActivity(data || null)
+        .limit(4)
+
+      if (activityError) {
+        ;({ data } = await supabase
+          .from('activity_logs')
+          .select('action, entity_name, created_at, old_value, new_value')
+          .eq('entity_type', 'client')
+          .eq('entity_id', id)
+          .order('created_at', { ascending: false })
+          .limit(4))
+      }
+      if (!cancelled) {
+        const rows = data || []
+        setRecentActivity(rows)
+        setLastActivity(rows[0] || null)
+      }
     }
     loadActivity().catch(() => {})
+    return () => { cancelled = true }
+  }, [id, activityVersion])
+
+  useEffect(() => {
+    if (!id) return
+    let cancelled = false
+    async function loadSupport() {
+      setSupportLoading(true)
+      let rows
+      let source = 'support_tickets'
+      const { data, error: supportError } = await supabase
+        .from('support_tickets')
+        .select('*')
+        .eq('pharmacy_id', id)
+        .order('updated_at', { ascending: false })
+        .limit(20)
+
+      if (!supportError) {
+        rows = data || []
+      } else {
+        source = 'incidents'
+        const { data: incidentsData, error: incidentsError } = await supabase
+          .from('incidents')
+          .select('*')
+          .eq('pharmacy_id', id)
+          .order('updated_at', { ascending: false })
+          .limit(20)
+        rows = incidentsError ? [] : incidentsData || []
+      }
+
+      if (!cancelled) {
+        setSupportTickets(rows.map(row => normalizeSupportRow(row, source)).filter(isPendingSupportRow))
+        setSupportLoading(false)
+      }
+    }
+    loadSupport().catch(() => {
+      if (!cancelled) {
+        setSupportTickets([])
+        setSupportLoading(false)
+      }
+    })
     return () => { cancelled = true }
   }, [id, activityVersion])
 
@@ -3683,6 +3718,22 @@ export default function PharmacyDetailPage() {
     }
   }, [documents, equipment, id, lastActivity, persons, pharmacy, devices, projects])
 
+  const tabCounts = useMemo(() => ({
+    equipment: summaryData.equipment.count,
+    it: summaryData.it.count,
+    people: summaryData.people.count,
+    projects: summaryData.projects.count,
+    documents: summaryData.documents.count,
+  }), [summaryData])
+
+  const headerServices = useMemo(() => (
+    getEquipmentSummaryRows(equipment)
+      .filter(row => row.estado === 'SI')
+      .slice(0, 4)
+      .map(row => row.producto)
+  ), [equipment])
+  const hasVitekaManaged = summaryData.equipment.vitekaCount > 0
+
   /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps -- Tabs and edit drawers intentionally synchronize with URL actions. */
   useEffect(() => {
     if (!requestedTab) return
@@ -3720,64 +3771,72 @@ export default function PharmacyDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Cabecera */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-30">
-        <div className="px-4 md:px-6">
-          <div className="flex items-center justify-between gap-3 py-3">
-            <div className="flex items-center gap-3 min-w-0">
+    <div className="min-h-screen bg-slate-50">
+      <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
+        <div className="px-3 py-2.5 md:px-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
               <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
+                className="mt-0.5 rounded-xl p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Volver"
               >
-                <ArrowLeftIcon className="w-5 h-5" />
+                <ArrowLeftIcon className="h-5 w-5" />
               </button>
               <div className="min-w-0">
-                <h1 className="text-base font-bold text-gray-900 truncate">{pharmacy.pharmacy_name}</h1>
-                <p className="text-xs text-gray-400 truncate">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <h1 className="truncate text-lg font-extrabold text-slate-950 md:text-xl">{pharmacy.pharmacy_name}</h1>
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ${pharmacy.is_active === false ? 'bg-slate-50 text-slate-500 ring-slate-200' : 'bg-emerald-50 text-emerald-700 ring-emerald-100'}`}>
+                    {pharmacy.is_active === false ? 'Inactiva' : 'Activa'}
+                  </span>
+                  {hasVitekaManaged && <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-bold text-teal-800 ring-1 ring-teal-100">Gestionada por Viteka</span>}
+                </div>
+                <p className="mt-0.5 truncate text-xs text-slate-500">
                   {[pharmacy.city, PROVINCE_LABEL[pharmacy.province] || pharmacy.province].filter(Boolean).join(', ')}
                   {pharmacy.legal_type && ` · ${LEGAL_LABEL[pharmacy.legal_type] || pharmacy.legal_type}`}
+                  {pharmacy.contact_phone && ` · ${pharmacy.contact_phone}`}
                 </p>
+                {headerServices.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {headerServices.map(service => (
+                      <span key={service} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">{service}</span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleEditClick}
-              disabled={!isEditableTab}
-              title={isEditableTab ? editLabel : 'Edición disponible en Datos generales y Equipamiento'}
-              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-colors shrink-0 ${
-                isEditableTab
-                  ? 'bg-teal-600 text-white hover:bg-teal-700'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              <PencilSquareIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">{editLabel}</span>
-            </button>
+            <div className="flex shrink-0 flex-wrap gap-2 lg:justify-end">
+              <button type="button" onClick={handleCreateTicket} className="btn-secondary text-xs">
+                <PlusIcon className="h-4 w-4" /> Crear ticket
+              </button>
+              <button type="button" onClick={handleEditGeneral} className="btn-primary text-xs">
+                <PencilSquareIcon className="h-4 w-4" /> Editar datos
+              </button>
+            </div>
           </div>
 
-          {/* Tabs */}
-          <div className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-0 -mb-px scrollbar-none md:-mx-6 md:px-6">
+          <div className="-mx-3 mt-2 flex gap-1 overflow-x-auto px-3 pb-0 -mb-px scrollbar-none md:-mx-5 md:px-5">
             {TABS.map(tab => {
               const Icon = tab.icon
+              const count = tabCounts[tab.key]
               return (
                 <button
                   key={tab.key}
                   type="button"
-                  onClick={() => {
-                    setActiveTab(tab.key)
-                    setTabInUrl(tab.key)
-                  }}
-                  className={`inline-flex min-h-[42px] shrink-0 items-center justify-center gap-1.5 px-3 py-2 text-[11px] leading-tight text-center font-medium whitespace-nowrap border-b-2 transition-colors sm:min-h-0 sm:justify-start sm:py-2.5 sm:text-xs ${
+                  onClick={() => openTab(tab.key)}
+                  className={`inline-flex min-h-[40px] shrink-0 items-center justify-center gap-1.5 border-b-2 px-3 py-2 text-[11px] font-bold leading-tight text-center whitespace-nowrap transition-colors sm:min-h-0 sm:justify-start sm:py-2.5 sm:text-xs ${
                     activeTab === tab.key
                       ? 'border-teal-600 text-teal-700'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5" />
                   <span>{tab.label}</span>
+                  {Number.isFinite(count) && count > 0 && (
+                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-extrabold ${activeTab === tab.key ? 'bg-teal-100 text-teal-800' : 'bg-slate-100 text-slate-500'}`}>{count}</span>
+                  )}
                 </button>
               )
             })}
@@ -3785,16 +3844,18 @@ export default function PharmacyDetailPage() {
         </div>
       </div>
 
-      {/* Contenido */}
-      <div className="px-4 md:px-6 py-6">
-        {activeTab === 'general'   && (
+      <div className="px-3 py-4 md:px-5 md:py-5">
+        {activeTab === 'general' && (
           <TabGeneral
             pharmacy={pharmacy}
             summaries={summaryData}
-            onNavigateTab={(tabKey) => {
-              setActiveTab(tabKey)
-              setTabInUrl(tabKey)
-            }}
+            supportTickets={supportTickets}
+            supportLoading={supportLoading}
+            recentActivity={recentActivity}
+            onNavigateTab={openTab}
+            onEditGeneral={handleEditGeneral}
+            onCreateTicket={handleCreateTicket}
+            onOpenSupport={handleOpenSupport}
           />
         )}
         {activeTab === 'equipment' && <TabEquipment equipment={equipment} onEditItem={handleEquipmentRowClick} />}
@@ -3819,7 +3880,6 @@ export default function PharmacyDetailPage() {
         {activeTab === 'projects'  && <TabProjects pharmacyId={id} navigate={navigate} />}
         {activeTab === 'documents' && <TabDocuments pharmacyId={id} companyId={pharmacy.company_id} />}
       </div>
-
       <PharmacyEditDrawer
         isOpen={isEditOpen}
         onClose={() => {
@@ -3854,4 +3914,3 @@ export default function PharmacyDetailPage() {
     </div>
   )
 }
-
