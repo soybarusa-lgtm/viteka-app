@@ -3,8 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
 import { createOperationalMocks } from '../lib/operationalDashboardMock'
 import {
-  buildStatusChart,
-  formatShortDate,
+  buildStatusSummary,
   getPriorityMeta,
   getStatusMeta,
   isPendingStatus,
@@ -192,11 +191,6 @@ function isSupportMine(row, identity) {
   return matchesCurrentUser(row, identity, ['assigned_agent_id', 'assigned_to', 'assigned_user_id', 'agent_id', 'assigned_technician_id', 'assigned_agent_email'])
 }
 
-function filterChart(items, filter) {
-  if (!filter) return items
-  return items.filter(item => normalizeKey(item.status) === filter)
-}
-
 export function useOperationalDashboard() {
   const { profile, loading: authLoading, session } = useAuth()
   const [state, setState] = useState({
@@ -204,8 +198,8 @@ export function useOperationalDashboard() {
     error: '',
     warning: '',
     lastUpdated: null,
-    taskStatusChart: [],
-    supportStatusChart: [],
+    taskStatusSummary: [],
+    supportStatusSummary: [],
     myPendingTasks: [],
     generalPendingTasks: [],
     myPendingSupport: [],
@@ -288,8 +282,8 @@ export function useOperationalDashboard() {
         error: '',
         warning: warnings.length ? 'Algunos datos no se pudieron cargar. Se muestran datos disponibles.' : '',
         lastUpdated: new Date(),
-        taskStatusChart: buildStatusChart([...myPendingTasks, ...generalPendingTasks]),
-        supportStatusChart: buildStatusChart([...myPendingSupport, ...generalPendingSupport]),
+        taskStatusSummary: buildStatusSummary([...myPendingTasks, ...generalPendingTasks]),
+        supportStatusSummary: buildStatusSummary([...myPendingSupport, ...generalPendingSupport]),
         myPendingTasks,
         generalPendingTasks,
         myPendingSupport,
@@ -315,8 +309,8 @@ export function useOperationalDashboard() {
         error: '',
         warning: 'Algunos datos no se pudieron cargar. Se muestran datos disponibles.',
         lastUpdated: new Date(),
-        taskStatusChart: buildStatusChart([...myPendingTasks, ...generalPendingTasks]),
-        supportStatusChart: buildStatusChart([...myPendingSupport, ...generalPendingSupport]),
+        taskStatusSummary: buildStatusSummary([...myPendingTasks, ...generalPendingTasks]),
+        supportStatusSummary: buildStatusSummary([...myPendingSupport, ...generalPendingSupport]),
         myPendingTasks,
         generalPendingTasks,
         myPendingSupport,
@@ -333,7 +327,5 @@ export function useOperationalDashboard() {
     ...state,
     loading: authLoading || state.loading,
     reload: load,
-    filterChart,
-    formatShortDate,
   }
 }

@@ -109,7 +109,7 @@ export function priorityToneClasses(tone) {
   }[tone] || 'bg-slate-100 text-slate-600 ring-slate-200'
 }
 
-export function buildStatusChart(items) {
+export function buildStatusSummary(items) {
   const map = new Map()
   items.forEach(item => {
     const key = normalizeKey(item.status) || 'pending'
