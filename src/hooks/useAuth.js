@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 
 export function useAuth() {
   const [profile, setProfile] = useState(null)
+  const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const loadProfile = useCallback(async (userId) => {
@@ -18,16 +19,19 @@ export function useAuth() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) loadProfile(data.session.user.id)
+      const currentSession = data.session ?? null
+      setSession(currentSession)
+      if (currentSession) loadProfile(currentSession.user.id)
       else setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session) loadProfile(session.user.id)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, nextSession) => {
+      setSession(nextSession)
+      if (nextSession) loadProfile(nextSession.user.id)
       else { setProfile(null); setLoading(false) }
     })
     return () => subscription.unsubscribe()
   }, [loadProfile])
 
-  return { profile, loading }
+  return { profile, loading, session, userId: profile?.id || session?.user?.id || profile?.auth_user_id || null }
 }
