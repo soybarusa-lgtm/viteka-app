@@ -4,6 +4,8 @@ import { vitekaTeamMock } from '../lib/configurationMockData'
 import { canDeleteTeamMember, canEditTeamMember, canManageRole, normalizeRole, ROLES } from '../lib/permissions'
 import { logAuditEvent } from '../lib/auditLog'
 
+const INTERNAL_ROLES = new Set([ROLES.OWNER, ROLES.ADMINISTRADOR, ROLES.SOPORTE, ROLES.ADMINISTRACION])
+
 function normalizeMember(row) {
   return {
     id: row.id,
@@ -17,6 +19,8 @@ function normalizeMember(row) {
     last_login_at: row.last_login_at || null,
     created_at: row.created_at || null,
     updated_at: row.updated_at || null,
+    auth_user_id: row.auth_user_id || null,
+    must_change_password: row.must_change_password === true,
   }
 }
 
@@ -31,14 +35,13 @@ export function useVitekaTeam(currentUserProfile) {
     setError(null)
     let { data, error: membersError } = await supabase
       .from('profiles')
-      .select('id, email, full_name, phone, role, is_active, department, internal_notes, last_login_at, created_at, updated_at')
-      .in('role', ['owner', 'superadmin', 'admin', 'administrador', 'soporte', 'support', 'technician', 'tecnico', 'administracion', 'administración', 'administrativo'])
+      .select('id, email, full_name, phone, role, is_active, department, internal_notes, last_login_at, created_at, updated_at, auth_user_id, must_change_password')
       .order('full_name', { ascending: true })
 
     if (membersError) {
       ;({ data, error: membersError } = await supabase
         .from('profiles')
-        .select('id, email, full_name, role, company_id')
+        .select('id, email, full_name, role, company_id, auth_user_id, must_change_password')
         .order('full_name', { ascending: true }))
     }
 
@@ -50,7 +53,10 @@ export function useVitekaTeam(currentUserProfile) {
       return
     }
 
-    const normalized = (data || []).map(normalizeMember).filter(member => Object.values(ROLES).includes(member.role))
+    const normalized = (data || [])
+      .map(normalizeMember)
+      .filter(member => INTERNAL_ROLES.has(normalizeRole(member.role)))
+
     setMembers(normalized.length ? normalized : vitekaTeamMock)
     setUsingMocks(!normalized.length)
     setLoading(false)

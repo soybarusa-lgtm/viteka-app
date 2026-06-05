@@ -28,7 +28,7 @@ const CREATE_ACTIONS = [
     tone: 'bg-sky-50 text-sky-700 ring-sky-100',
   },
   {
-    to: '/cliente/soporte/tickets/nuevo',
+    to: '/cliente/tickets/nuevo',
     label: 'Nuevo ticket',
     detail: 'Registra una incidencia o consulta',
     Icon: TicketIcon,
