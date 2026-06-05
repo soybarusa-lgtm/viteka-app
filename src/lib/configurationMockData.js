@@ -79,3 +79,20 @@ export const auditMock = [
     created_at: new Date().toISOString(),
   },
 ]
+
+export const clientPortalAccessMock = [
+  {
+    id: 'mock-client-access-1',
+    auth_user_id: 'mock-auth-1',
+    profile_id: 'mock-profile-1',
+    pharmacy_id: 'mock-pharmacy-1',
+    person_id: 'mock-person-1',
+    email: 'cliente@farmacia.es',
+    full_name: 'Cliente Demo',
+    role: 'cliente_owner',
+    is_active: true,
+    must_change_password: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+]

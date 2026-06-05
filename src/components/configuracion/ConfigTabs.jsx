@@ -1,10 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { Cog6ToothIcon, ShieldCheckIcon, UsersIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline'
+import { ClipboardDocumentListIcon, Cog6ToothIcon, KeyIcon, ShieldCheckIcon, UsersIcon } from '@heroicons/react/24/outline'
 
 const TABS = [
   { to: '/configuracion/general', label: 'General', Icon: Cog6ToothIcon },
   { to: '/configuracion/equipo-viteka', label: 'Equipo Viteka', Icon: UsersIcon },
   { to: '/configuracion/roles-permisos', label: 'Roles y permisos', Icon: ShieldCheckIcon },
+  { to: '/configuracion/contrasenas', label: 'Contraseñas', Icon: KeyIcon },
+  { to: '/configuracion/portal-cliente', label: 'Portal cliente', Icon: ClipboardDocumentListIcon },
   { to: '/configuracion/auditoria', label: 'Auditoria', Icon: ClipboardDocumentListIcon },
 ]
 

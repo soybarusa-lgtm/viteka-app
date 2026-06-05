@@ -6,7 +6,6 @@ import { canAccessConfig } from './lib/permissions'
 import { ToastProvider } from './context/ToastContext'
 import AppLayout from './layouts/AppLayout'
 import LoginPage from './pages/LoginPage'
-import ClientSupportLayout from './components/soporte/cliente/ClientSupportLayout'
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const PharmaciesPage = lazy(() => import('./pages/PharmaciesPage'))
@@ -21,11 +20,14 @@ const ConfigLayout = lazy(() => import('./components/configuracion/ConfigLayout'
 const ConfigGeneralPage = lazy(() => import('./pages/configuracion/ConfigGeneralPage'))
 const EquipoVitekaPage = lazy(() => import('./pages/configuracion/EquipoVitekaPage'))
 const RolesPermisosPage = lazy(() => import('./pages/configuracion/RolesPermisosPage'))
+const PasswordsPage = lazy(() => import('./pages/configuracion/PasswordsPage'))
+const PortalClientePage = lazy(() => import('./pages/configuracion/PortalClientePage'))
 const AuditoriaPage = lazy(() => import('./pages/configuracion/AuditoriaPage'))
-const ClientSupportHomePage = lazy(() => import('./pages/cliente/soporte/ClientSupportHomePage'))
-const ClientTicketsPage = lazy(() => import('./pages/cliente/soporte/ClientTicketsPage'))
-const ClientNewTicketPage = lazy(() => import('./pages/cliente/soporte/ClientNewTicketPage'))
-const ClientTicketDetailPage = lazy(() => import('./pages/cliente/soporte/ClientTicketDetailPage'))
+const ClientPortalLayout = lazy(() => import('./layouts/ClientPortalLayout'))
+const ClientDashboardPage = lazy(() => import('./pages/cliente/ClientDashboardPage'))
+const ClientTicketsPage = lazy(() => import('./pages/cliente/ClientTicketsPage'))
+const ClientNewTicketPage = lazy(() => import('./pages/cliente/ClientNewTicketPage'))
+const ClientTicketDetailPage = lazy(() => import('./pages/cliente/ClientTicketDetailPage'))
 const SupportDashboardPage = lazy(() => import('./pages/soporte/SupportDashboardPage'))
 const SupportTicketsPage = lazy(() => import('./pages/soporte/SupportTicketsPage'))
 const SupportTicketDetailPage = lazy(() => import('./pages/soporte/SupportTicketDetailPage'))
@@ -55,7 +57,7 @@ function LegacyPharmacyRedirect({ toEdit = false }) {
 
 function InternalRoute({ profile, children }) {
   if (profile === undefined) return null
-  return isInternalSupportUser(profile) ? children : <Navigate to={isClientSupportUser(profile) ? '/cliente/soporte' : '/'} replace />
+  return isInternalSupportUser(profile) ? children : <Navigate to={isClientSupportUser(profile) ? '/cliente' : '/'} replace />
 }
 
 function ClientRoute({ session, profile, children }) {
@@ -88,7 +90,7 @@ export default function App() {
   const loadProfile = useCallback(async (userId) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, role, company_id, pharmacy_id, full_name, email')
+      .select('id, role, company_id, pharmacy_id, full_name, phone, auth_user_id, is_active, must_change_password, department, internal_notes')
       .eq('id', userId)
       .maybeSingle()
     if (!error) {
@@ -99,10 +101,10 @@ export default function App() {
     // Keep the historical backend usable until the support migration adds pharmacy_id.
     const { data: legacyProfile } = await supabase
       .from('profiles')
-      .select('id, role, company_id')
+      .select('id, role, company_id, pharmacy_id, full_name, phone, auth_user_id, is_active, must_change_password, department, internal_notes')
       .eq('id', userId)
       .maybeSingle()
-    setProfile(legacyProfile ? { ...legacyProfile, pharmacy_id: null, full_name: '', email: '' } : null)
+    setProfile(legacyProfile ? { ...legacyProfile } : null)
   }, [])
 
   useEffect(() => {
@@ -134,7 +136,7 @@ export default function App() {
               <AppLayout session={session} profile={profile} />
             </PrivateRoute>
           }>
-            <Route index element={isClientSupportUser(profile) ? <Navigate to="/cliente/soporte" replace /> : <LazyRoute><DashboardPage /></LazyRoute>} />
+            <Route index element={isClientSupportUser(profile) ? <Navigate to="/cliente" replace /> : <LazyRoute><DashboardPage /></LazyRoute>} />
             <Route path="pharmacies" element={<Navigate to="/farmacias" replace />} />
             <Route path="pharmacies/new" element={<Navigate to="/farmacias/nueva" replace />} />
             <Route path="pharmacies/:id" element={<LegacyPharmacyRedirect />} />
@@ -153,6 +155,8 @@ export default function App() {
               <Route path="general" element={<LazyRoute><ConfigGeneralPage /></LazyRoute>} />
               <Route path="equipo-viteka" element={<LazyRoute><EquipoVitekaPage /></LazyRoute>} />
               <Route path="roles-permisos" element={<LazyRoute><RolesPermisosPage /></LazyRoute>} />
+              <Route path="contrasenas" element={<LazyRoute><PasswordsPage /></LazyRoute>} />
+              <Route path="portal-cliente" element={<LazyRoute><PortalClientePage /></LazyRoute>} />
               <Route path="auditoria" element={<LazyRoute><AuditoriaPage /></LazyRoute>} />
             </Route>
             <Route path="soporte" element={<InternalRoute profile={profile}><Outlet /></InternalRoute>}>
@@ -169,16 +173,19 @@ export default function App() {
             </Route>
           </Route>
 
-          <Route path="/cliente/soporte" element={
+          <Route path="/cliente" element={
             <ClientRoute session={session} profile={profile}>
-              <ClientSupportLayout profile={profile} session={session} />
+              <ClientPortalLayout profile={profile} session={session} />
             </ClientRoute>
           }>
-            <Route index element={<LazyRoute><ClientSupportHomePage /></LazyRoute>} />
+            <Route index element={<Navigate to="/cliente/dashboard" replace />} />
+            <Route path="dashboard" element={<LazyRoute><ClientDashboardPage /></LazyRoute>} />
             <Route path="tickets" element={<LazyRoute><ClientTicketsPage /></LazyRoute>} />
             <Route path="tickets/nuevo" element={<LazyRoute><ClientNewTicketPage /></LazyRoute>} />
             <Route path="tickets/:id" element={<LazyRoute><ClientTicketDetailPage /></LazyRoute>} />
           </Route>
+
+          <Route path="/cliente/soporte/*" element={<Navigate to="/cliente" replace />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -1,24 +1,19 @@
+import { ROLES, normalizeRole } from './permissions'
+
 const INTERNAL_ROLES = new Set([
-  'owner',
-  'superadmin',
-  'admin',
-  'administrador',
-  'soporte',
-  'support',
-  'technician',
-  'tecnico',
-  'commercial',
-  'comercial',
-  'administracion',
-  'administración',
+  ROLES.OWNER,
+  ROLES.ADMINISTRADOR,
+  ROLES.SOPORTE,
+  ROLES.ADMINISTRACION,
 ])
 
 export function isInternalSupportUser(profile) {
-  return INTERNAL_ROLES.has(profile?.role)
+  return INTERNAL_ROLES.has(normalizeRole(profile?.role))
 }
 
 export function isClientSupportUser(profile) {
-  return profile?.role === 'client' || profile?.role === 'cliente'
+  const role = normalizeRole(profile?.role)
+  return role === ROLES.CLIENTE_OWNER || role === ROLES.CLIENTE_USER
 }
 
 export function canPreviewClientPortal(profile) {

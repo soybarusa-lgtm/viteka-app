@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ChatBubbleLeftRightIcon, CheckCircleIcon, LockClosedIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline'
+import ClientContextPanel from '../../components/support/ClientContextPanel'
 import InternalSupportFrame from '../../components/soporte/interno/InternalSupportFrame'
 import TicketConversation from '../../components/soporte/interno/TicketConversation'
 import { TicketPriorityBadge, TicketStatusBadge } from '../../components/soporte/shared/SupportBadges'
@@ -101,6 +102,7 @@ export default function SupportTicketDetailPage() {
             <p className="mt-1 text-xs text-slate-500">{ticket.pharmacy_name}</p>
             <p className="mt-3 text-xs text-slate-400">{ticket.product} · {ticket.type}</p>
           </section>
+          <ClientContextPanel profile={profile} ticket={ticket} />
         </aside>
       </div>
     </InternalSupportFrame>

@@ -28,7 +28,7 @@ export default function SupportDashboardPage() {
 
   return (
     <InternalSupportFrame>
-      <SupportPageHeader title="Centro de soporte" detail="Priorice incidencias, vigile carga operativa y entre rápidamente en las conversaciones que necesitan atención." actions={<Link to="/cliente/soporte/tickets/nuevo" className="btn-primary">Crear ticket</Link>} />
+      <SupportPageHeader title="Centro de soporte" detail="Priorice incidencias, vigile carga operativa y entre rápidamente en las conversaciones que necesitan atención." actions={<Link to="/cliente/tickets/nuevo" className="btn-primary">Crear ticket</Link>} />
       {usingMocks && <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">Modo demostración activo: la migración de soporte todavía no se ha aplicado al Supabase histórico.</p>}
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Metric label="Sin resolver" value={stats.opened.length} Icon={TicketIcon} />

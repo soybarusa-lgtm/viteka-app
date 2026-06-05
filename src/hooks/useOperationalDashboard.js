@@ -80,7 +80,7 @@ async function fetchProfilesById(ids, companyId) {
   const build = withCompany => {
     let query = supabase
       .from('profiles')
-      .select('id, full_name, email')
+      .select('id, full_name')
       .in('id', uniqueIds)
     if (withCompany && companyId) query = query.eq('company_id', companyId)
     return query
