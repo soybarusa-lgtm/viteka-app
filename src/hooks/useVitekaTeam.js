@@ -112,7 +112,12 @@ export function useVitekaTeam(currentUserProfile) {
     if (!usingMocks) {
       const safePayload = { ...nextPayload }
       delete safePayload.email
-      const { error: updateError } = await supabase.from('profiles').update(safePayload).eq('id', id)
+      let { error: updateError } = await supabase.from('profiles').update(safePayload).eq('id', id)
+      if (updateError && /department|schema cache/i.test(updateError.message || '')) {
+        const fallbackPayload = { ...safePayload }
+        delete fallbackPayload.department
+        ;({ error: updateError } = await supabase.from('profiles').update(fallbackPayload).eq('id', id))
+      }
       if (updateError) throw updateError
     }
     setMembers(prev => prev.map(member => member.id === id ? normalizeMember({ ...member, ...nextPayload }) : member))
