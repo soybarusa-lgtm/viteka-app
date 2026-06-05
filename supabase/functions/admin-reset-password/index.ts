@@ -36,7 +36,7 @@ async function getCallerProfile(req: Request, admin: ReturnType<typeof createSer
 
   const { data: profile } = await admin
     .from('profiles')
-    .select('id, role, email, full_name')
+    .select('id, role, full_name')
     .eq('id', userData.user.id)
     .maybeSingle()
 
@@ -49,8 +49,8 @@ async function resolveEmail(admin: ReturnType<typeof createServiceClient>, paylo
   if (payload?.id) {
     const { data: access } = await admin.from('client_portal_access').select('email').eq('id', payload.id).maybeSingle()
     if (access?.email) return access.email
-    const { data: profile } = await admin.from('profiles').select('email').eq('id', payload.id).maybeSingle()
-    if (profile?.email) return profile.email
+    const { data: user } = await admin.auth.admin.getUserById(String(payload.id))
+    if (user?.user?.email) return user.user.email
   }
 
   return ''

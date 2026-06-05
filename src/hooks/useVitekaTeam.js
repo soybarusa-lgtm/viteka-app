@@ -35,13 +35,13 @@ export function useVitekaTeam(currentUserProfile) {
     setError(null)
     let { data, error: membersError } = await supabase
       .from('profiles')
-      .select('id, email, full_name, phone, role, is_active, department, internal_notes, last_login_at, created_at, updated_at, auth_user_id, must_change_password')
+      .select('id, full_name, phone, role, is_active, department, internal_notes, last_login_at, created_at, updated_at, auth_user_id, must_change_password')
       .order('full_name', { ascending: true })
 
     if (membersError) {
       ;({ data, error: membersError } = await supabase
         .from('profiles')
-        .select('id, email, full_name, role, company_id, auth_user_id, must_change_password')
+        .select('id, full_name, role, company_id, auth_user_id, must_change_password')
         .order('full_name', { ascending: true }))
     }
 
@@ -74,15 +74,34 @@ export function useVitekaTeam(currentUserProfile) {
 
   const createMember = useCallback(async (payload) => {
     if (!canManageRole(currentUserProfile, payload.role)) throw new Error('No tienes permisos para asignar este rol.')
-    const newMember = normalizeMember({ ...payload, id: crypto.randomUUID(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    const timestamp = new Date().toISOString()
+    const optimisticMember = normalizeMember({ ...payload, id: crypto.randomUUID(), created_at: timestamp, updated_at: timestamp })
+    let createdId = optimisticMember.id
     if (usingMocks) {
-      setMembers(prev => [newMember, ...prev])
+      setMembers(prev => [optimisticMember, ...prev])
     } else {
-      const { data, error: insertError } = await supabase.from('profiles').insert(payload).select().single()
-      if (insertError) throw insertError
-      setMembers(prev => [normalizeMember(data), ...prev])
+      const { data, error: fnError } = await supabase.functions.invoke('admin-create-user', {
+        body: {
+          ...payload,
+          target_type: 'internal',
+        },
+      })
+      if (fnError) throw fnError
+      createdId = data?.user?.id || optimisticMember.id
+      const createdMember = normalizeMember({
+        ...payload,
+        id: createdId,
+        auth_user_id: createdId,
+        created_at: timestamp,
+        updated_at: timestamp,
+      })
+      if (data?.access) {
+        setMembers(prev => [normalizeMember(data.access), ...prev])
+      } else {
+        setMembers(prev => [createdMember, ...prev])
+      }
     }
-    await logAuditEvent('team.create', 'profiles', newMember.id, null, payload)
+    await logAuditEvent('team.create', 'profiles', createdId, null, payload)
   }, [currentUserProfile, usingMocks])
 
   const updateMember = useCallback(async (id, payload) => {
@@ -91,7 +110,9 @@ export function useVitekaTeam(currentUserProfile) {
     if (payload.role && !canManageRole(currentUserProfile, payload.role)) throw new Error('No tienes permisos para asignar este rol.')
     const nextPayload = { ...payload, updated_at: new Date().toISOString() }
     if (!usingMocks) {
-      const { error: updateError } = await supabase.from('profiles').update(nextPayload).eq('id', id)
+      const safePayload = { ...nextPayload }
+      delete safePayload.email
+      const { error: updateError } = await supabase.from('profiles').update(safePayload).eq('id', id)
       if (updateError) throw updateError
     }
     setMembers(prev => prev.map(member => member.id === id ? normalizeMember({ ...member, ...nextPayload }) : member))

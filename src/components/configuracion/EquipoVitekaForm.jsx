@@ -18,8 +18,9 @@ export default function EquipoVitekaForm({ value, onChange, onSubmit, onCancel, 
           <input className="field" value={value.full_name || ''} onChange={e => setField('full_name', e.target.value)} required />
         </label>
         <label className="block">
-          <span className="label">Email</span>
-          <input className="field" type="email" value={value.email || ''} onChange={e => setField('email', e.target.value)} required />
+          <span className="label">Email de acceso</span>
+          <input className="field" type="email" value={value.email || ''} onChange={e => setField('email', e.target.value)} required={!value?.id} />
+          {value?.id && <p className="mt-1 text-[11px] text-slate-400">Si el usuario ya existe, el email se gestiona desde Auth y aquí solo se usa para la invitación inicial.</p>}
         </label>
         <label className="block">
           <span className="label">Telefono</span>

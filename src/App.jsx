@@ -90,7 +90,7 @@ export default function App() {
   const loadProfile = useCallback(async (userId) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, role, company_id, pharmacy_id, full_name, email, phone, auth_user_id, is_active, must_change_password, department, internal_notes')
+      .select('id, role, company_id, pharmacy_id, full_name, phone, auth_user_id, is_active, must_change_password, department, internal_notes')
       .eq('id', userId)
       .maybeSingle()
     if (!error) {
@@ -101,7 +101,7 @@ export default function App() {
     // Keep the historical backend usable until the support migration adds pharmacy_id.
     const { data: legacyProfile } = await supabase
       .from('profiles')
-      .select('id, role, company_id, pharmacy_id, full_name, email, phone, auth_user_id, is_active, must_change_password, department, internal_notes')
+      .select('id, role, company_id, pharmacy_id, full_name, phone, auth_user_id, is_active, must_change_password, department, internal_notes')
       .eq('id', userId)
       .maybeSingle()
     setProfile(legacyProfile ? { ...legacyProfile } : null)

@@ -36,7 +36,7 @@ async function getCallerProfile(req: Request, admin: ReturnType<typeof createSer
 
   const { data: profile } = await admin
     .from('profiles')
-    .select('id, role, email, full_name')
+    .select('id, role, full_name')
     .eq('id', userData.user.id)
     .maybeSingle()
 
@@ -49,8 +49,8 @@ async function resolveEmailByTarget(admin: ReturnType<typeof createServiceClient
   if (payload?.id) {
     const { data: access } = await admin.from('client_portal_access').select('email').eq('id', payload.id).maybeSingle()
     if (access?.email) return access.email
-    const { data: profile } = await admin.from('profiles').select('email').eq('id', payload.id).maybeSingle()
-    if (profile?.email) return profile.email
+    const { data: user } = await admin.auth.admin.getUserById(String(payload.id))
+    if (user?.user?.email) return user.user.email
   }
 
   return ''
@@ -90,7 +90,6 @@ Deno.serve(async req => {
     const profilePayload = {
       id: userId,
       auth_user_id: userId,
-      email,
       full_name: fullName || email,
       role,
       pharmacy_id: pharmacyId,
@@ -102,30 +101,32 @@ Deno.serve(async req => {
 
     await admin.from('profiles').upsert(profilePayload, { onConflict: 'id' })
 
-    const accessPayload = {
-      auth_user_id: userId,
-      profile_id: userId,
-      pharmacy_id: pharmacyId,
-      person_id: personId,
-      email,
-      full_name: fullName || email,
-      role,
-      is_active: payload.is_active !== false,
-      must_change_password: payload.must_change_password !== false,
-      invite_sent_at: new Date().toISOString(),
+    let savedAccess = null
+    if (targetType === 'client') {
+      const accessPayload = {
+        auth_user_id: userId,
+        profile_id: userId,
+        pharmacy_id: pharmacyId,
+        person_id: personId,
+        email,
+        full_name: fullName || email,
+        role,
+        is_active: payload.is_active !== false,
+        must_change_password: payload.must_change_password !== false,
+        invite_sent_at: new Date().toISOString(),
+      }
+
+      const { data: existingAccess } = await admin.from('client_portal_access').select('id').eq('email', email).eq('pharmacy_id', pharmacyId).maybeSingle()
+      if (existingAccess?.id) {
+        const { data } = await admin.from('client_portal_access').update(accessPayload).eq('id', existingAccess.id).select('*').single()
+        savedAccess = data
+      } else {
+        const { data } = await admin.from('client_portal_access').insert(accessPayload).select('*').single()
+        savedAccess = data
+      }
     }
 
-    const { data: existingAccess } = await admin.from('client_portal_access').select('id').eq('email', email).eq('pharmacy_id', pharmacyId).maybeSingle()
-    let savedAccess
-    if (existingAccess?.id) {
-      const { data } = await admin.from('client_portal_access').update(accessPayload).eq('id', existingAccess.id).select('*').single()
-      savedAccess = data
-    } else {
-      const { data } = await admin.from('client_portal_access').insert(accessPayload).select('*').single()
-      savedAccess = data
-    }
-
-    return json({ ok: true, user: invite.data?.user || null, access: savedAccess || accessPayload })
+    return json({ ok: true, user: invite.data?.user || null, access: savedAccess })
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : 'Unknown error' }, 500)
   }

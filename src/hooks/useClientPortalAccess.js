@@ -21,7 +21,7 @@ export function useClientPortalAccess({ profileId = null, pharmacyId = null } = 
   const reload = useCallback(async () => {
     setLoading(true)
     setError(null)
-    let query = supabase.from('client_portal_access').select('*, profile:profiles(full_name, email)').order('created_at', { ascending: false })
+    let query = supabase.from('client_portal_access').select('*, profile:profiles(full_name)').order('created_at', { ascending: false })
     if (profileId) query = query.eq('profile_id', profileId)
     if (pharmacyId) query = query.eq('pharmacy_id', pharmacyId)
     const { data, error: accessError } = await query
