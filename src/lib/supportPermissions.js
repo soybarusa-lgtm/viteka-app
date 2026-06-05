@@ -1,4 +1,17 @@
-const INTERNAL_ROLES = new Set(['owner', 'superadmin', 'admin', 'technician', 'tecnico', 'commercial', 'comercial'])
+const INTERNAL_ROLES = new Set([
+  'owner',
+  'superadmin',
+  'admin',
+  'administrador',
+  'soporte',
+  'support',
+  'technician',
+  'tecnico',
+  'commercial',
+  'comercial',
+  'administracion',
+  'administración',
+])
 
 export function isInternalSupportUser(profile) {
   return INTERNAL_ROLES.has(profile?.role)

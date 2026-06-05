@@ -17,9 +17,11 @@ import {
   LifebuoyIcon,
   TicketIcon,
   ChartBarIcon,
+  Cog6ToothIcon,
 } from '@heroicons/react/24/outline'
+import { canAccessConfig } from '../lib/permissions'
 
-const NAV = [
+const BASE_NAV = [
   { to: '/', label: 'Dashboard', Icon: HomeIcon },
   { to: '/farmacias', label: 'Farmacias', Icon: BuildingStorefrontIcon },
   { to: '/personas', label: 'Personas', Icon: UsersIcon },
@@ -30,7 +32,7 @@ const NAV = [
   { to: '/documentos', label: 'Documentación', Icon: DocumentTextIcon },
 ]
 
-export default function AppLayout({ session }) {
+export default function AppLayout({ session, profile }) {
   const navigate = useNavigate()
   const [pinned, setPinned] = useState(false)
   const [hovered, setHovered] = useState(false)
@@ -38,6 +40,9 @@ export default function AppLayout({ session }) {
   const [launcherOpen, setLauncherOpen] = useState(false)
 
   const isOpen = pinned || hovered
+  const navItems = canAccessConfig(profile)
+    ? [...BASE_NAV, { to: '/configuracion/general', label: 'Configuracion', Icon: Cog6ToothIcon }]
+    : BASE_NAV
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -84,7 +89,7 @@ export default function AppLayout({ session }) {
               Acceso rápido
             </button>
             <nav className="flex-1 space-y-1">
-              {NAV.map(({ to, label, Icon }) => (
+              {navItems.map(({ to, label, Icon }) => (
                 <NavLink
                   key={to}
                   to={to}
@@ -163,7 +168,7 @@ export default function AppLayout({ session }) {
               Acceso rápido
             </span>
           </button>
-          {NAV.map(({ to, label, Icon }) => (
+          {navItems.map(({ to, label, Icon }) => (
             <NavLink
               key={to}
               to={to}

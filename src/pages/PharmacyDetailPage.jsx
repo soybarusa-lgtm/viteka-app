@@ -660,10 +660,17 @@ function PharmacySupportPending({ tickets = [], loading, onOpenSupport, matchesQ
   )
 }
 
-function PharmacySidePanel({ pharmacy, summaries, recentActivity = [], onNavigateTab, onEditGeneral, onCreateTicket, matchesQuery }) {
-  const hasSideContent = matchesQuery('mapa ubicación actividad acciones soporte editar')
-  if (!hasSideContent) return null
-
+function PharmacySidePanel({
+  pharmacy,
+  summaries,
+  recentActivity = [],
+  onCreateEquipment,
+  onCreateIt,
+  onCreatePerson,
+  onCreateProject,
+  onCreateTask,
+  onCreateDocument,
+}) {
   return (
     <aside className="space-y-3 xl:sticky xl:top-[116px] xl:self-start">
       <MapSummaryCard
@@ -698,59 +705,55 @@ function PharmacySidePanel({ pharmacy, summaries, recentActivity = [], onNavigat
 
       <CompactDataCard title="Acciones rápidas">
         <div className="grid gap-2">
-          <button type="button" onClick={onEditGeneral} className="btn-secondary justify-center text-xs"><PencilSquareIcon className="h-4 w-4" /> Editar datos</button>
-          <button type="button" onClick={onCreateTicket} className="btn-primary justify-center text-xs"><PlusIcon className="h-4 w-4" /> Crear ticket</button>
-          <button type="button" onClick={() => onNavigateTab('equipment')} className="btn-ghost justify-center text-xs"><WrenchScrewdriverIcon className="h-4 w-4" /> Equipamiento</button>
-          <button type="button" onClick={() => onNavigateTab('documents')} className="btn-ghost justify-center text-xs"><DocumentTextIcon className="h-4 w-4" /> Documentos</button>
+          <button type="button" onClick={onCreateEquipment} className="btn-primary justify-center text-xs"><PlusIcon className="h-4 w-4" /> Crear equipamiento</button>
+          <button type="button" onClick={onCreateIt} className="btn-ghost justify-center text-xs"><ComputerDesktopIcon className="h-4 w-4" /> Crear equipo informático</button>
+          <button type="button" onClick={onCreatePerson} className="btn-ghost justify-center text-xs"><UsersIcon className="h-4 w-4" /> Crear persona</button>
+          <button type="button" onClick={onCreateProject} className="btn-ghost justify-center text-xs"><FolderOpenIcon className="h-4 w-4" /> Crear proyecto</button>
+          <button type="button" onClick={onCreateTask} className="btn-ghost justify-center text-xs"><ClipboardDocumentIcon className="h-4 w-4" /> Crear tarea</button>
+          <button type="button" onClick={onCreateDocument} className="btn-ghost justify-center text-xs"><DocumentTextIcon className="h-4 w-4" /> Crear documento</button>
         </div>
       </CompactDataCard>
     </aside>
   )
 }
 
-function TabGeneral({ pharmacy, summaries, supportTickets, supportLoading, recentActivity, onNavigateTab, onEditGeneral, onCreateTicket, onOpenSupport }) {
-  const [query, setQuery] = useState('')
-  const normalizedQuery = normalizeText(query)
-  const matchesQuery = (...values) => (
-    !normalizedQuery || normalizeText(values.filter(Boolean).join(' ')).includes(normalizedQuery)
-  )
-  const hasResults = matchesQuery(
-    pharmacy.pharmacy_name,
-    pharmacy.owner_name,
-    pharmacy.contact_phone,
-    pharmacy.contact_email,
-    summaries.map,
-    summaries.equipment.detail,
-    summaries.it.detail,
-    summaries.people.preview,
-    summaries.documents.detail,
-    summaries.projects.detail,
-    summaries.lastActionText,
-    ...(supportTickets || []).flatMap(ticket => [ticket.subject, ticket.product, ticket.internal_status]),
-  )
+function TabGeneral({
+  pharmacy,
+  summaries,
+  supportTickets,
+  supportLoading,
+  recentActivity,
+  onNavigateTab,
+  onOpenSupport,
+  onCreateEquipment,
+  onCreateIt,
+  onCreatePerson,
+  onCreateProject,
+  onCreateTask,
+  onCreateDocument,
+}) {
+  const matchesQuery = () => true
 
   return (
     <div className="space-y-4">
-      <TabToolbar query={query} onQueryChange={setQuery} placeholder="Buscar en esta farmacia..." />
-      {!hasResults && <EmptyTab icon={BuildingStorefrontIcon} message="Sin resultados en esta farmacia" />}
-      {hasResults && (
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="space-y-4 min-w-0">
-            <GeneralInfoCard pharmacy={pharmacy} matchesQuery={matchesQuery} />
-            <PharmacyOperationalSummary summaries={summaries} onNavigateTab={onNavigateTab} matchesQuery={matchesQuery} />
-            <PharmacySupportPending tickets={supportTickets} loading={supportLoading} onOpenSupport={onOpenSupport} matchesQuery={matchesQuery} />
-          </div>
-          <PharmacySidePanel
-            pharmacy={pharmacy}
-            summaries={summaries}
-            recentActivity={recentActivity}
-            onNavigateTab={onNavigateTab}
-            onEditGeneral={onEditGeneral}
-            onCreateTicket={onCreateTicket}
-            matchesQuery={matchesQuery}
-          />
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="space-y-4 min-w-0">
+          <GeneralInfoCard pharmacy={pharmacy} matchesQuery={matchesQuery} />
+          <PharmacyOperationalSummary summaries={summaries} onNavigateTab={onNavigateTab} matchesQuery={matchesQuery} />
+          <PharmacySupportPending tickets={supportTickets} loading={supportLoading} onOpenSupport={onOpenSupport} matchesQuery={matchesQuery} />
         </div>
-      )}
+        <PharmacySidePanel
+          pharmacy={pharmacy}
+          summaries={summaries}
+          recentActivity={recentActivity}
+          onCreateEquipment={onCreateEquipment}
+          onCreateIt={onCreateIt}
+          onCreatePerson={onCreatePerson}
+          onCreateProject={onCreateProject}
+          onCreateTask={onCreateTask}
+          onCreateDocument={onCreateDocument}
+        />
+      </div>
     </div>
   )
 }
@@ -3457,6 +3460,34 @@ export default function PharmacyDetailPage() {
     navigate(`/soporte/tickets?pharmacy_id=${encodeURIComponent(id)}`)
   }
 
+  function handleCreateEquipment() {
+    setSelectedEquipmentSection(null)
+    setSelectedEquipmentLabel('')
+    setActiveTab('equipment')
+    setTabInUrl('equipment')
+    setIsEditOpen(true)
+  }
+
+  function handleCreateIt() {
+    navigate(`/farmacias/${id}?tab=it&action=new-it`)
+  }
+
+  function handleCreatePerson() {
+    navigate(`/farmacias/${id}?tab=people&action=new-person`)
+  }
+
+  function handleCreateProject() {
+    navigate(`/proyectos?pharmacy_id=${encodeURIComponent(id)}&create=1&type=commercial`)
+  }
+
+  function handleCreateTask() {
+    navigate(`/proyectos?pharmacy_id=${encodeURIComponent(id)}&create=1&type=support&mode=task`)
+  }
+
+  function handleCreateDocument() {
+    navigate(`/farmacias/${id}?tab=documents&action=upload`)
+  }
+
   function handleOpenSupport(ticket) {
     if (ticket?.source === 'support_tickets' && ticket.id) {
       navigate(`/soporte/tickets/${ticket.id}`)
@@ -3853,9 +3884,13 @@ export default function PharmacyDetailPage() {
             supportLoading={supportLoading}
             recentActivity={recentActivity}
             onNavigateTab={openTab}
-            onEditGeneral={handleEditGeneral}
-            onCreateTicket={handleCreateTicket}
             onOpenSupport={handleOpenSupport}
+            onCreateEquipment={handleCreateEquipment}
+            onCreateIt={handleCreateIt}
+            onCreatePerson={handleCreatePerson}
+            onCreateProject={handleCreateProject}
+            onCreateTask={handleCreateTask}
+            onCreateDocument={handleCreateDocument}
           />
         )}
         {activeTab === 'equipment' && <TabEquipment equipment={equipment} onEditItem={handleEquipmentRowClick} />}

@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import { canPreviewClientPortal, isClientSupportUser, isInternalSupportUser } from './lib/supportPermissions'
+import { canAccessConfig } from './lib/permissions'
 import { ToastProvider } from './context/ToastContext'
 import AppLayout from './layouts/AppLayout'
 import LoginPage from './pages/LoginPage'
@@ -16,6 +17,11 @@ const PeoplePage = lazy(() => import('./pages/PeoplePage'))
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
 const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'))
 const DocumentsPage = lazy(() => import('./pages/DocumentsPage'))
+const ConfigLayout = lazy(() => import('./components/configuracion/ConfigLayout'))
+const ConfigGeneralPage = lazy(() => import('./pages/configuracion/ConfigGeneralPage'))
+const EquipoVitekaPage = lazy(() => import('./pages/configuracion/EquipoVitekaPage'))
+const RolesPermisosPage = lazy(() => import('./pages/configuracion/RolesPermisosPage'))
+const AuditoriaPage = lazy(() => import('./pages/configuracion/AuditoriaPage'))
 const ClientSupportHomePage = lazy(() => import('./pages/cliente/soporte/ClientSupportHomePage'))
 const ClientTicketsPage = lazy(() => import('./pages/cliente/soporte/ClientTicketsPage'))
 const ClientNewTicketPage = lazy(() => import('./pages/cliente/soporte/ClientNewTicketPage'))
@@ -56,6 +62,11 @@ function ClientRoute({ session, profile, children }) {
   if (session === undefined || profile === undefined) return null
   if (!session) return <Navigate to="/login" replace />
   return canPreviewClientPortal(profile) ? children : <Navigate to="/soporte/dashboard" replace />
+}
+
+function ConfigRoute({ profile, children }) {
+  if (profile === undefined) return null
+  return canAccessConfig(profile) ? children : <Navigate to="/" replace />
 }
 
 function PageFallback() {
@@ -120,7 +131,7 @@ export default function App() {
 
           <Route path="/" element={
             <PrivateRoute session={session}>
-              <AppLayout session={session} />
+              <AppLayout session={session} profile={profile} />
             </PrivateRoute>
           }>
             <Route index element={isClientSupportUser(profile) ? <Navigate to="/cliente/soporte" replace /> : <LazyRoute><DashboardPage /></LazyRoute>} />
@@ -137,6 +148,13 @@ export default function App() {
             <Route path="proyectos" element={<LazyRoute><ProjectsPage /></LazyRoute>} />
             <Route path="proyectos/:id" element={<LazyRoute><ProjectDetailPage /></LazyRoute>} />
             <Route path="documentos" element={<LazyRoute><DocumentsPage profile={profile} /></LazyRoute>} />
+            <Route path="configuracion" element={<ConfigRoute profile={profile}><LazyRoute><ConfigLayout /></LazyRoute></ConfigRoute>}>
+              <Route index element={<Navigate to="/configuracion/general" replace />} />
+              <Route path="general" element={<LazyRoute><ConfigGeneralPage /></LazyRoute>} />
+              <Route path="equipo-viteka" element={<LazyRoute><EquipoVitekaPage /></LazyRoute>} />
+              <Route path="roles-permisos" element={<LazyRoute><RolesPermisosPage /></LazyRoute>} />
+              <Route path="auditoria" element={<LazyRoute><AuditoriaPage /></LazyRoute>} />
+            </Route>
             <Route path="soporte" element={<InternalRoute profile={profile}><Outlet /></InternalRoute>}>
               <Route index element={<Navigate to="/soporte/dashboard" replace />} />
               <Route path="dashboard" element={<LazyRoute><SupportDashboardPage /></LazyRoute>} />
