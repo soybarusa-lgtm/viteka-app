@@ -104,10 +104,13 @@ function PasswordChangeRoute({ session, profile, loading, children }) {
 function PublicAuthRoute({ session, profile, loading, children }) {
   if (loading) return <PrivateSpinner />
   if (session && profile && isProfileActive(profile)) {
+    const targetPath = getPostLoginPath(profile)
     if (requiresPasswordChange(profile)) {
       return <Navigate to="/change-password" replace />
     }
-    return <Navigate to={getPostLoginPath(profile)} replace />
+    if (targetPath !== '/login') {
+      return <Navigate to={targetPath} replace />
+    }
   }
   return children
 }
@@ -118,11 +121,14 @@ function LazyRoute({ children }) {
 
 export default function App() {
   const { loading, profile, refreshProfile, session } = useAuth()
+  const portalPath = session && profile ? getPostLoginPath(profile) : null
   const statusMessage = session && profile && !isProfileActive(profile)
     ? 'Tu cuenta no está activa. Contacta con soporte de Viteka.'
-    : session && !profile
-      ? 'No se pudo cargar tu perfil. Vuelve a iniciar sesión o contacta con soporte de Viteka.'
-      : ''
+    : session && profile && isProfileActive(profile) && portalPath === '/login'
+      ? 'No se pudo identificar tu perfil o permisos. Contacta con soporte de Viteka.'
+      : session && !profile
+        ? 'No se pudo cargar tu perfil. Vuelve a iniciar sesión o contacta con soporte de Viteka.'
+        : ''
 
   return (
     <ToastProvider>
@@ -218,7 +224,7 @@ export default function App() {
 
           <Route
             path="*"
-            element={<Navigate to={session && profile && isProfileActive(profile) ? getPostLoginPath(profile) : '/login'} replace />} 
+            element={<Navigate to={session && profile && isProfileActive(profile) ? getPostLoginPath(profile) : '/login'} replace />}
           />
         </Routes>
       </BrowserRouter>
