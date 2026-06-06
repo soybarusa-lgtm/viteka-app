@@ -61,9 +61,20 @@ export default function SupportTicketsPage() {
   const [priority, setPriority] = useState('all')
 
   const createOpen = searchParams.get('create') === '1'
+  const contextPharmacyId = searchParams.get('pharmacy_id') || ''
+  const contextPharmacyName = searchParams.get('pharmacy_name') || ''
+  const contextProjectId = searchParams.get('project_id') || ''
+  const contextProjectName = searchParams.get('project_name') || ''
   const createPrefill = useMemo(() => pickSearchPrefill(searchParams), [searchParams])
 
   const filtered = useMemo(() => tickets
+    .filter(ticket => !contextPharmacyId || ticket.pharmacy_id === contextPharmacyId)
+    .filter(ticket => {
+      if (!contextProjectId) return true
+      const relatedProjectId = ticket.related_project_id || ticket.project_id || ''
+      return String(relatedProjectId) === String(contextProjectId)
+        || (!relatedProjectId && contextPharmacyId && ticket.pharmacy_id === contextPharmacyId)
+    })
     .filter(ticket => matchesView(ticket, view))
     .filter(ticket => status === 'all' || ticket.internal_status === status)
     .filter(ticket => priority === 'all' || ticket.priority_internal === priority)
@@ -75,7 +86,7 @@ export default function SupportTicketsPage() {
       ticket.product,
       ticket.public_ticket_number,
       ticket.related_project_name,
-    ].join(' ')).includes(normalizeSearch(search))), [priority, search, status, tickets, view])
+    ].join(' ')).includes(normalizeSearch(search))), [contextPharmacyId, contextProjectId, priority, search, status, tickets, view])
 
   function openCreate(extra = {}) {
     const next = new URLSearchParams(searchParams)
@@ -89,7 +100,7 @@ export default function SupportTicketsPage() {
 
   function closeCreate() {
     const next = new URLSearchParams(searchParams)
-    ;['create', 'pharmacy_id', 'pharmacy_name', 'project_id', 'project_name', 'subject', 'type', 'priority', 'product', 'description', 'person_name', 'person_email', 'requester_name', 'requester_email', 'asset_label'].forEach(key => next.delete(key))
+    ;['create', 'subject', 'type', 'priority', 'product', 'description', 'person_name', 'person_email', 'requester_name', 'requester_email', 'asset_label'].forEach(key => next.delete(key))
     setSearchParams(next, { replace: true })
   }
 
@@ -103,7 +114,7 @@ export default function SupportTicketsPage() {
     <InternalSupportFrame>
       <SupportPageHeader
         title="Tickets"
-        detail="Bandeja única para incidencias, consultas y peticiones de las farmacias."
+        detail={contextProjectName ? `Tickets vinculados al proyecto ${contextProjectName}.` : contextPharmacyName ? `Tickets vinculados a ${contextPharmacyName}.` : 'Bandeja única para incidencias, consultas y peticiones de las farmacias.'}
         actions={<button type="button" onClick={() => openCreate()} className="btn-primary"><PlusIcon className="h-4 w-4" /> Nuevo ticket</button>}
       />
       <div className="grid gap-4 xl:grid-cols-[190px_minmax(0,1fr)_220px]">
