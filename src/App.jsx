@@ -199,31 +199,26 @@ export default function App() {
           </Route>
 
           <Route
-            path="/cliente/dashboard"
-            element={
-              <ClientPortalRoute session={session} profile={profile} loading={loading}>
-                <LazyRoute><ClientSupportHomePage /></LazyRoute>
-              </ClientPortalRoute>
-            }
-          />
-          <Route path="/cliente" element={<Navigate to="/cliente/dashboard" replace />} />
-          <Route
-            path="/cliente/soporte"
+            path="/cliente"
             element={
               <ClientPortalRoute session={session} profile={profile} loading={loading}>
                 <ClientSupportLayout profile={profile} session={session} />
               </ClientPortalRoute>
             }
           >
-            <Route index element={<LazyRoute><ClientSupportHomePage /></LazyRoute>} />
-            <Route path="tickets" element={<LazyRoute><ClientTicketsPage /></LazyRoute>} />
-            <Route path="tickets/nuevo" element={<LazyRoute><ClientNewTicketPage /></LazyRoute>} />
-            <Route path="tickets/:id" element={<LazyRoute><ClientTicketDetailPage /></LazyRoute>} />
+            <Route index element={<Navigate to="/cliente/dashboard" replace />} />
+            <Route path="dashboard" element={<LazyRoute><ClientSupportHomePage /></LazyRoute>} />
+            <Route path="soporte" element={<Outlet />}>
+              <Route index element={<Navigate to="/cliente/dashboard" replace />} />
+              <Route path="tickets" element={<LazyRoute><ClientTicketsPage /></LazyRoute>} />
+              <Route path="tickets/nuevo" element={<LazyRoute><ClientNewTicketPage /></LazyRoute>} />
+              <Route path="tickets/:id" element={<LazyRoute><ClientTicketDetailPage /></LazyRoute>} />
+            </Route>
           </Route>
 
           <Route
             path="*"
-            element={<Navigate to={session && profile && isProfileActive(profile) ? getPostLoginPath(profile) : '/login'} replace />}
+            element={<Navigate to={session && profile && isProfileActive(profile) ? getPostLoginPath(profile) : '/login'} replace />} 
           />
         </Routes>
       </BrowserRouter>
