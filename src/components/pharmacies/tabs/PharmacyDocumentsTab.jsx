@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowPathIcon,
   CheckBadgeIcon,
@@ -121,7 +121,6 @@ export default function PharmacyDocumentsTab({ pharmacyId, companyId, documentsA
   const [deletingId, setDeletingId] = useState(null)
   const [openSections, setOpenSections] = useState({})
   const [meta, setMeta] = useState({ name: '', category: '', visibleForClient: false, notes: '' })
-  const fileRef = useRef(null)
 
   const categories = useMemo(
     () => Array.from(new Set([...DOC_CATEGORIES, ...documents.map(doc => doc.category).filter(Boolean)])),
@@ -204,7 +203,6 @@ export default function PharmacyDocumentsTab({ pharmacyId, companyId, documentsA
       toast('Documento subido', 'success')
       setMeta({ name: '', category: '', visibleForClient: false, notes: '' })
       setSelectedFile(null)
-      if (fileRef.current) fileRef.current.value = ''
     } catch {
       toast('No se pudo subir el documento', 'error')
     } finally {
@@ -246,10 +244,7 @@ export default function PharmacyDocumentsTab({ pharmacyId, companyId, documentsA
         onCategoryChange={value => setMeta(prev => ({ ...prev, category: value }))}
         categories={categories}
         selectedFile={selectedFile}
-        onFileChange={file => {
-          setSelectedFile(file)
-          if (fileRef.current) fileRef.current.files = null
-        }}
+        onFileChange={setSelectedFile}
         visibleForClient={meta.visibleForClient}
         onVisibleForClientChange={value => setMeta(prev => ({ ...prev, visibleForClient: value }))}
         notes={meta.notes}
