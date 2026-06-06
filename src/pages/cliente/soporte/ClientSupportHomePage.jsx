@@ -36,10 +36,6 @@ function MetricCard({ title, value, detail, Icon, accent = 'teal' }) {
   )
 }
 
-function statusTone(status) {
-  return getStatusMeta(status).tone
-}
-
 export default function ClientSupportHomePage() {
   const { profile } = useOutletContext()
   const { tickets, loading, error, usingMocks } = useClientTickets(profile)
@@ -90,7 +86,7 @@ export default function ClientSupportHomePage() {
             <MetricCard
               title="Esperando su respuesta"
               value={waitingForCustomer}
-              detail="Cuantos antes responda, antes podremos avanzar con ellos."
+              detail="Cuanto antes responda, antes podremos avanzar con ellos."
               Icon={ClockIcon}
               accent="amber"
             />
@@ -147,7 +143,7 @@ export default function ClientSupportHomePage() {
                         {ticket.pharmacy_name || 'Su farmacia'}
                       </p>
                     </div>
-                    <span className={`rounded-full px-2 py-1 text-[11px] font-bold ring-1 ${statusToneClasses(statusTone(meta.label ? ticket.internal_status || ticket.status : ''))}`}>
+                    <span className={`rounded-full px-2 py-1 text-[11px] font-bold ring-1 ${statusToneClasses(meta.tone)}`}>
                       {meta.label}
                     </span>
                   </div>
