@@ -42,6 +42,13 @@ const DIVISION_ICONS = {
   installation: WrenchScrewdriverIcon,
 }
 
+function isWonProject(project, division) {
+  return division.id === 'commercial' && (
+    project.pipeline_stage === 'cerrado'
+    || project.status === 'completed'
+  )
+}
+
 function ProjectList({ projects, onOpen }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-[#DDEAE7] bg-white shadow-sm">
@@ -200,6 +207,8 @@ export default function ProjectsPage() {
   }), [projects])
 
   const filtered = useMemo(() => projects.filter(project => {
+    const divisionData = getDivision(project)
+    const responsible = project.commercial?.full_name || project.technician?.full_name || ''
     const haystack = normalizeText([
       project.name,
       project.pharmacy?.pharmacy_name,
@@ -207,9 +216,10 @@ export default function ProjectsPage() {
       project.pharmacy?.province,
       getStage(project).label,
       getStatus(project.status).label,
+      responsible,
     ].join(' '))
 
-    return getDivision(project).id === division
+    return divisionData.id === division
       && (!search || haystack.includes(normalizeText(search)))
       && (status === 'all' || project.status === status)
       && (priority === 'all' || (project.priority || 'medium') === priority)
