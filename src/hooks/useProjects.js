@@ -16,6 +16,18 @@ const SAFE_PROJECT_FIELDS = [
   'priority',
 ]
 
+const PROJECT_SELECT_BASE = `
+  *,
+  pharmacy:pharmacies(id, pharmacy_name, city, province)
+`
+
+const PROJECT_SELECT_WITH_ASSIGNEES = `
+  *,
+  pharmacy:pharmacies(id, pharmacy_name, city, province),
+  commercial:profiles!assigned_commercial_id(id, full_name, email),
+  technician:profiles!assigned_technician_id(id, full_name, email)
+`
+
 function compactPayload(payload) {
   return Object.fromEntries(
     SAFE_PROJECT_FIELDS
@@ -29,6 +41,45 @@ function shouldUseLegacyDivision(error, division) {
     && ['23514', 'PGRST204'].includes(error?.code)
 }
 
+function isMissingAssigneeRelationship(error) {
+  const message = error?.message || ''
+  return ['PGRST200', 'PGRST201', 'PGRST204'].includes(error?.code)
+    || message.includes('assigned_commercial_id')
+    || message.includes('assigned_technician_id')
+    || message.includes('profiles')
+}
+
+async function selectProjects(type) {
+  let query = supabase
+    .from('projects')
+    .select(PROJECT_SELECT_WITH_ASSIGNEES)
+    .order('created_at', { ascending: false })
+
+  if (type) query = query.eq('project_type', type)
+
+  const withAssignees = await query
+  if (!withAssignees.error) return withAssignees
+  if (!isMissingAssigneeRelationship(withAssignees.error)) return withAssignees
+
+  let legacyQuery = supabase
+    .from('projects')
+    .select(PROJECT_SELECT_BASE)
+    .order('created_at', { ascending: false })
+
+  if (type) legacyQuery = legacyQuery.eq('project_type', type)
+  const legacy = await legacyQuery
+
+  if (legacy.error) return legacy
+  return {
+    data: (legacy.data || []).map(project => ({
+      ...project,
+      commercial: null,
+      technician: null,
+    })),
+    error: null,
+  }
+}
+
 export function useProjects({ type } = {}) {
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
@@ -38,16 +89,7 @@ export function useProjects({ type } = {}) {
     setLoading(true)
     setError(null)
     try {
-      let query = supabase
-        .from('projects')
-        .select(`
-          *,
-          pharmacy:pharmacies(id, pharmacy_name, city, province)
-        `)
-        .order('created_at', { ascending: false })
-
-      if (type) query = query.eq('project_type', type)
-      const { data, error: fetchError } = await query
+      const { data, error: fetchError } = await selectProjects(type)
       if (fetchError) throw fetchError
       setProjects(data || [])
     } catch (fetchError) {
