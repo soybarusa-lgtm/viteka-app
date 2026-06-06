@@ -13,6 +13,13 @@ import PharmacyModuleToolbar from '../PharmacyModuleToolbar'
 import PharmacyProjectCard from '../projects/PharmacyProjectCard'
 import ProjectNextSteps from '../projects/ProjectNextSteps'
 
+function isWonProject(project, division) {
+  return division.id === 'commercial' && (
+    project.pipeline_stage === 'cerrado'
+    || project.status === 'completed'
+  )
+}
+
 export default function PharmacyProjectsTab({
   projects = [],
   pharmacyName,
@@ -42,12 +49,19 @@ export default function PharmacyProjectsTab({
     return projects.filter(project => {
       const division = getDivision(project)
       const status = getStatus(project.status)
-      const haystack = [project.name, division.label, status.label, getStage(project).label].filter(Boolean).join(' ').toLocaleLowerCase('es')
+      const responsible = project.commercial?.full_name || project.technician?.full_name || ''
+      const haystack = [
+        project.name,
+        division.label,
+        status.label,
+        getStage(project).label,
+        responsible,
+      ].filter(Boolean).join(' ').toLocaleLowerCase('es')
       const matchesSearch = !normalizedQuery || haystack.includes(normalizedQuery)
 
       let matchesFilter = true
       if (quickFilter === 'active') matchesFilter = ['active', 'in_progress'].includes(project.status)
-      if (quickFilter === 'won') matchesFilter = ['won', 'closed_won'].includes(project.status)
+      if (quickFilter === 'won') matchesFilter = isWonProject(project, division)
       if (quickFilter === 'overdue') matchesFilter = isOverdue(project)
       if (quickFilter === 'commercial') matchesFilter = division.id === 'commercial'
       if (quickFilter === 'support') matchesFilter = division.id === 'support'
