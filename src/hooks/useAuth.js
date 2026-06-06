@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-const PROFILE_SELECT = 'id, role, active, is_active, must_change_password, full_name, email, company_id, pharmacy_id, companies(name)'
-const FALLBACK_SELECT = 'id, role, must_change_password, full_name, email, company_id, pharmacy_id'
+const PROFILE_SELECTS = [
+  'id, role, active, is_active, must_change_password, full_name, email, company_id, pharmacy_id, companies(name)',
+  'id, role, must_change_password, full_name, email, company_id, pharmacy_id, companies(name)',
+  'id, role, full_name, email, company_id, pharmacy_id, companies(name)',
+  'id, role, company_id, pharmacy_id',
+  'id, role, company_id',
+]
 
 function normalizeProfile(data) {
   if (!data) return null
@@ -22,33 +27,33 @@ export function useAuth() {
   const loadProfile = useCallback(async (userId) => {
     setLoading(true)
 
-    const primary = await supabase
-      .from('profiles')
-      .select(PROFILE_SELECT)
-      .eq('id', userId)
-      .maybeSingle()
+    let profileData = null
+    let lastError = null
 
-    let profileData = primary.data ?? null
-
-    if (primary.error) {
-      console.error('[useAuth] loadProfile error:', primary.error.message)
-
-      const fallback = await supabase
+    for (const selectClause of PROFILE_SELECTS) {
+      const { data, error } = await supabase
         .from('profiles')
-        .select(FALLBACK_SELECT)
+        .select(selectClause)
         .eq('id', userId)
         .maybeSingle()
 
-      if (fallback.error) {
-        console.error('[useAuth] fallback profile error:', fallback.error.message)
+      if (!error) {
+        profileData = data ?? null
+        lastError = null
+        break
       }
 
-      profileData = fallback.data ?? null
+      lastError = error
     }
 
-    setProfile(normalizeProfile(profileData))
+    if (lastError) {
+      console.error('[useAuth] loadProfile error:', lastError.message)
+    }
+
+    const normalizedProfile = normalizeProfile(profileData)
+    setProfile(normalizedProfile)
     setLoading(false)
-    return profileData
+    return normalizedProfile
   }, [])
 
   useEffect(() => {
