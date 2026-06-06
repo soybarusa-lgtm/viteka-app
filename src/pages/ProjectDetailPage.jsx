@@ -9,6 +9,7 @@ import {
   ClockIcon,
   DocumentCheckIcon,
   FlagIcon,
+  LifebuoyIcon,
   PencilSquareIcon,
   PlusIcon,
   TrashIcon,
@@ -16,8 +17,10 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { useToast } from '../context/ToastContext'
+import { useAuth } from '../hooks/useAuth'
 import { useProjectDetail } from '../hooks/useProjectDetail'
 import { useProjects } from '../hooks/useProjects'
+import { useSupportTickets } from '../hooks/useSupportTickets'
 import {
   MESSAGE_CHANNELS,
   MILESTONE_TYPES,
@@ -45,6 +48,16 @@ const TABS = [
 const EMPTY_TASK = { title: '', description: '', status: 'pending', priority: 'medium', due_date: '' }
 const EMPTY_MILESTONE = { title: '', milestone_type: 'milestone', status: 'pending', start_at: '', notes: '' }
 const EMPTY_MESSAGE = { audience: 'internal', channel: 'note', subject: '', message: '' }
+
+function buildSupportSearch(context = {}) {
+  const next = new URLSearchParams()
+  next.set('create', '1')
+  Object.entries(context).forEach(([key, value]) => {
+    if (value === null || value === undefined || value === '') return
+    next.set(key, String(value))
+  })
+  return next.toString()
+}
 
 function ProjectStat({ label, value, detail, Icon, alert = false }) {
   return (
@@ -160,7 +173,7 @@ function ProjectEditDrawer({ project, onClose, onSave }) {
   )
 }
 
-function OverviewTab({ project, tasks, milestones, onTab }) {
+function OverviewTab({ project, tasks, milestones, supportSummary, onTab, onCreateTicket, onOpenSupport }) {
   const division = getDivision(project)
   const stage = getStage(project)
   const priority = getPriority(project.priority)
@@ -209,9 +222,13 @@ function OverviewTab({ project, tasks, milestones, onTab }) {
           render={item => <><span className="truncate font-bold text-slate-700">{item.title}</span><span className="text-xs text-slate-400">{fmtDate(item.due_date)}</span></>}
         />
         <aside className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-4 text-sky-900">
-          <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-sky-600">Próxima fase</p>
-          <p className="mt-2 text-sm font-extrabold">Portal de incidencias conectado</p>
-          <p className="mt-1 text-xs leading-relaxed text-sky-700">Se incorporará después como flujo enlazado a este proyecto y a su farmacia.</p>
+          <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-sky-600">Soporte operativo</p>
+          <p className="mt-2 text-sm font-extrabold">{supportSummary.total} tickets vinculados · {supportSummary.open} abiertos</p>
+          <p className="mt-1 text-xs leading-relaxed text-sky-700">{supportSummary.latestSubject || 'Crea un ticket para registrar una incidencia, consulta o petición relacionada con este proyecto.'}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button type="button" onClick={onCreateTicket} className="btn-primary"><PlusIcon className="h-4 w-4" /> Crear ticket</button>
+            {supportSummary.total > 0 ? <button type="button" onClick={onOpenSupport} className="btn-ghost border border-sky-200 bg-white text-sky-700">Ver tickets</button> : null}
+          </div>
         </aside>
       </div>
     </div>
@@ -455,8 +472,10 @@ export default function ProjectDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const toast = useToast()
+  const { profile } = useAuth()
   const detail = useProjectDetail(id)
   const { updateProject } = useProjects()
+  const { tickets: supportTickets } = useSupportTickets(profile)
   const [tab, setTab] = useState('overview')
   const [editing, setEditing] = useState(false)
 
@@ -475,6 +494,21 @@ export default function ProjectDetailPage() {
     }
   }, [milestones, tasks])
 
+  const linkedTickets = useMemo(() => {
+    if (!project) return []
+    return supportTickets.filter(ticket => {
+      const relatedProjectId = ticket.related_project_id || ticket.project_id || ''
+      return String(relatedProjectId) === String(project.id)
+        || (!relatedProjectId && ticket.pharmacy_id === project.pharmacy_id)
+    })
+  }, [project, supportTickets])
+
+  const supportSummary = useMemo(() => ({
+    total: linkedTickets.length,
+    open: linkedTickets.filter(ticket => !['resuelto', 'cerrado', 'archivado'].includes(ticket.internal_status)).length,
+    latestSubject: linkedTickets[0]?.subject || '',
+  }), [linkedTickets])
+
   if (loading) return <div className="flex justify-center py-32"><div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-700 border-t-transparent" /></div>
   if (error || !project) return <div className="p-6"><p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error || 'Proyecto no encontrado.'}</p></div>
 
@@ -482,6 +516,29 @@ export default function ProjectDetailPage() {
   const stage = getStage(project)
   const status = getStatus(project.status)
   const overdue = isOverdue(project)
+
+  function openCreateTicket() {
+    navigate(`/soporte/tickets?${buildSupportSearch({
+      pharmacy_id: project.pharmacy_id || '',
+      pharmacy_name: project.pharmacy?.pharmacy_name || '',
+      project_id: project.id,
+      project_name: project.name,
+      subject: `Seguimiento de proyecto · ${project.name}`,
+      type: 'Incidencia',
+      priority: division.id === 'support' ? 'alto' : 'medio',
+      product: division.id === 'support' ? 'Soporte Técnico - Viteka' : 'Otros',
+      description: project.name ? `Proyecto relacionado: ${project.name}` : '',
+    })}`)
+  }
+
+  function openSupportBoard() {
+    navigate(`/soporte/tickets?${buildSupportSearch({
+      pharmacy_id: project.pharmacy_id || '',
+      pharmacy_name: project.pharmacy?.pharmacy_name || '',
+      project_id: project.id,
+      project_name: project.name,
+    })}`)
+  }
 
   async function saveProject(payload) {
     await updateProject(project.id, payload)
@@ -518,14 +575,17 @@ export default function ProjectDetailPage() {
               <span className="inline-flex items-center gap-1"><ClockIcon className="h-4 w-4" />Objetivo: {fmtDate(project.expected_close_date)}</span>
             </div>
           </div>
-          <button type="button" className="btn-primary self-start" onClick={() => setEditing(true)}><PencilSquareIcon className="h-4 w-4" /> Editar proyecto</button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="btn-secondary self-start" onClick={openCreateTicket}><LifebuoyIcon className="h-4 w-4" /> Crear ticket</button>
+            <button type="button" className="btn-primary self-start" onClick={() => setEditing(true)}><PencilSquareIcon className="h-4 w-4" /> Editar proyecto</button>
+          </div>
         </div>
       </header>
 
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         <ProjectStat label="Tareas" value={`${counts.completed}/${counts.tasks}`} detail="completadas" Icon={CheckCircleIcon} />
         <ProjectStat label="Próximos hitos" value={counts.milestones} detail="planificados" Icon={CalendarDaysIcon} />
-        <ProjectStat label="Comunicaciones" value={messages.length} detail="registradas" Icon={ChatBubbleLeftRightIcon} />
+        <ProjectStat label="Tickets" value={supportSummary.total} detail={supportSummary.open > 0 ? `${supportSummary.open} abiertos` : 'sin tickets abiertos'} Icon={LifebuoyIcon} alert={supportSummary.open > 0} />
         <ProjectStat label={division.id === 'commercial' ? 'Importe estimado' : 'Fecha objetivo'} value={division.id === 'commercial' ? fmtCurrency(project.amount) : fmtDate(project.expected_close_date)} detail={division.id === 'commercial' ? 'pipeline comercial' : stage.label} Icon={division.id === 'commercial' ? DocumentCheckIcon : ClockIcon} alert={overdue} />
       </div>
 
@@ -543,7 +603,7 @@ export default function ProjectDetailPage() {
         </nav>
       </div>
 
-      {tab === 'overview' && <OverviewTab project={project} tasks={tasks} milestones={milestones} onTab={setTab} />}
+      {tab === 'overview' && <OverviewTab project={project} tasks={tasks} milestones={milestones} supportSummary={supportSummary} onTab={setTab} onCreateTicket={openCreateTicket} onOpenSupport={openSupportBoard} />}
       {tab === 'tasks' && <TasksTab tasks={tasks} onCreate={payload => perform(() => createTask(payload), 'Tarea creada.')} onUpdate={(taskId, payload) => perform(() => updateTask(taskId, payload), 'Tarea actualizada.')} onDelete={taskId => perform(() => deleteTask(taskId), 'Tarea eliminada.')} />}
       {tab === 'calendar' && <CalendarTab milestones={milestones} tasks={tasks} onCreate={payload => perform(() => createMilestone(payload), 'Hito creado.')} />}
       {tab === 'messages' && <MessagesTab messages={messages} onCreate={payload => perform(() => createMessage(payload), 'Comunicación registrada.')} />}
