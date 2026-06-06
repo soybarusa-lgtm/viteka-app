@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ArrowUpTrayIcon,
+  ArrowPathIcon,
   CheckBadgeIcon,
   ClockIcon,
   DocumentTextIcon,
@@ -108,7 +108,7 @@ function EditDocumentModal({ doc, onClose, onSave, saving }) {
   )
 }
 
-export default function PharmacyDocumentsTab({ documentsApi, toast }) {
+export default function PharmacyDocumentsTab({ pharmacyId, companyId, documentsApi, toast }) {
   const { documents = [], loading, error, uploadDocument, deleteDocument, getDocumentUrl, reload } = documentsApi
   const [query, setQuery] = useState('')
   const [quickFilter, setQuickFilter] = useState('all')
@@ -123,7 +123,10 @@ export default function PharmacyDocumentsTab({ documentsApi, toast }) {
   const [meta, setMeta] = useState({ name: '', category: '', visibleForClient: false, notes: '' })
   const fileRef = useRef(null)
 
-  const categories = useMemo(() => Array.from(new Set([...DOC_CATEGORIES, ...documents.map(doc => doc.category).filter(Boolean)])), [documents])
+  const categories = useMemo(
+    () => Array.from(new Set([...DOC_CATEGORIES, ...documents.map(doc => doc.category).filter(Boolean)])),
+    [documents],
+  )
 
   const metrics = useMemo(() => {
     const contratos = documents.filter(doc => String(doc.category || '').toLocaleLowerCase('es') === 'contratos').length
@@ -142,12 +145,14 @@ export default function PharmacyDocumentsTab({ documentsApi, toast }) {
     return documents.filter(doc => {
       const category = String(doc.category || '').toLocaleLowerCase('es')
       const matchesSearch = !normalizedQuery || [getDocumentName(doc), doc.category, doc.file_ext, doc.notes].filter(Boolean).join(' ').toLocaleLowerCase('es').includes(normalizedQuery)
+
       let matchesFilter = true
       if (quickFilter === 'contracts') matchesFilter = category === 'contratos'
       if (quickFilter === 'reports') matchesFilter = category === 'informes'
       if (quickFilter === 'others') matchesFilter = category && !['contratos', 'informes'].includes(category)
       if (quickFilter === 'pending') matchesFilter = getReviewStatus(doc) === 'Pendiente'
       if (quickFilter === 'uncategorized') matchesFilter = !doc.category
+
       return matchesSearch && matchesFilter
     })
   }, [documents, query, quickFilter])
@@ -183,8 +188,8 @@ export default function PharmacyDocumentsTab({ documentsApi, toast }) {
       const created = await uploadDocument(selectedFile, {
         name: meta.name || selectedFile.name,
         category: meta.category,
-        pharmacy_id: selectedFile.pharmacy_id,
-        company_id: selectedFile.company_id,
+        pharmacy_id: pharmacyId,
+        company_id: companyId,
       })
       if (meta.visibleForClient || meta.notes) {
         await persistDocumentMetadata(created.id, {
@@ -220,17 +225,173 @@ export default function PharmacyDocumentsTab({ documentsApi, toast }) {
     }
   }
 
-  if (loading) return <div className="flex justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-4 border-teal-600 border-t-transparent" /></div>
+  if (loading) {
+    return <div className="flex justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-4 border-teal-600 border-t-transparent" /></div>
+  }
 
   return (
     <div className="space-y-4">
-      <PharmacyModuleHeader title="Documentos operativos" subtitle="Archivo compacto con categorías, revisión y acciones rápidas." metrics={metrics} />
-      <DocumentUploadDrawer open={drawerOpen} onToggle={() => setDrawerOpen(prev => !prev)} name={meta.name} onNameChange={value => setMeta(prev => ({ ...prev, name: value }))} category={meta.category} onCategoryChange={value => setMeta(prev => ({ ...prev, category: value }))} categories={categories} selectedFile={selectedFile} onFileChange={file => setSelectedFile(file ? { ...file, pharmacy_id: documentsApi.pharmacyId, company_id: documentsApi.companyId } : null)} visibleForClient={meta.visibleForClient} onVisibleForClientChange={value => setMeta(prev => ({ ...prev, visibleForClient: value }))} notes={meta.notes} onNotesChange={value => setMeta(prev => ({ ...prev, notes: value }))} onUpload={handleUpload} uploading={uploading} />
-      <PharmacyModuleToolbar query={query} onQueryChange={setQuery} placeholder="Buscar documento, categoría, fecha o tipo..." filters={[{ value: 'all', label: 'Todos' }, { value: 'contracts', label: 'Contratos' }, { value: 'reports', label: 'Informes' }, { value: 'others', label: 'Otros' }, { value: 'pending', label: 'Pendientes' }, { value: 'uncategorized', label: 'Sin categoría' }]} activeFilter={quickFilter} onFilterChange={setQuickFilter} rightSlot={<button type="button" onClick={reload} className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#DDEAE7] bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700"><ArrowUpTrayIcon className="h-4 w-4" />Actualizar</button>} />
+      <PharmacyModuleHeader
+        title="Documentos operativos"
+        subtitle="Archivo compacto con categorías, revisión y acciones rápidas."
+        metrics={metrics}
+      />
+
+      <DocumentUploadDrawer
+        open={drawerOpen}
+        onToggle={() => setDrawerOpen(prev => !prev)}
+        name={meta.name}
+        onNameChange={value => setMeta(prev => ({ ...prev, name: value }))}
+        category={meta.category}
+        onCategoryChange={value => setMeta(prev => ({ ...prev, category: value }))}
+        categories={categories}
+        selectedFile={selectedFile}
+        onFileChange={file => {
+          setSelectedFile(file)
+          if (fileRef.current) fileRef.current.files = null
+        }}
+        visibleForClient={meta.visibleForClient}
+        onVisibleForClientChange={value => setMeta(prev => ({ ...prev, visibleForClient: value }))}
+        notes={meta.notes}
+        onNotesChange={value => setMeta(prev => ({ ...prev, notes: value }))}
+        onUpload={handleUpload}
+        uploading={uploading}
+      />
+
+      <PharmacyModuleToolbar
+        query={query}
+        onQueryChange={setQuery}
+        placeholder="Buscar documento, categoría, fecha o tipo..."
+        filters={[
+          { value: 'all', label: 'Todos' },
+          { value: 'contracts', label: 'Contratos' },
+          { value: 'reports', label: 'Informes' },
+          { value: 'others', label: 'Otros' },
+          { value: 'pending', label: 'Pendientes' },
+          { value: 'uncategorized', label: 'Sin categoría' },
+        ]}
+        activeFilter={quickFilter}
+        onFilterChange={setQuickFilter}
+        rightSlot={
+          <button
+            type="button"
+            onClick={reload}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#DDEAE7] bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700"
+          >
+            <ArrowPathIcon className="h-4 w-4" />
+            Actualizar
+          </button>
+        }
+      />
+
       {error ? <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
-      {visibleDocuments.length === 0 ? <PharmacyEmptyState icon={DocumentTextIcon} title={documents.length === 0 ? 'No hay documentos cargados.' : 'No hay documentos con esos filtros.'} message={documents.length === 0 ? 'Sube el primer documento y ordénalo por categoría para dejar la ficha preparada.' : 'Prueba otra búsqueda o cambia el filtro activo.'} actionLabel="Subir documento" onAction={() => setDrawerOpen(true)} /> : <div className="space-y-4">{Object.entries(groupedDocuments).map(([category, items]) => <DocumentCategorySection key={category} title={category} count={items.length} pendingCount={items.filter(doc => getReviewStatus(doc) === 'Pendiente').length} isOpen={openSections[category] !== false} onToggle={() => setOpenSections(prev => ({ ...prev, [category]: prev[category] === false }))}><div className="grid gap-3 lg:grid-cols-2">{items.map(doc => <DocumentCard key={doc.id} fileType={getDocumentExt(doc)} name={getDocumentName(doc)} date={new Date(doc.created_at).toLocaleDateString('es-ES')} size={formatBytes(doc.size_bytes)} category={doc.category || 'Sin categoría'} status={getReviewStatus(doc)} visibleForClient={isVisibleForClient(doc)} onView={async () => { try { window.open(await resolveUrl(doc), '_blank', 'noopener,noreferrer') } catch { toast('No se pudo abrir el documento', 'error') } }} onDownload={async () => { try { const url = await resolveUrl(doc); const link = window.document.createElement('a'); link.href = url; link.download = getDocumentName(doc); link.target = '_blank'; window.document.body.appendChild(link); link.click(); link.remove() } catch { toast('No se pudo descargar el documento', 'error') } }} onCopyLink={async () => { try { await navigator.clipboard.writeText(await resolveUrl(doc)); toast('Enlace copiado', 'success') } catch { toast('No se pudo copiar el enlace', 'error') } }} onEdit={() => setEditingDoc(doc)} onDelete={() => setConfirmDel(doc)} />)}</div></DocumentCategorySection>)}</div>}
-      {editingDoc ? <EditDocumentModal doc={editingDoc} saving={savingDoc} onClose={() => setEditingDoc(null)} onSave={async form => { setSavingDoc(true); try { await persistDocumentMetadata(editingDoc.id, { name: form.name, category: form.category || null, visible_for_client: form.visible_for_client, review_status: form.review_status, notes: form.notes || null }); await reload(); toast('Documento actualizado', 'success'); setEditingDoc(null) } catch { toast('No se pudo guardar el documento', 'error') } finally { setSavingDoc(false) } }} /> : null}
-      {confirmDel ? <ConfirmDialog title="Eliminar documento" message={`¿Seguro que quieres eliminar "${getDocumentName(confirmDel)}"?`} confirmLabel={deletingId === confirmDel.id ? 'Eliminando...' : 'Eliminar'} variant="danger" onConfirm={() => handleDelete(confirmDel)} onCancel={() => setConfirmDel(null)} /> : null}
+
+      {visibleDocuments.length === 0 ? (
+        <PharmacyEmptyState
+          icon={DocumentTextIcon}
+          title={documents.length === 0 ? 'No hay documentos cargados.' : 'No hay documentos con esos filtros.'}
+          message={documents.length === 0 ? 'Sube el primer documento y ordénalo por categoría para dejar la ficha preparada.' : 'Prueba otra búsqueda o cambia el filtro activo.'}
+          actionLabel="Subir documento"
+          onAction={() => setDrawerOpen(true)}
+        />
+      ) : (
+        <div className="space-y-4">
+          {Object.entries(groupedDocuments).map(([category, items]) => (
+            <DocumentCategorySection
+              key={category}
+              title={category}
+              count={items.length}
+              pendingCount={items.filter(doc => getReviewStatus(doc) === 'Pendiente').length}
+              isOpen={openSections[category] !== false}
+              onToggle={() => setOpenSections(prev => ({ ...prev, [category]: prev[category] === false }))}
+            >
+              <div className="grid gap-3 lg:grid-cols-2">
+                {items.map(doc => (
+                  <DocumentCard
+                    key={doc.id}
+                    fileType={getDocumentExt(doc)}
+                    name={getDocumentName(doc)}
+                    date={new Date(doc.created_at).toLocaleDateString('es-ES')}
+                    size={formatBytes(doc.size_bytes)}
+                    category={doc.category || 'Sin categoría'}
+                    status={getReviewStatus(doc)}
+                    visibleForClient={isVisibleForClient(doc)}
+                    onView={async () => {
+                      try {
+                        window.open(await resolveUrl(doc), '_blank', 'noopener,noreferrer')
+                      } catch {
+                        toast('No se pudo abrir el documento', 'error')
+                      }
+                    }}
+                    onDownload={async () => {
+                      try {
+                        const url = await resolveUrl(doc)
+                        const link = window.document.createElement('a')
+                        link.href = url
+                        link.download = getDocumentName(doc)
+                        link.target = '_blank'
+                        window.document.body.appendChild(link)
+                        link.click()
+                        link.remove()
+                      } catch {
+                        toast('No se pudo descargar el documento', 'error')
+                      }
+                    }}
+                    onCopyLink={async () => {
+                      try {
+                        await navigator.clipboard.writeText(await resolveUrl(doc))
+                        toast('Enlace copiado', 'success')
+                      } catch {
+                        toast('No se pudo copiar el enlace', 'error')
+                      }
+                    }}
+                    onEdit={() => setEditingDoc(doc)}
+                    onDelete={() => setConfirmDel(doc)}
+                  />
+                ))}
+              </div>
+            </DocumentCategorySection>
+          ))}
+        </div>
+      )}
+
+      {editingDoc ? (
+        <EditDocumentModal
+          doc={editingDoc}
+          saving={savingDoc}
+          onClose={() => setEditingDoc(null)}
+          onSave={async form => {
+            setSavingDoc(true)
+            try {
+              await persistDocumentMetadata(editingDoc.id, {
+                name: form.name,
+                category: form.category || null,
+                visible_for_client: form.visible_for_client,
+                review_status: form.review_status,
+                notes: form.notes || null,
+              })
+              await reload()
+              toast('Documento actualizado', 'success')
+              setEditingDoc(null)
+            } catch {
+              toast('No se pudo guardar el documento', 'error')
+            } finally {
+              setSavingDoc(false)
+            }
+          }}
+        />
+      ) : null}
+
+      {confirmDel ? (
+        <ConfirmDialog
+          title="Eliminar documento"
+          message={`¿Seguro que quieres eliminar "${getDocumentName(confirmDel)}"?`}
+          confirmLabel={deletingId === confirmDel.id ? 'Eliminando...' : 'Eliminar'}
+          variant="danger"
+          onConfirm={() => handleDelete(confirmDel)}
+          onCancel={() => setConfirmDel(null)}
+        />
+      ) : null}
     </div>
   )
 }
