@@ -1,11 +1,20 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom'
-import { supabase } from './lib/supabase'
-import { canPreviewClientPortal, isClientSupportUser, isInternalSupportUser } from './lib/supportPermissions'
-import { canAccessConfig } from './lib/permissions'
 import { ToastProvider } from './context/ToastContext'
 import AppLayout from './layouts/AppLayout'
 import LoginPage from './pages/LoginPage'
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
+import ResetPasswordPage from './pages/auth/ResetPasswordPage'
+import ChangePasswordPage from './pages/auth/ChangePasswordPage'
+import { useAuth } from './hooks/useAuth'
+import { canAccessConfig } from './lib/permissions'
+import {
+  getPostLoginPath,
+  isClientRole,
+  isInternalRole,
+  isProfileActive,
+  requiresPasswordChange,
+} from './lib/authRouting'
 import ClientSupportLayout from './components/soporte/cliente/ClientSupportLayout'
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
@@ -36,13 +45,14 @@ const SupportCompanyDetailPage = lazy(() => import('./pages/soporte/SupportCompa
 const SupportKnowledgeBasePage = lazy(() => import('./pages/soporte/SupportKnowledgeBasePage'))
 const SupportStatsPage = lazy(() => import('./pages/soporte/SupportStatsPage'))
 
-// Protege rutas autenticadas
-function PrivateRoute({ session, children }) {
-  if (session === undefined) return null // Cargando sesión
-  return session ? children : <Navigate to="/login" replace />
+function PrivateSpinner() {
+  return (
+    <div className="flex justify-center py-24">
+      <div className="h-7 w-7 animate-spin rounded-full border-2 border-teal-700 border-t-transparent" />
+    </div>
+  )
 }
 
-// Compatibilidad con rutas antiguas en inglés (/pharmacies/*)
 function LegacyPharmacyRedirect({ toEdit = false }) {
   const { id } = useParams()
   return (
@@ -53,88 +63,94 @@ function LegacyPharmacyRedirect({ toEdit = false }) {
   )
 }
 
-function InternalRoute({ profile, children }) {
-  if (profile === undefined) return null
-  return isInternalSupportUser(profile) ? children : <Navigate to={isClientSupportUser(profile) ? '/cliente/soporte' : '/'} replace />
+function InternalPortalRoute({ session, profile, loading, children }) {
+  if (loading) return <PrivateSpinner />
+  if (!session || !profile) return <Navigate to="/login" replace />
+  if (!isProfileActive(profile)) return <Navigate to="/login" replace />
+  if (requiresPasswordChange(profile)) return <Navigate to="/change-password" replace />
+  if (isClientRole(profile)) return <Navigate to="/cliente/dashboard" replace />
+  if (!isInternalRole(profile)) return <Navigate to="/login" replace />
+  return children
 }
 
-function ClientRoute({ session, profile, children }) {
-  if (session === undefined || profile === undefined) return null
-  if (!session) return <Navigate to="/login" replace />
-  return canPreviewClientPortal(profile) ? children : <Navigate to="/soporte/dashboard" replace />
+function ClientPortalRoute({ session, profile, loading, children }) {
+  if (loading) return <PrivateSpinner />
+  if (!session || !profile) return <Navigate to="/login" replace />
+  if (!isProfileActive(profile)) return <Navigate to="/login" replace />
+  if (requiresPasswordChange(profile)) return <Navigate to="/change-password" replace />
+  if (isClientRole(profile)) return children
+  if (isInternalRole(profile)) return <Navigate to="/" replace />
+  return <Navigate to="/login" replace />
 }
 
-function ConfigRoute({ profile, children }) {
-  if (profile === undefined) return null
-  return canAccessConfig(profile) ? children : <Navigate to="/" replace />
+function PasswordChangeRoute({ session, profile, loading, children }) {
+  if (loading) return <PrivateSpinner />
+  if (!session || !profile) return <Navigate to="/login" replace />
+  if (!isProfileActive(profile)) return <Navigate to="/login" replace />
+  if (requiresPasswordChange(profile)) return children
+  return <Navigate to={getPostLoginPath(profile)} replace />
 }
 
-function PageFallback() {
-  return (
-    <div className="flex justify-center py-24">
-      <div className="h-7 w-7 animate-spin rounded-full border-2 border-teal-700 border-t-transparent" />
-    </div>
-  )
+function PublicAuthRoute({ session, profile, loading, children }) {
+  if (loading) return <PrivateSpinner />
+  if (session && profile && isProfileActive(profile) && !requiresPasswordChange(profile)) {
+    return <Navigate to={getPostLoginPath(profile)} replace />
+  }
+  return children
 }
 
 function LazyRoute({ children }) {
-  return <Suspense fallback={<PageFallback />}>{children}</Suspense>
+  return <Suspense fallback={<PrivateSpinner />}>{children}</Suspense>
 }
 
 export default function App() {
-  const [session, setSession] = useState(undefined)
-  const [profile, setProfile] = useState(undefined)
-
-  const loadProfile = useCallback(async (userId) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, role, company_id, pharmacy_id, full_name, email')
-      .eq('id', userId)
-      .maybeSingle()
-    if (!error) {
-      setProfile(data ?? null)
-      return
-    }
-
-    // Keep the historical backend usable until the support migration adds pharmacy_id.
-    const { data: legacyProfile } = await supabase
-      .from('profiles')
-      .select('id, role, company_id')
-      .eq('id', userId)
-      .maybeSingle()
-    setProfile(legacyProfile ? { ...legacyProfile, pharmacy_id: null, full_name: '', email: '' } : null)
-  }, [])
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      const s = data.session ?? null
-      setSession(s)
-      if (s) loadProfile(s.user.id)
-      else setProfile(null)
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s)
-      if (s) loadProfile(s.user.id)
-      else setProfile(null)
-    })
-    return () => subscription.unsubscribe()
-  }, [loadProfile])
+  const { loading, profile, refreshProfile, session } = useAuth()
+  const statusMessage = session && profile && !isProfileActive(profile)
+    ? 'Tu cuenta no está activa. Contacta con soporte de Viteka.'
+    : session && !profile
+      ? 'No se pudo cargar tu perfil. Vuelve a iniciar sesión o contacta con soporte de Viteka.'
+      : ''
 
   return (
     <ToastProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={
-            session ? <Navigate to="/" replace /> : <LoginPage />
-          } />
+          <Route
+            path="/login"
+            element={
+              <PublicAuthRoute session={session} profile={profile} loading={loading}>
+                <LoginPage statusMessage={statusMessage} />
+              </PublicAuthRoute>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <PublicAuthRoute session={session} profile={profile} loading={loading}>
+                <ForgotPasswordPage />
+              </PublicAuthRoute>
+            }
+          />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route
+            path="/change-password"
+            element={
+              <PasswordChangeRoute session={session} profile={profile} loading={loading}>
+                <ChangePasswordPage profile={profile} onProfileRefresh={refreshProfile} />
+              </PasswordChangeRoute>
+            }
+          />
+          <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
-          <Route path="/" element={
-            <PrivateRoute session={session}>
-              <AppLayout session={session} profile={profile} />
-            </PrivateRoute>
-          }>
-            <Route index element={isClientSupportUser(profile) ? <Navigate to="/cliente/soporte" replace /> : <LazyRoute><DashboardPage /></LazyRoute>} />
+          <Route
+            path="/"
+            element={
+              <InternalPortalRoute session={session} profile={profile} loading={loading}>
+                <AppLayout session={session} profile={profile} />
+              </InternalPortalRoute>
+            }
+          >
+            <Route index element={isClientRole(profile) ? <Navigate to="/cliente/dashboard" replace /> : <LazyRoute><DashboardPage /></LazyRoute>} />
             <Route path="pharmacies" element={<Navigate to="/farmacias" replace />} />
             <Route path="pharmacies/new" element={<Navigate to="/farmacias/nueva" replace />} />
             <Route path="pharmacies/:id" element={<LegacyPharmacyRedirect />} />
@@ -169,18 +185,33 @@ export default function App() {
             </Route>
           </Route>
 
-          <Route path="/cliente/soporte" element={
-            <ClientRoute session={session} profile={profile}>
-              <ClientSupportLayout profile={profile} session={session} />
-            </ClientRoute>
-          }>
+          <Route
+            path="/cliente/dashboard"
+            element={
+              <ClientPortalRoute session={session} profile={profile} loading={loading}>
+                <LazyRoute><ClientSupportHomePage /></LazyRoute>
+              </ClientPortalRoute>
+            }
+          />
+          <Route path="/cliente" element={<Navigate to="/cliente/dashboard" replace />} />
+          <Route
+            path="/cliente/soporte"
+            element={
+              <ClientPortalRoute session={session} profile={profile} loading={loading}>
+                <ClientSupportLayout profile={profile} session={session} />
+              </ClientPortalRoute>
+            }
+          >
             <Route index element={<LazyRoute><ClientSupportHomePage /></LazyRoute>} />
             <Route path="tickets" element={<LazyRoute><ClientTicketsPage /></LazyRoute>} />
             <Route path="tickets/nuevo" element={<LazyRoute><ClientNewTicketPage /></LazyRoute>} />
             <Route path="tickets/:id" element={<LazyRoute><ClientTicketDetailPage /></LazyRoute>} />
           </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route
+            path="*"
+            element={<Navigate to={session && profile && isProfileActive(profile) ? getPostLoginPath(profile) : '/login'} replace />}
+          />
         </Routes>
       </BrowserRouter>
     </ToastProvider>
