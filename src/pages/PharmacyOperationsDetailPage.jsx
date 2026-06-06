@@ -61,10 +61,6 @@ export default function PharmacyOperationsDetailPage() {
   const requestedTab = searchParams.get('tab') || 'general'
   const legacyRequested = searchParams.get('legacy') === '1'
 
-  if (legacyRequested || !TARGET_TABS.includes(requestedTab)) {
-    return <LegacyPharmacyDetailPage />
-  }
-
   const { pharmacy, loading, error } = usePharmacy(id)
   const peopleApi = usePharmacyPersons(id)
   const documentsApi = usePharmacyDocuments(id)
@@ -101,6 +97,10 @@ export default function PharmacyOperationsDetailPage() {
       else next.set(key, value)
     })
     navigate(`/farmacias/${id}?${next.toString()}`)
+  }
+
+  if (legacyRequested || !TARGET_TABS.includes(requestedTab)) {
+    return <LegacyPharmacyDetailPage />
   }
 
   if (loading) {
@@ -176,10 +176,48 @@ export default function PharmacyOperationsDetailPage() {
       </div>
 
       <div className="px-3 py-4 md:px-5 md:py-5">
-        {requestedTab === 'it' ? <PharmacyITTab devices={itApi.devices} loading={itApi.loading} onCreate={() => openLegacyTab('it', { action: 'new-it' })} onOpenLegacy={() => openLegacyTab('it')} onCreateTicket={() => navigate(`/soporte/tickets?pharmacy_id=${encodeURIComponent(id)}`)} /> : null}
-        {requestedTab === 'people' ? <PharmacyPeopleTab persons={peopleApi.persons} loading={peopleApi.loading} onCreate={() => openLegacyTab('people', { action: 'new-person' })} onEdit={person => openLegacyTab('people', { action: 'edit-person', person: person.id })} onCreateTicket={() => navigate(`/soporte/tickets?pharmacy_id=${encodeURIComponent(id)}`)} onPortalAccess={person => toast(`Acceso portal pendiente para ${person.name || 'esta persona'}`, 'success')} toast={toast} /> : null}
-        {requestedTab === 'documents' ? <PharmacyDocumentsTab documentsApi={{ ...documentsApi, pharmacyId: id, companyId: pharmacy.company_id }} toast={toast} /> : null}
-        {requestedTab === 'projects' ? <PharmacyProjectsTab projects={filteredProjects} pharmacyName={pharmacy.pharmacy_name} onCreate={() => navigate(`/proyectos?pharmacy_id=${encodeURIComponent(id)}&create=1&type=commercial`)} onOpen={project => project?.id ? navigate(`/proyectos/${project.id}`) : navigate('/proyectos')} onEdit={project => navigate(project?.id ? `/proyectos/${project.id}` : '/proyectos')} onCreateTask={() => navigate(`/proyectos?pharmacy_id=${encodeURIComponent(id)}&create=1&type=support&mode=task`)} onCreateTicket={() => navigate(`/soporte/tickets?pharmacy_id=${encodeURIComponent(id)}`)} /> : null}
+        {requestedTab === 'it' ? (
+          <PharmacyITTab
+            devices={itApi.devices}
+            loading={itApi.loading}
+            onCreate={() => openLegacyTab('it', { action: 'new-it' })}
+            onOpenLegacy={() => openLegacyTab('it')}
+            onCreateTicket={() => navigate(`/soporte/tickets?pharmacy_id=${encodeURIComponent(id)}`)}
+          />
+        ) : null}
+
+        {requestedTab === 'people' ? (
+          <PharmacyPeopleTab
+            persons={peopleApi.persons}
+            loading={peopleApi.loading}
+            onCreate={() => openLegacyTab('people', { action: 'new-person' })}
+            onEdit={person => openLegacyTab('people', { action: 'edit-person', person: person.id })}
+            onCreateTicket={() => navigate(`/soporte/tickets?pharmacy_id=${encodeURIComponent(id)}`)}
+            onPortalAccess={person => toast(`Acceso portal pendiente para ${person.name || 'esta persona'}`, 'success')}
+            toast={toast}
+          />
+        ) : null}
+
+        {requestedTab === 'documents' ? (
+          <PharmacyDocumentsTab
+            pharmacyId={id}
+            companyId={pharmacy.company_id}
+            documentsApi={documentsApi}
+            toast={toast}
+          />
+        ) : null}
+
+        {requestedTab === 'projects' ? (
+          <PharmacyProjectsTab
+            projects={filteredProjects}
+            pharmacyName={pharmacy.pharmacy_name}
+            onCreate={() => navigate(`/proyectos?pharmacy_id=${encodeURIComponent(id)}&create=1&type=commercial`)}
+            onOpen={project => project?.id ? navigate(`/proyectos/${project.id}`) : navigate('/proyectos')}
+            onEdit={project => navigate(project?.id ? `/proyectos/${project.id}` : '/proyectos')}
+            onCreateTask={() => navigate(`/proyectos?pharmacy_id=${encodeURIComponent(id)}&create=1&type=support&mode=task`)}
+            onCreateTicket={() => navigate(`/soporte/tickets?pharmacy_id=${encodeURIComponent(id)}`)}
+          />
+        ) : null}
       </div>
     </div>
   )
