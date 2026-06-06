@@ -53,6 +53,18 @@ const TABS = [
   { key: 'documents', label: 'Documentos', icon: DocumentTextIcon },
 ]
 
+function buildSupportSearch(context = {}) {
+  const next = new URLSearchParams()
+  next.set('create', '1')
+
+  Object.entries(context).forEach(([key, value]) => {
+    if (value === null || value === undefined || value === '') return
+    next.set(key, String(value))
+  })
+
+  return next.toString()
+}
+
 export default function PharmacyOperationsDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -97,6 +109,14 @@ export default function PharmacyOperationsDetailPage() {
       else next.set(key, value)
     })
     navigate(`/farmacias/${id}?${next.toString()}`)
+  }
+
+  function openSupportTicket(extra = {}) {
+    navigate(`/soporte/tickets?${buildSupportSearch({
+      pharmacy_id: id,
+      pharmacy_name: pharmacy?.pharmacy_name || '',
+      ...extra,
+    })}`)
   }
 
   if (legacyRequested || !TARGET_TABS.includes(requestedTab)) {
@@ -144,7 +164,7 @@ export default function PharmacyOperationsDetailPage() {
             </div>
 
             <div className="flex flex-wrap gap-2 lg:justify-end">
-              <button type="button" onClick={() => navigate(`/soporte/tickets?pharmacy_id=${encodeURIComponent(id)}`)} className="btn-secondary text-xs">
+              <button type="button" onClick={() => openSupportTicket({ subject: `Nueva incidencia en ${pharmacy.pharmacy_name}` })} className="btn-secondary text-xs">
                 <PlusIcon className="h-4 w-4" /> Crear ticket
               </button>
               <button type="button" onClick={() => openLegacyTab('general', { action: 'edit' })} className="btn-primary text-xs">
@@ -182,7 +202,17 @@ export default function PharmacyOperationsDetailPage() {
             loading={itApi.loading}
             onCreate={() => openLegacyTab('it', { action: 'new-it' })}
             onOpenLegacy={() => openLegacyTab('it')}
-            onCreateTicket={() => navigate(`/soporte/tickets?pharmacy_id=${encodeURIComponent(id)}`)}
+            onCreateTicket={device => openSupportTicket({
+              subject: `Incidencia IT · ${device?.label || 'Equipo'} · ${pharmacy.pharmacy_name}`,
+              type: 'Incidencia',
+              priority: 'alto',
+              product: 'Equipos informáticos',
+              asset_label: device?.label || device?.device_type || 'Equipo sin nombre',
+              description: [
+                device?.device_type ? `Tipo: ${device.device_type}` : '',
+                device?.specs?.location ? `Ubicación: ${device.specs.location}` : '',
+              ].filter(Boolean).join('\n'),
+            })}
           />
         ) : null}
 
@@ -192,7 +222,17 @@ export default function PharmacyOperationsDetailPage() {
             loading={peopleApi.loading}
             onCreate={() => openLegacyTab('people', { action: 'new-person' })}
             onEdit={person => openLegacyTab('people', { action: 'edit-person', person: person.id })}
-            onCreateTicket={() => navigate(`/soporte/tickets?pharmacy_id=${encodeURIComponent(id)}`)}
+            onCreateTicket={person => openSupportTicket({
+              subject: `Seguimiento con ${person?.name || 'contacto'} · ${pharmacy.pharmacy_name}`,
+              type: 'Consulta',
+              priority: 'medio',
+              product: 'Soporte Técnico - Viteka',
+              person_name: person?.name || '',
+              person_email: person?.email || '',
+              requester_name: person?.name || '',
+              requester_email: person?.email || '',
+              description: person?.role ? `Rol relacionado: ${person.role}` : '',
+            })}
             onPortalAccess={person => toast(`Acceso portal pendiente para ${person.name || 'esta persona'}`, 'success')}
             toast={toast}
           />
@@ -215,7 +255,15 @@ export default function PharmacyOperationsDetailPage() {
             onOpen={project => project?.id ? navigate(`/proyectos/${project.id}`) : navigate('/proyectos')}
             onEdit={project => navigate(project?.id ? `/proyectos/${project.id}` : '/proyectos')}
             onCreateTask={() => navigate(`/proyectos?pharmacy_id=${encodeURIComponent(id)}&create=1&type=support&mode=task`)}
-            onCreateTicket={() => navigate(`/soporte/tickets?pharmacy_id=${encodeURIComponent(id)}`)}
+            onCreateTicket={project => openSupportTicket({
+              project_id: project?.id || '',
+              project_name: project?.name || '',
+              subject: `Seguimiento de proyecto · ${project?.name || pharmacy.pharmacy_name}`,
+              type: 'Incidencia',
+              priority: project?.project_type === 'support' ? 'alto' : 'medio',
+              product: project?.project_type === 'support' ? 'Soporte Técnico - Viteka' : 'Otros',
+              description: project?.name ? `Proyecto relacionado: ${project.name}` : '',
+            })}
           />
         ) : null}
       </div>
