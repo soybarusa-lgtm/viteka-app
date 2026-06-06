@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import AuthBrandHeader from '../../components/auth/AuthBrandHeader'
 import AuthCard from '../../components/auth/AuthCard'
-import { getPostLoginPath, isProfileActive } from '../../lib/authRouting'
+import { getPostLoginPath } from '../../lib/authRouting'
 
 function getPasswordStrengthHint(password) {
   if (password.length < 8) return 'La contraseña debe tener al menos 8 caracteres.'
@@ -112,51 +112,53 @@ export default function ResetPasswordPage() {
             </p>
           ) : null}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label htmlFor="reset-password" className="label">
-                Nueva contraseña
-              </label>
-              <input
-                id="reset-password"
-                type="password"
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Mínimo 8 caracteres"
-                className="input"
-              />
-              <p className="mt-2 text-xs text-gray-500">
-                {getPasswordStrengthHint(password) || 'Recomendado: mayúscula, minúscula y número.'}
-              </p>
-            </div>
+          {session ? (
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label htmlFor="reset-password" className="label">
+                  Nueva contraseña
+                </label>
+                <input
+                  id="reset-password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Mínimo 8 caracteres"
+                  className="input"
+                />
+                <p className="mt-2 text-xs text-gray-500">
+                  {getPasswordStrengthHint(password) || 'Recomendado: mayúscula, minúscula y número.'}
+                </p>
+              </div>
 
-            <div>
-              <label htmlFor="reset-password-confirm" className="label">
-                Confirmar contraseña
-              </label>
-              <input
-                id="reset-password-confirm"
-                type="password"
-                required
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                placeholder="Repite la nueva contraseña"
-                className="input"
-              />
-            </div>
+              <div>
+                <label htmlFor="reset-password-confirm" className="label">
+                  Confirmar contraseña
+                </label>
+                <input
+                  id="reset-password-confirm"
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder="Repite la nueva contraseña"
+                  className="input"
+                />
+              </div>
 
-            {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
-            {message ? <p className="text-sm font-medium text-emerald-700">{message}</p> : null}
+              {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
+              {message ? <p className="text-sm font-medium text-emerald-700">{message}</p> : null}
 
-            <button
-              type="submit"
-              disabled={saving || loading}
-              className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {saving ? 'Guardando...' : 'Actualizar contraseña'}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={saving || loading}
+                className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {saving ? 'Guardando...' : 'Actualizar contraseña'}
+              </button>
+            </form>
+          ) : null}
         </AuthCard>
 
         <div className="text-center text-sm text-white/80">
