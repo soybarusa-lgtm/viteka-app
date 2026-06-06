@@ -532,12 +532,12 @@ export default function ProjectDetailPage() {
   }
 
   function openSupportBoard() {
-    navigate(`/soporte/tickets?${buildSupportSearch({
-      pharmacy_id: project.pharmacy_id || '',
-      pharmacy_name: project.pharmacy?.pharmacy_name || '',
-      project_id: project.id,
-      project_name: project.name,
-    })}`)
+    const next = new URLSearchParams()
+    if (project.pharmacy_id) next.set('pharmacy_id', project.pharmacy_id)
+    if (project.pharmacy?.pharmacy_name) next.set('pharmacy_name', project.pharmacy.pharmacy_name)
+    next.set('project_id', project.id)
+    next.set('project_name', project.name)
+    navigate(`/soporte/tickets?${next.toString()}`)
   }
 
   async function saveProject(payload) {
