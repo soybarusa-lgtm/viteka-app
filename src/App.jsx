@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback } from 'react'
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom'
 import { ToastProvider } from './context/ToastContext'
 import AppLayout from './layouts/AppLayout'
@@ -63,6 +63,16 @@ function LegacyPharmacyRedirect({ toEdit = false }) {
   )
 }
 
+function ConfigRoute({ profile, children }) {
+  if (!profile) return <Navigate to="/login" replace />
+  return canAccessConfig(profile) ? children : <Navigate to="/" replace />
+}
+
+function InternalRoute({ profile, children }) {
+  if (!profile) return <Navigate to="/login" replace />
+  return isInternalRole(profile) ? children : <Navigate to="/cliente/dashboard" replace />
+}
+
 function InternalPortalRoute({ session, profile, loading, children }) {
   if (loading) return <PrivateSpinner />
   if (!session || !profile) return <Navigate to="/login" replace />
@@ -93,7 +103,10 @@ function PasswordChangeRoute({ session, profile, loading, children }) {
 
 function PublicAuthRoute({ session, profile, loading, children }) {
   if (loading) return <PrivateSpinner />
-  if (session && profile && isProfileActive(profile) && !requiresPasswordChange(profile)) {
+  if (session && profile && isProfileActive(profile)) {
+    if (requiresPasswordChange(profile)) {
+      return <Navigate to="/change-password" replace />
+    }
     return <Navigate to={getPostLoginPath(profile)} replace />
   }
   return children
@@ -150,7 +163,7 @@ export default function App() {
               </InternalPortalRoute>
             }
           >
-            <Route index element={isClientRole(profile) ? <Navigate to="/cliente/dashboard" replace /> : <LazyRoute><DashboardPage /></LazyRoute>} />
+            <Route index element={<LazyRoute><DashboardPage /></LazyRoute>} />
             <Route path="pharmacies" element={<Navigate to="/farmacias" replace />} />
             <Route path="pharmacies/new" element={<Navigate to="/farmacias/nueva" replace />} />
             <Route path="pharmacies/:id" element={<LegacyPharmacyRedirect />} />
