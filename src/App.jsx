@@ -19,7 +19,7 @@ import ClientSupportLayout from './components/soporte/cliente/ClientSupportLayou
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const PharmaciesPage = lazy(() => import('./pages/PharmaciesPage'))
-const PharmacyDetailPage = lazy(() => import('./pages/PharmacyDetailPage'))
+const PharmacyDetailPage = lazy(() => import('./pages/PharmacyOperationsDetailPage'))
 const NewPharmacyPage = lazy(() => import('./pages/NewPharmacyPage'))
 const PharmacyEditPage = lazy(() => import('./pages/PharmacyEditPage'))
 const PeoplePage = lazy(() => import('./pages/PeoplePage'))
