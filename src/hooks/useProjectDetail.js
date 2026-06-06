@@ -4,9 +4,27 @@ import { logActivity } from '../lib/activityLogs'
 
 const HITO_PREFIX = '[Hito] '
 const MISSING_SCHEMA_CODES = ['42P01', 'PGRST204', 'PGRST205']
+const PROJECT_DETAIL_SELECT_BASE = `
+  *,
+  pharmacy:pharmacies(id, pharmacy_name, city, province)
+`
+const PROJECT_DETAIL_SELECT_WITH_ASSIGNEES = `
+  *,
+  pharmacy:pharmacies(id, pharmacy_name, city, province),
+  commercial:profiles!assigned_commercial_id(id, full_name, email),
+  technician:profiles!assigned_technician_id(id, full_name, email)
+`
 
 function isMissingSchema(error) {
   return MISSING_SCHEMA_CODES.includes(error?.code)
+}
+
+function isMissingAssigneeRelationship(error) {
+  const message = error?.message || ''
+  return ['PGRST200', 'PGRST201', 'PGRST204'].includes(error?.code)
+    || message.includes('assigned_commercial_id')
+    || message.includes('assigned_technician_id')
+    || message.includes('profiles')
 }
 
 function compact(payload, fields) {
@@ -48,6 +66,33 @@ function fallbackMessage(log) {
   }
 }
 
+async function selectProject(projectId) {
+  const withAssignees = await supabase
+    .from('projects')
+    .select(PROJECT_DETAIL_SELECT_WITH_ASSIGNEES)
+    .eq('id', projectId)
+    .single()
+
+  if (!withAssignees.error) return withAssignees
+  if (!isMissingAssigneeRelationship(withAssignees.error)) return withAssignees
+
+  const legacy = await supabase
+    .from('projects')
+    .select(PROJECT_DETAIL_SELECT_BASE)
+    .eq('id', projectId)
+    .single()
+
+  if (legacy.error) return legacy
+  return {
+    data: {
+      ...legacy.data,
+      commercial: null,
+      technician: null,
+    },
+    error: null,
+  }
+}
+
 export function useProjectDetail(projectId) {
   const [project, setProject] = useState(null)
   const [tasks, setTasks] = useState([])
@@ -64,14 +109,7 @@ export function useProjectDetail(projectId) {
     setError(null)
     try {
       const [projectResponse, tasksResponse, incidentsResponse, milestonesResponse, messagesResponse, logsResponse] = await Promise.all([
-        supabase
-          .from('projects')
-          .select(`
-            *,
-            pharmacy:pharmacies(id, pharmacy_name, city, province)
-          `)
-          .eq('id', projectId)
-          .single(),
+        selectProject(projectId),
         supabase.from('tasks').select('*').eq('project_id', projectId).order('created_at'),
         supabase.from('incidents').select('*').eq('project_id', projectId).order('created_at', { ascending: false }),
         supabase.from('project_milestones').select('*').eq('project_id', projectId).order('start_at'),
