@@ -28,7 +28,7 @@ export default function SupportDashboardPage() {
 
   return (
     <InternalSupportFrame>
-      <SupportPageHeader title="Centro de soporte" detail="Priorice incidencias, vigile carga operativa y entre rápidamente en las conversaciones que necesitan atención." actions={<Link to="/cliente/soporte/tickets/nuevo" className="btn-primary">Crear ticket</Link>} />
+      <SupportPageHeader title="Centro de soporte" detail="Priorice incidencias, vigile carga operativa y entre rápidamente en las conversaciones que necesitan atención." actions={<Link to="/soporte/tickets?create=1" className="btn-primary">Crear ticket</Link>} />
       {usingMocks && <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">Modo demostración activo: la migración de soporte todavía no se ha aplicado al Supabase histórico.</p>}
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Metric label="Sin resolver" value={stats.opened.length} Icon={TicketIcon} />
@@ -72,8 +72,8 @@ export default function SupportDashboardPage() {
             </div>
           </section>
           <section className="card p-4">
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400">Tareas pendientes</p>
-            <p className="mt-3 text-sm text-slate-500">La agenda se conectará con Proyectos cuando se aplique el módulo de soporte.</p>
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400">Siguiente paso operativo</p>
+            <p className="mt-3 text-sm text-slate-500">Usa la vista <b>Sin asignar</b> para repartir trabajo nuevo y el detalle del ticket para registrar seguimiento con farmacia, proyecto o contacto.</p>
           </section>
         </aside>
       </div>
