@@ -12,7 +12,7 @@ import {
 } from '@heroicons/react/24/outline'
 import DashboardCompactList from '../components/dashboard/DashboardCompactList'
 import { useOperationalDashboard } from '../hooks/useOperationalDashboard'
-import { formatShortDate, normalizeKey, statusToneClasses } from '../lib/operationalDashboardStatus'
+import { formatShortDate, getStatusMeta, normalizeKey, statusToneClasses } from '../lib/operationalDashboardStatus'
 
 const CHART_BAR_TONE = {
   teal: 'bg-teal-500',
@@ -44,7 +44,7 @@ function totalCount(items) {
 function isUrgentItem(item) {
   const priority = normalizeKey(item.priority)
   const status = normalizeKey(item.status)
-  return ['urgent', 'urgente', 'critical', 'critica', 'critica'].includes(priority)
+  return ['urgent', 'urgente', 'critical', 'critica'].includes(priority)
     || status === 'blocked'
     || status === 'esperando_proveedor'
 }
@@ -54,7 +54,7 @@ function boardPriority(item) {
   const status = normalizeKey(item.status)
   if (status === 'blocked') return 120
   if (status === 'esperando_proveedor') return 110
-  if (['urgent', 'urgente', 'critical', 'critica', 'critica'].includes(priority)) return 100
+  if (['urgent', 'urgente', 'critical', 'critica'].includes(priority)) return 100
   if (['high', 'alto', 'alta'].includes(priority)) return 80
   if (['in_progress', 'en_progreso'].includes(status)) return 60
   if (status === 'pending') return 40
@@ -77,7 +77,8 @@ function buildInsight({ urgentCount, totalMine, totalTeam, blockedCount, waiting
   }
 
   if (blockedCount > 0 || waitingCount > 0) {
-    return `La carga está controlada, pero hay ${blockedCount + waitingCount} elemento${blockedCount + waitingCount === 1 ? '' : 's'} en bloqueo o espera que merece${blockedCount + waitingCount === 1 ? '' : 'n'} seguimiento.`
+    const count = blockedCount + waitingCount
+    return `La carga está controlada, pero hay ${count} elemento${count === 1 ? '' : 's'} en bloqueo o espera que merece${count === 1 ? '' : 'n'} seguimiento.`
   }
 
   if (totalMine > 0) {
@@ -85,6 +86,14 @@ function buildInsight({ urgentCount, totalMine, totalTeam, blockedCount, waiting
   }
 
   return 'La operativa está al día. Este panel queda listo para coordinar prioridades, soporte y seguimiento del equipo.'
+}
+
+function decorateBoardItems(items, type) {
+  return items.map(item => ({
+    ...item,
+    type,
+    tone: getStatusMeta(item.status).tone,
+  }))
 }
 
 function MetricCard({ title, value, detail, Icon, accent = 'teal' }) {
@@ -253,16 +262,14 @@ export default function DashboardPage() {
 
   const workboard = useMemo(() => {
     const mine = [
-      ...filteredTasks.mine.map(item => ({ ...item, type: 'task', tone: item.status ? undefined : undefined })),
-      ...filteredSupport.mine.map(item => ({ ...item, type: 'support', tone: undefined })),
-    ].map(item => ({ ...item, tone: taskStatusSummary.concat(supportStatusSummary).find(summary => summary.key === normalizeKey(item.status))?.tone || 'gray' }))
-      .sort((a, b) => boardPriority(b) - boardPriority(a))
+      ...decorateBoardItems(filteredTasks.mine, 'task'),
+      ...decorateBoardItems(filteredSupport.mine, 'support'),
+    ].sort((a, b) => boardPriority(b) - boardPriority(a))
 
     const team = [
-      ...filteredTasks.general.map(item => ({ ...item, type: 'task', tone: undefined })),
-      ...filteredSupport.general.map(item => ({ ...item, type: 'support', tone: undefined })),
-    ].map(item => ({ ...item, tone: taskStatusSummary.concat(supportStatusSummary).find(summary => summary.key === normalizeKey(item.status))?.tone || 'gray' }))
-      .sort((a, b) => boardPriority(b) - boardPriority(a))
+      ...decorateBoardItems(filteredTasks.general, 'task'),
+      ...decorateBoardItems(filteredSupport.general, 'support'),
+    ].sort((a, b) => boardPriority(b) - boardPriority(a))
 
     const urgent = [...mine, ...team].filter(isUrgentItem).sort((a, b) => boardPriority(b) - boardPriority(a))
 
@@ -271,7 +278,7 @@ export default function DashboardPage() {
       mine: mine.slice(0, 4),
       team: team.slice(0, 4),
     }
-  }, [filteredSupport.general, filteredSupport.mine, filteredTasks.general, filteredTasks.mine, supportStatusSummary, taskStatusSummary])
+  }, [filteredSupport.general, filteredSupport.mine, filteredTasks.general, filteredTasks.mine])
 
   if (loading) {
     return (
