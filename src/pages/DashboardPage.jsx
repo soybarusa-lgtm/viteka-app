@@ -125,7 +125,7 @@ function decorateBoardItems(items, type, scope) {
     type,
     scope,
     tone: getStatusMeta(item.status).tone,
-    laneKey: laneKeyFromStatus(item.status),
+    laneKey: isUrgentItem(item) ? 'attention' : laneKeyFromStatus(item.status),
   }))
 }
 
@@ -344,16 +344,14 @@ export default function DashboardPage() {
   ]).sort((a, b) => boardPriority(b) - boardPriority(a)), [filteredSupport.general, filteredSupport.mine, filteredTasks.general, filteredTasks.mine])
 
   const metrics = useMemo(() => {
-    const taskTotal = myPendingTasks.length + generalPendingTasks.length
     const supportTotal = myPendingSupport.length + generalPendingSupport.length
     const totalMine = myPendingTasks.length + myPendingSupport.length
     const totalTeam = generalPendingTasks.length + generalPendingSupport.length
     const progressCount = boardItems.filter(item => item.laneKey === 'progress').length
-    const attentionCount = boardItems.filter(item => item.laneKey === 'attention' || isUrgentItem(item)).length
+    const attentionCount = boardItems.filter(item => item.laneKey === 'attention').length
     const waitingCount = boardItems.filter(item => ['esperando_cliente', 'esperando_proveedor'].includes(normalizeKey(item.status))).length
 
     return {
-      taskTotal,
       supportTotal,
       totalMine,
       totalTeam,
@@ -367,7 +365,7 @@ export default function DashboardPage() {
   const boardLanes = useMemo(() => ({
     queue: boardItems.filter(item => item.laneKey === 'queue'),
     progress: boardItems.filter(item => item.laneKey === 'progress'),
-    attention: boardItems.filter(item => item.laneKey === 'attention' || isUrgentItem(item)),
+    attention: boardItems.filter(item => item.laneKey === 'attention'),
   }), [boardItems])
 
   if (loading) {
