@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import {
   ArrowPathIcon,
+  ArrowRightIcon,
   BoltIcon,
   ChartBarIcon,
   ClipboardDocumentListIcon,
@@ -12,7 +13,10 @@ import {
   UserCircleIcon,
   UsersIcon,
 } from '@heroicons/react/24/outline'
+import { Link } from 'react-router-dom'
 import DashboardCompactList from '../components/dashboard/DashboardCompactList'
+import { useAuth } from '../hooks/useAuth'
+import { useDashboard } from '../hooks/useDashboard'
 import { useOperationalDashboard } from '../hooks/useOperationalDashboard'
 import { formatShortDate, getStatusMeta, normalizeKey, statusToneClasses } from '../lib/operationalDashboardStatus'
 
@@ -34,13 +38,13 @@ const LANE_META = {
   },
   progress: {
     title: 'En marcha',
-    caption: 'Trabajo activo que ya está moviéndose.',
+    caption: 'Trabajo activo que ya estÃ¡ moviÃ©ndose.',
     panel: 'border-sky-200 bg-sky-50/80',
     badge: 'bg-sky-600 text-white',
   },
   attention: {
     title: 'Atascado o en espera',
-    caption: 'Bloqueos, urgencias o puntos que requieren reacción.',
+    caption: 'Bloqueos, urgencias o puntos que requieren reacciÃ³n.',
     panel: 'border-rose-200 bg-rose-50/80',
     badge: 'bg-rose-600 text-white',
   },
@@ -96,27 +100,27 @@ function boardPriority(item) {
 function compactMeta(item, type) {
   if (type === 'task') {
     const dueLabel = item.dueDate ? `Vence ${formatShortDate(item.dueDate)}` : 'Sin vencimiento'
-    return item.pharmacyName ? `${item.pharmacyName} · ${dueLabel}` : dueLabel
+    return item.pharmacyName ? `${item.pharmacyName} Â· ${dueLabel}` : dueLabel
   }
 
-  if (item.pharmacyName && item.product) return `${item.pharmacyName} · ${item.product}`
+  if (item.pharmacyName && item.product) return `${item.pharmacyName} Â· ${item.product}`
   return item.pharmacyName || item.product || 'Sin contexto adicional'
 }
 
 function buildInsight({ attentionCount, totalMine, totalTeam, progressCount, supportTotal }) {
   if (attentionCount > 0) {
-    return `La prioridad ahora está en ${attentionCount} elemento${attentionCount === 1 ? '' : 's'} en riesgo o espera. Conviene resolverlos antes de ampliar cola.`
+    return `La prioridad ahora estÃ¡ en ${attentionCount} elemento${attentionCount === 1 ? '' : 's'} en riesgo o espera. Conviene resolverlos antes de ampliar cola.`
   }
 
   if (supportTotal > totalMine) {
-    return `El soporte tiene más peso que la ejecución interna. Merece revisar reparto y tiempos de respuesta antes de cerrar el día.`
+    return `El soporte tiene mÃ¡s peso que la ejecuciÃ³n interna. Merece revisar reparto y tiempos de respuesta antes de cerrar el dÃ­a.`
   }
 
   if (progressCount > 0) {
     return `Hay ${progressCount} frente${progressCount === 1 ? '' : 's'} ya en marcha. El panel queda orientado a vigilar avance y evitar cuellos de botella.`
   }
 
-  return `La carga está estable: ${totalMine} elemento${totalMine === 1 ? '' : 's'} en tu bandeja y ${totalTeam} más en la cola general.`
+  return `La carga estÃ¡ estable: ${totalMine} elemento${totalMine === 1 ? '' : 's'} en tu bandeja y ${totalTeam} mÃ¡s en la cola general.`
 }
 
 function decorateBoardItems(items, type, scope) {
@@ -233,10 +237,10 @@ function DeskCommandCard({ metrics, taskStatusFilter, supportStatusFilter, taskS
           <div className="rounded-2xl border border-slate-200 bg-white p-3">
             <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400">En marcha</p>
             <p className="mt-2 text-2xl font-extrabold text-slate-950">{metrics.progressCount}</p>
-            <p className="mt-1 text-xs text-slate-500">Elementos activos que ya están siendo trabajados.</p>
+            <p className="mt-1 text-xs text-slate-500">Elementos activos que ya estÃ¡n siendo trabajados.</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-3">
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400">Atención</p>
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400">AtenciÃ³n</p>
             <p className="mt-2 text-2xl font-extrabold text-slate-950">{metrics.attentionCount}</p>
             <p className="mt-1 text-xs text-slate-500">Bloqueos, esperas o prioridades altas que pueden escalar.</p>
           </div>
@@ -257,6 +261,38 @@ function DeskCommandCard({ metrics, taskStatusFilter, supportStatusFilter, taskS
   )
 }
 
+function QuickAccessCard({ title, description, value, to, Icon, tone = 'teal', action = 'Abrir' }) {
+  const toneClasses = {
+    teal: 'border-teal-100 bg-teal-50/60 text-teal-700 ring-teal-100',
+    slate: 'border-slate-200 bg-slate-50 text-slate-700 ring-slate-200',
+    amber: 'border-amber-100 bg-amber-50/70 text-amber-700 ring-amber-100',
+    rose: 'border-rose-100 bg-rose-50/70 text-rose-700 ring-rose-100',
+  }[tone] || 'border-teal-100 bg-teal-50/60 text-teal-700 ring-teal-100'
+
+  const body = (
+    <article className="flex h-full flex-col rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-slate-400">{title}</p>
+          <p className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">{value}</p>
+        </div>
+        <span className={`inline-flex rounded-2xl p-2 ring-1 ${toneClasses}`}>
+          <Icon className="h-5 w-5" />
+        </span>
+      </div>
+      <p className="mt-3 text-sm leading-6 text-slate-600">{description}</p>
+      <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-teal-700">
+        {action}
+        <ArrowRightIcon className="h-4 w-4" />
+      </span>
+    </article>
+  )
+
+  return to.startsWith('#')
+    ? <a href={to} className="block h-full">{body}</a>
+    : <Link to={to} className="block h-full">{body}</Link>
+}
+
 function BoardItemCard({ item }) {
   return (
     <article className="rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm">
@@ -265,7 +301,7 @@ function BoardItemCard({ item }) {
           {item.type === 'task' ? 'Tarea' : 'Ticket'}
         </span>
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">
-          {item.scope === 'mine' ? 'Mío' : 'Equipo'}
+          {item.scope === 'mine' ? 'MÃ­o' : 'Equipo'}
         </span>
         <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${statusToneClasses(item.tone)}`}>
           {item.statusLabel}
@@ -310,6 +346,8 @@ function BoardLane({ laneKey, items }) {
 }
 
 export default function DashboardPage() {
+  const { profile } = useAuth()
+  const { data: dashboardData, loading: dashboardLoading } = useDashboard(profile?.company_id)
   const {
     loading,
     warning,
@@ -368,6 +406,10 @@ export default function DashboardPage() {
     attention: boardItems.filter(item => item.laneKey === 'attention'),
   }), [boardItems])
 
+  const openProjects = dashboardLoading ? '—' : (dashboardData?.projectsActive || 0)
+  const openTasks = dashboardLoading ? '—' : (dashboardData?.tasksPending || 0)
+  const openIncidents = metrics.supportTotal
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -385,10 +427,10 @@ export default function DashboardPage() {
               <Squares2X2Icon className="h-3.5 w-3.5" /> Dashboard operativo
             </div>
             <h1 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
-              Colas, ejecución y seguimiento en una sola vista.
+              Colas, ejecuciÃ³n y seguimiento en una sola vista.
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
-              El panel combina lectura de colas al estilo helpdesk con una vista de ejecución por columnas para que soporte y tareas respiren como un mismo flujo.
+              El panel combina lectura de colas al estilo helpdesk con una vista de ejecuciÃ³n por columnas para que soporte y tareas respiren como un mismo flujo.
             </p>
           </div>
 
@@ -407,9 +449,39 @@ export default function DashboardPage() {
       {warning ? (
         <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm">
           <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0" />
-          <p>Algunos datos no se pudieron cargar del todo. El panel sigue mostrando la mejor información disponible.</p>
+          <p>Algunos datos no se pudieron cargar del todo. El panel sigue mostrando la mejor informaciÃ³n disponible.</p>
         </div>
       ) : null}
+
+      <section className="grid gap-3 md:grid-cols-3">
+        <QuickAccessCard
+          title="Proyectos abiertos"
+          value={openProjects}
+          description="Revisa el trabajo activo de la cartera y entra en el detalle de cada proyecto."
+          to="/proyectos"
+          Icon={Squares2X2Icon}
+          tone="teal"
+          action="Ir a proyectos"
+        />
+        <QuickAccessCard
+          title="Tareas abiertas"
+          value={openTasks}
+          description="Salta al tablero operativo para ver en quÃ© se estÃ¡ trabajando ahora mismo."
+          to="#dashboard-board"
+          Icon={ClipboardDocumentListIcon}
+          tone="slate"
+          action="Ver tablero"
+        />
+        <QuickAccessCard
+          title="Incidencias abiertas"
+          value={openIncidents}
+          description="Accede a soporte para revisar tickets abiertos, esperas y prioridades activas."
+          to="/soporte/tickets"
+          Icon={LifebuoyIcon}
+          tone="amber"
+          action="Ir a soporte"
+        />
+      </section>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
@@ -429,14 +501,14 @@ export default function DashboardPage() {
         <MetricCard
           title="Soporte activo"
           value={metrics.supportTotal}
-          detail="Tickets vivos que siguen requiriendo respuesta o resolución."
+          detail="Tickets vivos que siguen requiriendo respuesta o resoluciÃ³n."
           Icon={LifebuoyIcon}
           accent="amber"
         />
         <MetricCard
-          title="Atención inmediata"
+          title="AtenciÃ³n inmediata"
           value={metrics.attentionCount}
-          detail="Bloqueos, esperas y prioridades altas que merecen revisión primero."
+          detail="Bloqueos, esperas y prioridades altas que merecen revisiÃ³n primero."
           Icon={BoltIcon}
           accent="rose"
         />
@@ -452,7 +524,7 @@ export default function DashboardPage() {
           onClear={() => setSupportStatusFilter('')}
         />
         <QueueHealthCard
-          eyebrow="Salud de ejecución"
+          eyebrow="Salud de ejecuciÃ³n"
           title="Cola de tareas"
           items={taskStatusSummary}
           activeStatus={taskStatusFilter}
@@ -472,12 +544,12 @@ export default function DashboardPage() {
         />
       </section>
 
-      <section className="rounded-[30px] border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+      <section id="dashboard-board" className="rounded-[30px] border border-slate-200 bg-white p-4 shadow-sm md:p-5 scroll-mt-24">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-slate-400">Board de ejecución</p>
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-slate-400">Board de ejecuciÃ³n</p>
             <h2 className="mt-1 font-display text-xl font-extrabold text-slate-950">Vista operativa por columnas</h2>
-            <p className="mt-1 text-sm text-slate-500">Inspirada en boards de trabajo: entrada, trabajo en marcha y elementos que se están frenando.</p>
+            <p className="mt-1 text-sm text-slate-500">Inspirada en boards de trabajo: entrada, trabajo en marcha y elementos que se estÃ¡n frenando.</p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs font-medium text-slate-500">
             <span className="rounded-full bg-slate-100 px-3 py-1">{metrics.progressCount} en marcha</span>
@@ -530,13 +602,13 @@ export default function DashboardPage() {
             <h2 className="font-display text-base font-extrabold">Lectura de colas</h2>
           </div>
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            El bloque superior sirve para detectar concentración de estados y entrar rápido en cuellos de botella sin abrir varias páginas.
+            El bloque superior sirve para detectar concentraciÃ³n de estados y entrar rÃ¡pido en cuellos de botella sin abrir varias pÃ¡ginas.
           </p>
         </div>
         <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 text-slate-900">
             <ClipboardDocumentListIcon className="h-5 w-5 text-sky-600" />
-            <h2 className="font-display text-base font-extrabold">Ejecución visible</h2>
+            <h2 className="font-display text-base font-extrabold">EjecuciÃ³n visible</h2>
           </div>
           <p className="mt-3 text-sm leading-6 text-slate-600">
             El board central ordena tareas y tickets como un flujo de trabajo, no como un simple listado. Eso mejora la lectura compartida del equipo.
@@ -545,10 +617,10 @@ export default function DashboardPage() {
         <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 text-slate-900">
             <ChartBarIcon className="h-5 w-5 text-teal-600" />
-            <h2 className="font-display text-base font-extrabold">Decisión rápida</h2>
+            <h2 className="font-display text-base font-extrabold">DecisiÃ³n rÃ¡pida</h2>
           </div>
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            La idea es que en pocos segundos se vea qué hay que responder, qué está avanzando y qué se está quedando atascado.
+            La idea es que en pocos segundos se vea quÃ© hay que responder, quÃ© estÃ¡ avanzando y quÃ© se estÃ¡ quedando atascado.
           </p>
         </div>
       </section>
@@ -565,3 +637,5 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+

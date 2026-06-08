@@ -29,6 +29,7 @@ const DocumentsPage = lazy(() => import('./pages/DocumentsPage'))
 const ConfigLayout = lazy(() => import('./components/configuracion/ConfigLayout'))
 const ConfigGeneralPage = lazy(() => import('./pages/configuracion/ConfigGeneralPage'))
 const EquipoVitekaPage = lazy(() => import('./pages/configuracion/EquipoVitekaPage'))
+const SolicitudesAltaPage = lazy(() => import('./pages/configuracion/SolicitudesAltaPage'))
 const RolesPermisosPage = lazy(() => import('./pages/configuracion/RolesPermisosPage'))
 const AuditoriaPage = lazy(() => import('./pages/configuracion/AuditoriaPage'))
 const ClientSupportHomePage = lazy(() => import('./pages/cliente/soporte/ClientSupportHomePage'))
@@ -187,6 +188,7 @@ export default function App() {
               <Route index element={<Navigate to="/configuracion/general" replace />} />
               <Route path="general" element={<LazyRoute><ConfigGeneralPage /></LazyRoute>} />
               <Route path="equipo-viteka" element={<LazyRoute><EquipoVitekaPage /></LazyRoute>} />
+              <Route path="solicitudes-alta" element={<LazyRoute><SolicitudesAltaPage /></LazyRoute>} />
               <Route path="roles-permisos" element={<LazyRoute><RolesPermisosPage /></LazyRoute>} />
               <Route path="auditoria" element={<LazyRoute><AuditoriaPage /></LazyRoute>} />
             </Route>

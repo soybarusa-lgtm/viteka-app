@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import AuthBrandHeader from '../components/auth/AuthBrandHeader'
 import AuthCard from '../components/auth/AuthCard'
+import SignupRequestModal from '../components/auth/SignupRequestModal'
 
 export default function LoginPage({ statusMessage = '' }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [signupRequestOpen, setSignupRequestOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -91,13 +93,21 @@ export default function LoginPage({ statusMessage = '' }) {
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-3 text-sm">
+            <div className="flex flex-col gap-3 text-sm">
               <Link
                 to="/forgot-password"
                 className="font-semibold text-teal-700 underline decoration-teal-700/30 underline-offset-4 transition hover:text-teal-800"
               >
                 ¿Has olvidado tu contraseña?
               </Link>
+
+              <button
+                type="button"
+                onClick={() => setSignupRequestOpen(true)}
+                className="btn-secondary w-full"
+              >
+                ¿Quieres darte de alta? Solicitar acceso
+              </button>
             </div>
 
             {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
@@ -112,6 +122,8 @@ export default function LoginPage({ statusMessage = '' }) {
           </form>
         </AuthCard>
       </div>
+
+      <SignupRequestModal open={signupRequestOpen} onClose={() => setSignupRequestOpen(false)} />
     </div>
   )
 }
