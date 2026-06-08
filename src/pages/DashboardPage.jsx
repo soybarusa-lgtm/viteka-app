@@ -16,7 +16,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useDashboard } from '../hooks/useDashboard'
 import { useOperationalDashboard } from '../hooks/useOperationalDashboard'
-import { formatShortDate, getStatusMeta, normalizeKey, statusToneClasses } from '../lib/operationalDashboardStatus'
+import { formatShortDate, getPriorityMeta, getStatusMeta, normalizeKey, statusToneClasses } from '../lib/operationalDashboardStatus'
 
 const CHART_BAR_TONE = {
   teal: 'bg-teal-500',
@@ -46,6 +46,22 @@ const LANE_META = {
     badge: 'bg-rose-600 text-white',
     panel: 'border-rose-100 bg-rose-50/40',
   },
+}
+
+const TICKET_SORT_COLUMNS = [
+  { key: 'urgency', label: 'Urgencia' },
+  { key: 'date', label: 'Fecha' },
+  { key: 'pharmacy', label: 'Farmacia' },
+  { key: 'assignee', label: 'Encargado' },
+  { key: 'group', label: 'Grupo' },
+]
+
+const PRIORITY_BADGE_CLASSES = {
+  redStrong: 'bg-red-100 text-red-800 ring-red-200',
+  red: 'bg-rose-50 text-rose-700 ring-rose-100',
+  orange: 'bg-orange-50 text-orange-700 ring-orange-100',
+  blue: 'bg-sky-50 text-sky-700 ring-sky-100',
+  gray: 'bg-slate-100 text-slate-600 ring-slate-200',
 }
 
 function formatUpdateTime(value) {
@@ -85,6 +101,86 @@ function countStatuses(summary, keys) {
   return summary
     .filter(item => normalizedKeys.includes(normalizeKey(item.key)))
     .reduce((sum, item) => sum + item.count, 0)
+}
+
+function ticketDate(item) {
+  return item.createdAt || item.raw?.created_at || item.updatedAt || item.raw?.updated_at || ''
+}
+
+function ticketDateTime(item) {
+  const date = new Date(ticketDate(item)).getTime()
+  return Number.isNaN(date) ? null : date
+}
+
+function ticketGroup(item) {
+  const raw = item.raw || {}
+  return raw.group_name
+    || raw.support_group
+    || raw.group
+    || raw.queue
+    || raw.team
+    || raw.department
+    || raw.area
+    || item.product
+    || item.type
+    || 'Sin grupo'
+}
+
+function ticketUrgencyScore(item) {
+  const priority = getPriorityMeta(item.priority)
+  const status = normalizeKey(item.status)
+  const statusBoost = {
+    blocked: 60,
+    esperando_proveedor: 45,
+    esperando_cliente: 40,
+    in_progress: 15,
+    en_progreso: 15,
+    nuevo: 10,
+    abierto: 10,
+    open: 10,
+  }[status] || 0
+
+  return (priority.weight * 100) + statusBoost
+}
+
+function ticketSortValue(item, key) {
+  if (key === 'urgency') return ticketUrgencyScore(item)
+  if (key === 'date') {
+    return ticketDateTime(item)
+  }
+  if (key === 'pharmacy') return normalizeKey(item.pharmacyName)
+  if (key === 'assignee') return normalizeKey(item.assignedTo || 'Sin asignar')
+  if (key === 'group') return normalizeKey(ticketGroup(item))
+  return ''
+}
+
+function compareTicketSort(a, b, sort) {
+  const aValue = ticketSortValue(a, sort.key)
+  const bValue = ticketSortValue(b, sort.key)
+  const direction = sort.direction === 'asc' ? 1 : -1
+
+  if (sort.key === 'date') {
+    if (aValue === null && bValue !== null) return 1
+    if (aValue !== null && bValue === null) return -1
+  }
+
+  if (typeof aValue === 'number' && typeof bValue === 'number' && aValue !== bValue) {
+    return (aValue - bValue) * direction
+  }
+
+  if (typeof aValue === 'string' && typeof bValue === 'string') {
+    const textCompare = aValue.localeCompare(bValue, 'es')
+    if (textCompare) return textCompare * direction
+  }
+
+  const urgencyCompare = ticketUrgencyScore(b) - ticketUrgencyScore(a)
+  if (urgencyCompare) return urgencyCompare
+
+  const aDate = ticketSortValue(a, 'date')
+  const bDate = ticketSortValue(b, 'date')
+  if (aDate === null && bDate !== null) return 1
+  if (aDate !== null && bDate === null) return -1
+  return (aDate || 0) - (bDate || 0)
 }
 
 function isUrgentItem(item) {
@@ -412,6 +508,112 @@ function RecentActivity({ items }) {
   )
 }
 
+function SortHeaderButton({ column, sort, onSort }) {
+  const isActive = sort.key === column.key
+  const defaultDirection = column.key === 'urgency' ? 'desc' : 'asc'
+  const nextDirection = isActive ? (sort.direction === 'asc' ? 'desc' : 'asc') : defaultDirection
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSort({ key: column.key, direction: nextDirection })}
+      className={`inline-flex items-center gap-1 text-left text-[11px] font-extrabold uppercase tracking-[0.12em] transition ${isActive ? 'text-teal-700' : 'text-slate-400 hover:text-slate-700'}`}
+    >
+      {column.label}
+      <span className="text-[10px]">{isActive ? (sort.direction === 'asc' ? '↑' : '↓') : '↕'}</span>
+    </button>
+  )
+}
+
+function PendingTicketsTable({ tickets, sort, onSort }) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
+      <header className="flex flex-col gap-2 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-sm font-extrabold text-slate-950">Tickets pendientes de resolver</h2>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Orden inicial por urgencia y después por fecha. Pulsa una cabecera para cambiar el criterio.
+          </p>
+        </div>
+        <Link to="/soporte/tickets" className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 hover:text-teal-900">
+          Ver soporte <ArrowRightIcon className="h-3.5 w-3.5" />
+        </Link>
+      </header>
+
+      {tickets.length ? (
+        <div className="max-h-[460px] overflow-auto">
+          <table className="min-w-[920px] w-full text-left text-sm">
+            <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 backdrop-blur">
+              <tr>
+                <th className="px-4 py-3 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Ticket</th>
+                {TICKET_SORT_COLUMNS.map(column => (
+                  <th key={column.key} className="px-3 py-3">
+                    <SortHeaderButton column={column} sort={sort} onSort={onSort} />
+                  </th>
+                ))}
+                <th className="px-3 py-3 text-right text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Abrir</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {tickets.map(ticket => {
+                const priority = getPriorityMeta(ticket.priority)
+                const status = getStatusMeta(ticket.status)
+                const date = ticketDate(ticket)
+                const priorityClasses = PRIORITY_BADGE_CLASSES[priority.tone] || PRIORITY_BADGE_CLASSES.gray
+
+                return (
+                  <tr key={ticket.id} className="bg-white transition hover:bg-teal-50/30">
+                    <td className="max-w-[280px] px-4 py-3">
+                      <Link to={`/soporte/tickets/${ticket.id}`} className="block truncate font-extrabold text-slate-950 hover:text-teal-700">
+                        {ticket.publicNumber ? `#${ticket.publicNumber} · ` : ''}{ticket.title}
+                      </Link>
+                      <p className="mt-1 truncate text-xs text-slate-400">{ticket.product || ticket.type || 'Sin producto indicado'}</p>
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${priorityClasses}`}>
+                          {priority.label}
+                        </span>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${statusToneClasses(status.tone)}`}>
+                          {ticket.statusLabel || status.label}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 text-xs font-semibold text-slate-600">
+                      <span className="block">{date ? formatShortDate(date) : 'Sin fecha'}</span>
+                      <span className="mt-0.5 block font-normal text-slate-400">{formatRelativeTime(date)}</span>
+                    </td>
+                    <td className="max-w-[170px] px-3 py-3">
+                      <span className="block truncate font-semibold text-slate-700">{ticket.pharmacyName || 'Sin farmacia'}</span>
+                    </td>
+                    <td className="max-w-[160px] px-3 py-3">
+                      <span className={`block truncate font-semibold ${ticket.assignedTo ? 'text-slate-700' : 'text-rose-600'}`}>
+                        {ticket.assignedTo || 'Sin asignar'}
+                      </span>
+                    </td>
+                    <td className="max-w-[150px] px-3 py-3">
+                      <span className="block truncate text-slate-600">{ticketGroup(ticket)}</span>
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      <Link to={`/soporte/tickets/${ticket.id}`} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700" aria-label={`Abrir ticket ${ticket.title}`}>
+                        <ArrowRightIcon className="h-4 w-4" />
+                      </Link>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="p-3">
+          <EmptyState text="No hay tickets pendientes de resolver." />
+        </div>
+      )}
+    </section>
+  )
+}
+
 export default function DashboardPage() {
   const { profile } = useAuth()
   const { data: dashboardData, loading: dashboardLoading, error: dashboardError } = useDashboard(profile?.company_id)
@@ -430,9 +632,14 @@ export default function DashboardPage() {
 
   const [taskStatusFilter, setTaskStatusFilter] = useState('')
   const [supportStatusFilter, setSupportStatusFilter] = useState('')
+  const [ticketSort, setTicketSort] = useState({ key: 'urgency', direction: 'desc' })
 
   const allTasks = useMemo(() => [...myPendingTasks, ...generalPendingTasks], [generalPendingTasks, myPendingTasks])
   const allSupport = useMemo(() => [...myPendingSupport, ...generalPendingSupport], [generalPendingSupport, myPendingSupport])
+  const sortedPendingTickets = useMemo(
+    () => [...allSupport].sort((a, b) => compareTicketSort(a, b, ticketSort)),
+    [allSupport, ticketSort],
+  )
 
   const filteredTasks = useMemo(() => ({
     mine: filterByStatus(myPendingTasks, taskStatusFilter),
@@ -675,6 +882,12 @@ export default function DashboardPage() {
               <BoardLane laneKey="attention" items={boardLanes.attention} />
             </div>
           </section>
+
+          <PendingTicketsTable
+            tickets={sortedPendingTickets}
+            sort={ticketSort}
+            onSort={setTicketSort}
+          />
         </div>
 
         <aside className="space-y-3">
