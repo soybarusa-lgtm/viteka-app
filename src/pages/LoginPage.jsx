@@ -5,6 +5,24 @@ import AuthBrandHeader from '../components/auth/AuthBrandHeader'
 import AuthCard from '../components/auth/AuthCard'
 import SignupRequestModal from '../components/auth/SignupRequestModal'
 
+function getLoginErrorMessage(error) {
+  if (!error) return ''
+
+  if (error.code === 'captcha_failed' || /captcha/i.test(error.message || '')) {
+    return 'La protección anti-bots está activa en Supabase y falta configurar CAPTCHA en el login. Desactiva CAPTCHA en Supabase o configura Turnstile/hCaptcha para poder acceder.'
+  }
+
+  if (error.code === 'invalid_credentials' || /invalid login credentials/i.test(error.message || '')) {
+    return 'El correo o la contraseña no son correctos.'
+  }
+
+  if (/email not confirmed/i.test(error.message || '')) {
+    return 'El correo todavía no está confirmado. Revisa el email de confirmación o solicita uno nuevo.'
+  }
+
+  return `No se pudo iniciar sesión. ${error.message || ''}`.trim()
+}
+
 export default function LoginPage({ statusMessage = '' }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -21,7 +39,7 @@ export default function LoginPage({ statusMessage = '' }) {
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
 
     if (signInError) {
-      setError('No se pudo iniciar sesión.')
+      setError(getLoginErrorMessage(signInError))
     }
 
     setLoading(false)
