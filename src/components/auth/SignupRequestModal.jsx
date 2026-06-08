@@ -117,9 +117,7 @@ export default function SignupRequestModal({ open, onClose }) {
                     {completedSummary}
                   </p>
                   <p className="text-emerald-900/80">
-                    {result.local
-                      ? 'La solicitud se guardó localmente mientras se revisa la conexión con Supabase.'
-                      : 'La solicitud ya está disponible para revisión desde el panel interno.'}
+                    Tu solicitud se ha enviado correctamente; el equipo de Viteka la revisará y te avisaremos cuando tu cuenta esté disponible.
                   </p>
                 </div>
               </div>

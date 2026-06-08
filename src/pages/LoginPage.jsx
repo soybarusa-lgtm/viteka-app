@@ -100,14 +100,6 @@ export default function LoginPage({ statusMessage = '' }) {
               >
                 ¿Has olvidado tu contraseña?
               </Link>
-
-              <button
-                type="button"
-                onClick={() => setSignupRequestOpen(true)}
-                className="btn-secondary w-full"
-              >
-                ¿Quieres darte de alta? Solicitar acceso
-              </button>
             </div>
 
             {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
@@ -118,6 +110,14 @@ export default function LoginPage({ statusMessage = '' }) {
               className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSignupRequestOpen(true)}
+              className="btn-secondary w-full"
+            >
+              ¿Quieres darte de alta? Solicitar acceso
             </button>
           </form>
         </AuthCard>
