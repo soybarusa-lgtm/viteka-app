@@ -5,40 +5,11 @@ import AuthBrandHeader from '../components/auth/AuthBrandHeader'
 import AuthCard from '../components/auth/AuthCard'
 import SignupRequestModal from '../components/auth/SignupRequestModal'
 
-const RECAPTCHA_ENTERPRISE_SITE_KEY = '6LerwxMtAAAAACPnlXC6QyMUYVvBg_A35WEY6Jeo'
-
-function getRecaptchaEnterprise() {
-  return window.grecaptcha?.enterprise
-}
-
-function getRecaptchaToken(action) {
-  return new Promise((resolve, reject) => {
-    const recaptcha = getRecaptchaEnterprise()
-    if (!recaptcha) {
-      reject(new Error('No se pudo cargar la protección reCAPTCHA. Recarga la página e inténtalo de nuevo.'))
-      return
-    }
-
-    recaptcha.ready(async () => {
-      try {
-        const token = await recaptcha.execute(RECAPTCHA_ENTERPRISE_SITE_KEY, { action })
-        resolve(token)
-      } catch {
-        reject(new Error('No se pudo validar reCAPTCHA. Recarga la página e inténtalo de nuevo.'))
-      }
-    })
-  })
-}
-
 function getLoginErrorMessage(error) {
   if (!error) return ''
 
   if (error.code === 'captcha_failed' || /captcha/i.test(error.message || '')) {
-    if (/invalid-input-response/i.test(error.message || '')) {
-      return 'Supabase no ha aceptado el token CAPTCHA. Revisa que el proveedor y la clave secreta configurados en Supabase coincidan con el CAPTCHA del login.'
-    }
-
-    return 'No se pudo validar la protección anti-bots. Recarga la página e inténtalo de nuevo.'
+    return 'La protección CAPTCHA sigue activa en Supabase. Desactívala en Supabase y vuelve a intentarlo.'
   }
 
   if (error.code === 'invalid_credentials' || /invalid login credentials/i.test(error.message || '')) {
@@ -65,22 +36,13 @@ export default function LoginPage({ statusMessage = '' }) {
     setLoading(true)
     setError(null)
 
-    try {
-      const captchaToken = await getRecaptchaToken('LOGIN')
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-        options: { captchaToken },
-      })
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
 
-      if (signInError) {
-        setError(getLoginErrorMessage(signInError))
-      }
-    } catch (loginError) {
-      setError(loginError.message || getLoginErrorMessage(loginError))
-    } finally {
-      setLoading(false)
+    if (signInError) {
+      setError(getLoginErrorMessage(signInError))
     }
+
+    setLoading(false)
   }
 
   return (
