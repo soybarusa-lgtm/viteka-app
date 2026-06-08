@@ -37,8 +37,8 @@ export default function LoginPage({ statusMessage = '' }) {
           description="Te damos la bienvenida al portal de Viteka."
           footer={(
             <div className="space-y-2">
-              <p>© 2026 Viteka.</p> 
-              <p></p>Acceso reservado para usuarios autorizados.</p>
+              <p>© 2026 Viteka.</p>
+              <p>Acceso reservado para usuarios autorizados.</p>
               <p>¿Necesitas ayuda? Contacta con el equipo de soporte de Viteka.</p>
             </div>
           )}
