@@ -34,10 +34,11 @@ export default function LoginPage({ statusMessage = '' }) {
         <AuthBrandHeader />
         <AuthCard
           title="Iniciar sesión"
-          description="Accede con tu correo electrónico y tu contraseña para entrar en el portal que te corresponde."
+          description="Te damos la bienvenida al portal de Viteka."
           footer={(
             <div className="space-y-2">
-              <p>© 2026 Viteka. Acceso reservado para usuarios autorizados.</p>
+              <p>© 2026 Viteka.</p> 
+              <p></p>Acceso reservado para usuarios autorizados.</p>
               <p>¿Necesitas ayuda? Contacta con el equipo de soporte de Viteka.</p>
             </div>
           )}
@@ -59,7 +60,7 @@ export default function LoginPage({ statusMessage = '' }) {
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="nombre@empresa.com"
+                placeholder="Correo electrónico"
                 className="input"
               />
             </div>
@@ -74,7 +75,7 @@ export default function LoginPage({ statusMessage = '' }) {
                 required
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Introduce tu contraseña"
+                placeholder="Contraseña"
                 className="input"
               />
             </div>
