@@ -117,7 +117,7 @@ export default function SignupRequestModal({ open, onClose }) {
                     {completedSummary}
                   </p>
                   <p className="text-emerald-900/80">
-                    Tu solicitud se ha enviado correctamente; el equipo de Viteka la revisará y te avisaremos cuando tu cuenta esté disponible.
+                    Tu solicitud se ha enviado correctamente. El equipo de Viteka la revisará y te avisaremos cuando tu cuenta esté disponible.
                   </p>
                 </div>
               </div>
