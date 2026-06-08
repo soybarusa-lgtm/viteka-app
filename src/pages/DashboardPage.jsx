@@ -69,6 +69,20 @@ function formatUpdateTime(value) {
   return value.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
 }
 
+function formatTodayLabel() {
+  return new Date().toLocaleDateString('es-ES', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+function profileDisplayName(profile) {
+  const fullName = profile?.full_name || profile?.name || profile?.email || 'usuario'
+  return String(fullName).trim().split(/\s+/)[0] || 'usuario'
+}
+
 function formatRelativeTime(value) {
   if (!value) return 'Sin fecha'
   const date = new Date(value)
@@ -633,6 +647,7 @@ export default function DashboardPage() {
   const [taskStatusFilter, setTaskStatusFilter] = useState('')
   const [supportStatusFilter, setSupportStatusFilter] = useState('')
   const [ticketSort, setTicketSort] = useState({ key: 'urgency', direction: 'desc' })
+  const greetingTitle = useMemo(() => `Hola ${profileDisplayName(profile)} | ${formatTodayLabel()}`, [profile])
 
   const allTasks = useMemo(() => [...myPendingTasks, ...generalPendingTasks], [generalPendingTasks, myPendingTasks])
   const allSupport = useMemo(() => [...myPendingSupport, ...generalPendingSupport], [generalPendingSupport, myPendingSupport])
@@ -763,7 +778,7 @@ export default function DashboardPage() {
             <p className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.16em] text-teal-700">
               <Squares2X2Icon className="h-4 w-4" /> Panel de información
             </p>
-            <h1 className="mt-1 font-display text-2xl font-black tracking-tight text-slate-950">Vista rápida de Viteka</h1>
+            <h1 className="mt-1 font-display text-2xl font-black tracking-tight text-slate-950">{greetingTitle}</h1>
             <p className="mt-1 max-w-3xl text-sm text-slate-500">
               Tickets, proyectos y tareas en una sola pantalla para decidir qué atender primero.
             </p>
