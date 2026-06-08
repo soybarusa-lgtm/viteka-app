@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import AuthBrandHeader from '../../components/auth/AuthBrandHeader'
@@ -9,6 +9,8 @@ export default function ChangePasswordPage({ profile, onProfileRefresh }) {
   const navigate = useNavigate()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -73,30 +75,50 @@ export default function ChangePasswordPage({ profile, onProfileRefresh }) {
               <label htmlFor="new-password" className="label">
                 Nueva contraseña
               </label>
-              <input
-                id="new-password"
-                type="password"
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Mínimo 8 caracteres"
-                className="input"
-              />
+              <div className="relative">
+                <input
+                  id="new-password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Mínimo 8 caracteres"
+                  className="input pr-20"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  className="absolute inset-y-0 right-2 my-auto rounded-lg px-3 text-xs font-semibold text-teal-700 transition hover:bg-teal-50"
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showPassword ? 'Ocultar' : 'Mostrar'}
+                </button>
+              </div>
             </div>
 
             <div>
               <label htmlFor="confirm-new-password" className="label">
                 Confirmar contraseña
               </label>
-              <input
-                id="confirm-new-password"
-                type="password"
-                required
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                placeholder="Repite la contraseña"
-                className="input"
-              />
+              <div className="relative">
+                <input
+                  id="confirm-new-password"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  required
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder="Repite la contraseña"
+                  className="input pr-20"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(prev => !prev)}
+                  className="absolute inset-y-0 right-2 my-auto rounded-lg px-3 text-xs font-semibold text-teal-700 transition hover:bg-teal-50"
+                  aria-label={showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showConfirmPassword ? 'Ocultar' : 'Mostrar'}
+                </button>
+              </div>
             </div>
 
             {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}

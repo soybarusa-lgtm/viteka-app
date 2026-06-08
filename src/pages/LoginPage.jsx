@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import AuthBrandHeader from '../components/auth/AuthBrandHeader'
@@ -7,6 +7,7 @@ import AuthCard from '../components/auth/AuthCard'
 export default function LoginPage({ statusMessage = '' }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -69,15 +70,25 @@ export default function LoginPage({ statusMessage = '' }) {
               <label htmlFor="login-password" className="label">
                 Contraseña
               </label>
-              <input
-                id="login-password"
-                type="password"
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Contraseña"
-                className="input"
-              />
+              <div className="relative">
+                <input
+                  id="login-password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Contraseña"
+                  className="input pr-20"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  className="absolute inset-y-0 right-2 my-auto rounded-lg px-3 text-xs font-semibold text-teal-700 transition hover:bg-teal-50"
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showPassword ? 'Ocultar' : 'Mostrar'}
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center justify-between gap-3 text-sm">
