@@ -78,8 +78,30 @@ function formatTodayLabel() {
   })
 }
 
-function profileDisplayName(profile) {
-  const fullName = profile?.full_name || profile?.name || profile?.email || 'usuario'
+function titleCase(value) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase()
+}
+
+function nameFromEmail(email) {
+  const localPart = String(email || '').split('@')[0]
+  const firstToken = localPart.split(/[._-]/).find(Boolean)
+  return titleCase(firstToken)
+}
+
+function profileDisplayName(profile, session) {
+  const metadata = session?.user?.user_metadata || {}
+  const fullName = profile?.full_name
+    || profile?.name
+    || metadata.full_name
+    || metadata.name
+    || metadata.display_name
+    || metadata.first_name
+    || metadata.given_name
+    || nameFromEmail(profile?.email || session?.user?.email)
+    || 'usuario'
+
   return String(fullName).trim().split(/\s+/)[0] || 'usuario'
 }
 
@@ -629,7 +651,7 @@ function PendingTicketsTable({ tickets, sort, onSort }) {
 }
 
 export default function DashboardPage() {
-  const { profile } = useAuth()
+  const { profile, session } = useAuth()
   const { data: dashboardData, loading: dashboardLoading, error: dashboardError } = useDashboard(profile?.company_id)
   const {
     loading,
@@ -647,7 +669,8 @@ export default function DashboardPage() {
   const [taskStatusFilter, setTaskStatusFilter] = useState('')
   const [supportStatusFilter, setSupportStatusFilter] = useState('')
   const [ticketSort, setTicketSort] = useState({ key: 'urgency', direction: 'desc' })
-  const greetingTitle = useMemo(() => `Hola ${profileDisplayName(profile)} | ${formatTodayLabel()}`, [profile])
+  const dashboardUserName = useMemo(() => profileDisplayName(profile, session), [profile, session])
+  const todayLabel = useMemo(() => formatTodayLabel(), [])
 
   const allTasks = useMemo(() => [...myPendingTasks, ...generalPendingTasks], [generalPendingTasks, myPendingTasks])
   const allSupport = useMemo(() => [...myPendingSupport, ...generalPendingSupport], [generalPendingSupport, myPendingSupport])
@@ -778,7 +801,11 @@ export default function DashboardPage() {
             <p className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.16em] text-teal-700">
               <Squares2X2Icon className="h-4 w-4" /> Panel de información
             </p>
-            <h1 className="mt-1 font-display text-2xl font-black tracking-tight text-slate-950">{greetingTitle}</h1>
+            <h1 className="mt-1 flex flex-wrap items-baseline gap-x-2 font-display text-2xl tracking-tight text-slate-950">
+              <span className="font-black">Hola {dashboardUserName}</span>
+              <span className="text-[1.25em] font-black leading-none text-slate-900">|</span>
+              <span className="font-light text-slate-600">{todayLabel}</span>
+            </h1>
             <p className="mt-1 max-w-3xl text-sm text-slate-500">
               Tickets, proyectos y tareas en una sola pantalla para decidir qué atender primero.
             </p>
