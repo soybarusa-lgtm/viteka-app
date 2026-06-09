@@ -303,6 +303,50 @@ function MetricTile({ label, value, hint, to, Icon, tone = 'slate' }) {
   )
 }
 
+function DashboardStatCard({ label, value, hint, to, onClick, Icon, tone = 'slate', selected = false }) {
+  const toneClasses = {
+    teal: 'bg-teal-50 text-teal-700 ring-teal-100',
+    amber: 'bg-amber-50 text-amber-700 ring-amber-100',
+    rose: 'bg-rose-50 text-rose-700 ring-rose-100',
+    blue: 'bg-sky-50 text-sky-700 ring-sky-100',
+    slate: 'bg-slate-100 text-slate-700 ring-slate-200',
+    violet: 'bg-violet-50 text-violet-700 ring-violet-100',
+  }[tone] || 'bg-slate-100 text-slate-700 ring-slate-200'
+
+  const card = (
+    <div className={`flex h-full flex-col justify-between rounded-2xl border px-4 py-3 transition ${
+      selected ? 'border-teal-300 bg-teal-50/70 shadow-md' : 'border-slate-200 bg-white shadow-sm'
+    } ${to || onClick ? 'group hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md' : ''}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">{label}</p>
+          <p className="mt-2 text-3xl font-black tracking-tight text-slate-950">{value}</p>
+        </div>
+        {Icon ? (
+          <span className={`inline-flex rounded-xl p-2 ring-1 ${toneClasses}`}>
+            <Icon className="h-4 w-4" />
+          </span>
+        ) : null}
+      </div>
+      <p className="mt-2 text-xs leading-5 text-slate-500">{hint}</p>
+    </div>
+  )
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className="text-left">
+        {card}
+      </button>
+    )
+  }
+
+  return (
+    <SmartLink to={to} className="block h-full">
+      {card}
+    </SmartLink>
+  )
+}
+
 function EmptyState({ text }) {
   return (
     <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-6 text-center text-sm text-slate-400">
@@ -669,6 +713,7 @@ export default function DashboardPage() {
   const [taskStatusFilter, setTaskStatusFilter] = useState('')
   const [supportStatusFilter, setSupportStatusFilter] = useState('')
   const [ticketSort, setTicketSort] = useState({ key: 'urgency', direction: 'desc' })
+  const [taskFocus, setTaskFocus] = useState('all')
   const dashboardUserName = useMemo(() => profileDisplayName(profile, session), [profile, session])
   const todayLabel = useMemo(() => formatTodayLabel(), [])
 
@@ -780,10 +825,66 @@ export default function DashboardPage() {
 
   const activeProjects = dashboardLoading ? '—' : (dashboardData?.projectsActive ?? 0)
   const pendingTasks = dashboardLoading ? (metrics.taskTotal || '—') : (dashboardData?.tasksPending ?? metrics.taskTotal)
+  const todayTaskCount = dashboardData?.todayTasks?.length || 0
+  const overdueTaskCount = dashboardData?.overdueTasks?.length || 0
+  const unassignedTaskCount = [...allTasks].filter(item => !item.assignedTo).length
   const dashboardWarnings = [
     warning ? 'Algunos datos operativos no se pudieron cargar del todo. Se muestra la mejor información disponible.' : '',
     dashboardError ? `Proyectos: ${dashboardError}` : '',
   ].filter(Boolean)
+
+  const ticketSummaryCards = useMemo(() => {
+    const order = [
+      'nuevo',
+      'abierto',
+      'en_progreso',
+      'esperando_cliente',
+      'esperando_proveedor',
+    ]
+    const summaryByKey = new Map((supportStatusSummary || []).map(item => [normalizeKey(item.key), item]))
+    return order
+      .map(key => summaryByKey.get(key))
+      .filter(Boolean)
+      .slice(0, 5)
+  }, [supportStatusSummary])
+
+  const projectSummaryCards = useMemo(() => {
+    const summaryByLabel = new Map((dashboardData?.projectsByStatus || []).map(item => [normalizeKey(item.label), item]))
+    return [
+      { key: 'active', label: 'Activos', hint: 'En marcha o en progreso', tone: 'teal', icon: Squares2X2Icon },
+      { key: 'pending', label: 'Pendientes', hint: 'Aún no arrancados', tone: 'amber', icon: ClockIcon },
+      { key: 'blocked', label: 'Bloqueados', hint: 'Necesitan desbloqueo', tone: 'rose', icon: ExclamationTriangleIcon },
+      { key: 'completed', label: 'Finalizados', hint: 'Cerrados y entregados', tone: 'slate', icon: ClipboardDocumentListIcon },
+    ].map(item => ({
+      ...item,
+      count: summaryByLabel.get(normalizeKey(item.label))?.count || 0,
+    }))
+  }, [dashboardData?.projectsByStatus])
+
+  const taskCards = useMemo(() => ([
+    { key: 'all', label: 'Pendientes', hint: 'Todo el trabajo abierto', value: metrics.taskTotal, tone: 'slate', icon: ClipboardDocumentListIcon },
+    { key: 'today', label: 'Hoy', hint: 'Vencen o entran hoy', value: todayTaskCount, tone: 'teal', icon: CalendarDaysIcon },
+    { key: 'overdue', label: 'Vencidas', hint: 'Piden prioridad', value: overdueTaskCount, tone: 'rose', icon: ExclamationTriangleIcon },
+    { key: 'mine', label: 'Mías', hint: 'Asignadas a ti', value: myPendingTasks.length, tone: 'blue', icon: UserGroupIcon },
+    { key: 'team', label: 'Equipo', hint: 'Pendientes del grupo', value: generalPendingTasks.length, tone: 'amber', icon: LifebuoyIcon },
+    { key: 'unassigned', label: 'Sin asignar', hint: 'Aún no tienen responsable', value: unassignedTaskCount, tone: 'violet', icon: TicketIcon },
+  ]), [generalPendingTasks.length, metrics.taskTotal, myPendingTasks.length, overdueTaskCount, todayTaskCount, unassignedTaskCount])
+
+  const visibleTaskItems = useMemo(() => {
+    const source = taskFocus === 'today'
+      ? (dashboardData?.todayTasks || [])
+      : taskFocus === 'overdue'
+        ? (dashboardData?.overdueTasks || [])
+        : taskFocus === 'mine'
+          ? myPendingTasks
+          : taskFocus === 'team'
+            ? generalPendingTasks
+            : taskFocus === 'unassigned'
+              ? allTasks.filter(item => !item.assignedTo)
+              : allTasks
+
+    return source.slice(0, 8)
+  }, [allTasks, dashboardData?.overdueTasks, dashboardData?.todayTasks, generalPendingTasks, myPendingTasks, taskFocus])
 
   if (loading) {
     return (
@@ -831,152 +932,134 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-        <MetricTile
-          label="Tickets sin resolver"
-          value={metrics.supportTotal}
-          hint="Incidencias vivas que requieren seguimiento."
-          to="/soporte/tickets"
-          Icon={TicketIcon}
-          tone="teal"
-        />
-        <MetricTile
-          label="Tickets abiertos"
-          value={metrics.supportOpen}
-          hint="Entrada activa y tickets en progreso."
-          to="/soporte/tickets"
-          Icon={LifebuoyIcon}
-          tone="blue"
-        />
-        <MetricTile
-          label="En espera"
-          value={metrics.supportWaiting}
-          hint="Cliente o proveedor bloqueando avance."
-          to="#dashboard-board"
-          Icon={ClockIcon}
-          tone="amber"
-        />
-        <MetricTile
-          label="No asignados"
-          value={metrics.supportUnassigned}
-          hint="Tickets pendientes de responsable."
-          to="/soporte/tickets"
-          Icon={UserGroupIcon}
-          tone="rose"
-        />
-        <MetricTile
-          label="Proyectos activos"
-          value={activeProjects}
-          hint="Cartera en curso de comercial, soporte, formación e instalaciones."
-          to="/proyectos"
-          Icon={Squares2X2Icon}
-          tone="slate"
-        />
-        <MetricTile
-          label="Tareas pendientes"
-          value={pendingTasks}
-          hint="Trabajo previsto, vencido o en ejecución."
-          to="#dashboard-board"
-          Icon={ClipboardDocumentListIcon}
-          tone="slate"
-        />
+      <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400">Tickets</p>
+            <h2 className="mt-1 text-base font-black text-slate-950">Estado de tickets</h2>
+          </div>
+          <Link to="/soporte/tickets" className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 hover:text-teal-900">
+            Abrir tickets <ArrowRightIcon className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          {ticketSummaryCards.map(item => (
+            <DashboardStatCard
+              key={item.key}
+              label={item.label}
+              value={item.count}
+              hint="Acceso directo a este estado"
+              to={`/soporte/tickets?status=${item.key}`}
+              Icon={TicketIcon}
+              tone={item.tone}
+            />
+          ))}
+        </div>
       </section>
 
-      <section className="grid gap-3 xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.85fr)]">
-        <div className="space-y-3">
-          <section className="grid gap-3 lg:grid-cols-2">
-            <CompactList
-              title="Tareas de hoy y vencidas"
-              caption="Lo que debería quedar resuelto o revisado antes."
-              items={urgentTasks}
-              type="task"
-              emptyText="No hay tareas urgentes para hoy."
-              to="/proyectos"
-              limit={6}
+      <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400">Proyectos</p>
+            <h2 className="mt-1 text-base font-black text-slate-950">Estado de cartera</h2>
+          </div>
+          <Link to="/proyectos" className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 hover:text-teal-900">
+            Abrir proyectos <ArrowRightIcon className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {projectSummaryCards.map(item => (
+            <DashboardStatCard
+              key={item.key}
+              label={item.label}
+              value={item.count}
+              hint="Acceso directo a esta cartera"
+              to={`/proyectos?status=${item.key}`}
+              Icon={item.icon}
+              tone={item.tone}
             />
-            <CompactList
-              title="Tickets prioritarios"
-              caption="Tickets ordenados por riesgo, espera y prioridad."
-              items={rawBoardItems.filter(item => item.type === 'support').slice(0, 8)}
-              type="support"
-              emptyText="No hay tickets pendientes."
-              to="/soporte/tickets"
-              limit={6}
-            />
-          </section>
+          ))}
+        </div>
+      </section>
 
-          <section id="dashboard-board" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm scroll-mt-24">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <section className="grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+        <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400">Tareas</p>
+              <h2 className="mt-1 text-base font-black text-slate-950">Resumen operativo</h2>
+            </div>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">{pendingTasks} pendientes</span>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {taskCards.map(card => (
+              <DashboardStatCard
+                key={card.key}
+                label={card.label}
+                value={card.value}
+                hint={card.hint}
+                onClick={() => setTaskFocus(card.key)}
+                Icon={card.icon}
+                tone={card.tone}
+                selected={taskFocus === card.key}
+              />
+            ))}
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400">Flujo operativo</p>
-                <h2 className="mt-1 text-base font-black text-slate-950">Tickets y tareas por estado de trabajo</h2>
+                <p className="text-sm font-black text-slate-950">
+                  {taskFocus === 'today' ? 'Tareas de hoy'
+                    : taskFocus === 'overdue' ? 'Tareas vencidas'
+                      : taskFocus === 'mine' ? 'Mis tareas'
+                        : taskFocus === 'team' ? 'Tareas del equipo'
+                          : taskFocus === 'unassigned' ? 'Tareas sin asignar'
+                            : 'Todas las tareas pendientes'}
+                </p>
+                <p className="text-xs text-slate-500">Toca una caja para cambiar el foco y ver el detalle relevante.</p>
               </div>
-              <div className="flex flex-wrap gap-2 text-xs font-bold text-slate-500">
-                <span className="rounded-full bg-sky-50 px-3 py-1 text-sky-700">{metrics.progressCount} en marcha</span>
-                <span className="rounded-full bg-rose-50 px-3 py-1 text-rose-700">{metrics.attentionCount} en riesgo</span>
-                <span className="rounded-full bg-teal-50 px-3 py-1 text-teal-700">{metrics.mineTotal} míos</span>
-              </div>
+              <button type="button" onClick={() => setTaskFocus('all')} className="text-xs font-bold text-teal-700 hover:underline">
+                Ver todas
+              </button>
             </div>
 
-            <div className="mt-3 grid gap-3 lg:grid-cols-3">
-              <BoardLane laneKey="queue" items={boardLanes.queue} />
-              <BoardLane laneKey="progress" items={boardLanes.progress} />
-              <BoardLane laneKey="attention" items={boardLanes.attention} />
+            <div className="mt-3 divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white">
+              {visibleTaskItems.length ? visibleTaskItems.map(item => (
+                <WorkItemRow key={`task-${item.id}-${item.projectId || 'x'}`} item={item} type="task" />
+              )) : (
+                <div className="p-3"><EmptyState text="No hay tareas para este foco." /></div>
+              )}
             </div>
-          </section>
-
-          <PendingTicketsTable
-            tickets={sortedPendingTickets}
-            sort={ticketSort}
-            onSort={setTicketSort}
-          />
+          </div>
         </div>
 
-        <aside className="space-y-3">
-          <StatusPanel
-            title="Tickets por estado"
-            caption="Pulsa un estado para enfocar el flujo operativo."
-            items={supportStatusSummary}
-            activeStatus={supportStatusFilter}
-            onStatusClick={status => setSupportStatusFilter(current => current === status ? '' : status)}
-            onClear={() => setSupportStatusFilter('')}
-          />
-
-          <StatusPanel
-            title="Tareas por estado"
-            caption="Filtro rápido sobre las tareas del panel."
-            items={taskStatusSummary}
-            activeStatus={taskStatusFilter}
-            onStatusClick={status => setTaskStatusFilter(current => current === status ? '' : status)}
-            onClear={() => setTaskStatusFilter('')}
-          />
-
-          <ProjectStatusPanel
-            projects={dashboardData?.periodProjects || []}
-            statuses={dashboardData?.projectsByStatus || []}
-            loading={dashboardLoading}
-          />
-
-          <RecentActivity items={recentActivity} />
-        </aside>
-      </section>
-
-      <section className="grid gap-3 lg:grid-cols-3">
-        <Link to="/soporte/tickets?create=1" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-teal-200 hover:bg-teal-50/40">
-          <LifebuoyIcon className="h-5 w-5 text-teal-700" />
-          <p className="mt-2 text-sm font-black text-slate-950">Crear ticket</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">Registrar una incidencia o solicitud de soporte.</p>
-        </Link>
-        <Link to="/proyectos?create=1" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-teal-200 hover:bg-teal-50/40">
-          <CalendarDaysIcon className="h-5 w-5 text-teal-700" />
-          <p className="mt-2 text-sm font-black text-slate-950">Crear proyecto</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">Abrir un nuevo trabajo de comercial, soporte, formación o instalaciones.</p>
-        </Link>
-        <Link to="/proyectos" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-teal-200 hover:bg-teal-50/40">
-          <ChartBarIcon className="h-5 w-5 text-teal-700" />
-          <p className="mt-2 text-sm font-black text-slate-950">Plan de trabajo</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">Ver cartera, calendario y tareas abiertas.</p>
-        </Link>
+        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400">Accesos rápidos</p>
+              <h2 className="mt-1 text-base font-black text-slate-950">Crear o ir directo</h2>
+            </div>
+          </div>
+          <div className="mt-3 grid gap-3">
+            <Link to="/soporte/tickets?create=1" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-teal-200 hover:bg-teal-50/40">
+              <LifebuoyIcon className="h-5 w-5 text-teal-700" />
+              <p className="mt-2 text-sm font-black text-slate-950">Crear ticket</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">Registrar una incidencia o solicitud de soporte.</p>
+            </Link>
+            <Link to="/proyectos?create=1" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-teal-200 hover:bg-teal-50/40">
+              <CalendarDaysIcon className="h-5 w-5 text-teal-700" />
+              <p className="mt-2 text-sm font-black text-slate-950">Crear proyecto</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">Abrir un nuevo trabajo de comercial, soporte, formación o instalaciones.</p>
+            </Link>
+            <Link to="/farmacias" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-teal-200 hover:bg-teal-50/40">
+              <Squares2X2Icon className="h-5 w-5 text-teal-700" />
+              <p className="mt-2 text-sm font-black text-slate-950">Ir a farmacias</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">Consultar fichas, personas, equipamiento y documentos.</p>
+            </Link>
+          </div>
+        </section>
       </section>
     </div>
   )

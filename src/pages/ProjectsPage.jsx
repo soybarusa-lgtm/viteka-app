@@ -199,6 +199,14 @@ export default function ProjectsPage() {
     autoOpened.current = true
   }, [searchParams, setSearchParams])
 
+  useEffect(() => {
+    const requestedStatus = searchParams.get('status')
+    if (!requestedStatus) return
+    const allowed = ['all', 'active', 'in_progress', 'pending', 'blocked', 'completed']
+    if (!allowed.includes(requestedStatus) || status === requestedStatus) return
+    setStatus(requestedStatus)
+  }, [searchParams, status])
+
   const counts = useMemo(() => ({
     total: projects.length,
     active: projects.filter(project => ['active', 'in_progress'].includes(project.status)).length,
@@ -219,9 +227,15 @@ export default function ProjectsPage() {
       responsible,
     ].join(' '))
 
+    const matchesStatus = (() => {
+      if (status === 'all') return true
+      if (status === 'active') return ['active', 'in_progress'].includes(project.status)
+      return project.status === status
+    })()
+
     return divisionData.id === division
       && (!search || haystack.includes(normalizeText(search)))
-      && (status === 'all' || project.status === status)
+      && matchesStatus
       && (priority === 'all' || (project.priority || 'medium') === priority)
   }), [division, priority, projects, search, status])
 

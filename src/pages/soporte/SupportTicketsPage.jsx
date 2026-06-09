@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowDownTrayIcon, MagnifyingGlassIcon, PlusIcon, TicketIcon } from '@heroicons/react/24/outline'
 import InternalSupportFrame from '../../components/soporte/interno/InternalSupportFrame'
@@ -13,6 +13,7 @@ import { formatSupportDate, normalizeSearch } from '../../lib/supportFormatters'
 import { formatTicketNumber } from '../../lib/supportStatus'
 
 const VIEWS = ['Nuevos y abiertos', 'Todos los tickets', 'Sin resolver', 'Archivados', 'Sin asignar']
+const STATUS_QUERY_VALUES = new Set(['nuevo', 'abierto', 'en_progreso', 'esperando_cliente', 'esperando_proveedor', 'resuelto', 'archivado'])
 
 function matchesView(ticket, view) {
   if (view === 'Todos los tickets') return true
@@ -65,7 +66,13 @@ export default function SupportTicketsPage() {
   const contextPharmacyName = searchParams.get('pharmacy_name') || ''
   const contextProjectId = searchParams.get('project_id') || ''
   const contextProjectName = searchParams.get('project_name') || ''
+  const requestedStatus = searchParams.get('status') || ''
   const createPrefill = useMemo(() => pickSearchPrefill(searchParams), [searchParams])
+
+  useEffect(() => {
+    if (!requestedStatus || !STATUS_QUERY_VALUES.has(requestedStatus) || status === requestedStatus) return
+    setStatus(requestedStatus)
+  }, [requestedStatus, status])
 
   const filtered = useMemo(() => tickets
     .filter(ticket => !contextPharmacyId || ticket.pharmacy_id === contextPharmacyId)
