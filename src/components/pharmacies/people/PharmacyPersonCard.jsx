@@ -1,7 +1,9 @@
 import {
   ClipboardDocumentIcon,
   EnvelopeIcon,
+  FolderOpenIcon,
   LifebuoyIcon,
+  ListBulletIcon,
   PencilSquareIcon,
   PhoneIcon,
   UserPlusIcon,
@@ -40,6 +42,8 @@ export default function PharmacyPersonCard({
   isIncomplete,
   onEdit,
   onTicket,
+  onProject,
+  onTask,
   onCopyEmail,
   onCopyPhone,
   onPortalAccess,
@@ -65,7 +69,7 @@ export default function PharmacyPersonCard({
         <div className="flex items-center gap-2"><PhoneIcon className="h-4 w-4 text-slate-400" />{phone || '—'}</div>
         <div className="flex items-center gap-2"><EnvelopeIcon className="h-4 w-4 text-slate-400" />{email || '—'}</div>
         <div className="text-slate-500">Desde: <span className="font-medium text-slate-600">{since || '—'}</span></div>
-        <div className="text-slate-500">Datos críticos: <span className={`font-medium ${isIncomplete ? 'text-orange-700' : 'text-slate-600'}`}>{isIncomplete ? 'Incompletos' : 'Correctos'}</span></div>
+        <div className="text-slate-500">Responsabilidad: <span className={`font-medium ${isResponsible ? 'text-emerald-700' : 'text-slate-600'}`}>{responsibleLabel || 'Sin prioridad'}</span></div>
       </div>
 
       {areas.length > 0 ? (
@@ -83,6 +87,8 @@ export default function PharmacyPersonCard({
       <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
         <ActionButton icon={PencilSquareIcon} label="Editar" onClick={onEdit} />
         <ActionButton icon={LifebuoyIcon} label="Crear ticket" onClick={onTicket} primary />
+        <ActionButton icon={FolderOpenIcon} label="Crear proyecto" onClick={onProject} />
+        <ActionButton icon={ListBulletIcon} label="Crear tarea" onClick={onTask} />
         <ActionButton icon={ClipboardDocumentIcon} label="Copiar email" onClick={onCopyEmail} disabled={!email} />
         <ActionButton icon={PhoneIcon} label="Copiar teléfono" onClick={onCopyPhone} disabled={!phone} />
         <ActionButton icon={UserPlusIcon} label="Acceso portal" onClick={onPortalAccess} />

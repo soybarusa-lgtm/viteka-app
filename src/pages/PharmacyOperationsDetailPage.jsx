@@ -73,13 +73,8 @@ function buildSupportSearch(context = {}) {
   return next.toString()
 }
 
-function storageKey(pharmacyId) {
-  return `viteka:pharmacy-tab:${pharmacyId}`
-}
-
-function normalizeRequestedTab(rawRequestedTab, rememberedTab) {
+function normalizeRequestedTab(rawRequestedTab) {
   if (KNOWN_TABS.has(rawRequestedTab)) return rawRequestedTab
-  if (KNOWN_TABS.has(rememberedTab)) return rememberedTab
   return 'general'
 }
 
@@ -92,11 +87,7 @@ export default function PharmacyOperationsDetailPage() {
   const rawRequestedTab = searchParams.get('tab')
   const legacyRequested = searchParams.get('legacy') === '1'
   const legacyAction = searchParams.get('action') || ''
-  const rememberedTab = useMemo(() => {
-    if (typeof window === 'undefined') return ''
-    return window.sessionStorage.getItem(storageKey(id)) || ''
-  }, [id])
-  const requestedTab = normalizeRequestedTab(rawRequestedTab, rememberedTab)
+  const requestedTab = normalizeRequestedTab(rawRequestedTab)
   const shouldShowLegacy = (legacyRequested || LEGACY_ACTIONS.has(legacyAction))
     && ['it', 'people'].includes(requestedTab)
 
@@ -130,12 +121,6 @@ export default function PharmacyOperationsDetailPage() {
     itApi.devices,
     peopleApi.persons,
   ])
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.sessionStorage.setItem(storageKey(id), requestedTab)
-    }
-  }, [id, requestedTab])
 
   useEffect(() => {
     if (rawRequestedTab === requestedTab) return
@@ -346,6 +331,8 @@ export default function PharmacyOperationsDetailPage() {
                 description: person?.role ? `Rol relacionado: ${person.role}` : '',
               })}
               onPortalAccess={person => toast(`Acceso portal pendiente para ${person.name || 'esta persona'}`, 'success')}
+              onCreateProject={person => navigate(`/proyectos?pharmacy_id=${encodeURIComponent(id)}&create=1&type=commercial&person_name=${encodeURIComponent(person?.name || '')}`)}
+              onCreateTask={person => navigate(`/proyectos?pharmacy_id=${encodeURIComponent(id)}&create=1&type=support&mode=task&person_name=${encodeURIComponent(person?.name || '')}`)}
               toast={toast}
             />
           ) : null}
