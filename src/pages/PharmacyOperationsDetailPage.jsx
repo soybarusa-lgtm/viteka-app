@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeftIcon,
+  BuildingStorefrontIcon,
   ComputerDesktopIcon,
   DocumentTextIcon,
   ExclamationTriangleIcon,
@@ -10,17 +11,21 @@ import {
   PlusIcon,
   UsersIcon,
   WrenchScrewdriverIcon,
-  BuildingStorefrontIcon,
 } from '@heroicons/react/24/outline'
 import { useToast } from '../context/ToastContext'
+import { useAuth } from '../hooks/useAuth'
 import { usePharmacy } from '../hooks/usePharmacy'
 import { usePharmacyDocuments } from '../hooks/usePharmacyDocuments'
 import { usePharmacyIT } from '../hooks/usePharmacyIT'
 import { usePharmacyPersons } from '../hooks/usePharmacyPersons'
 import { useProjects } from '../hooks/useProjects'
+import { useSupportTickets } from '../hooks/useSupportTickets'
 import LegacyPharmacyDetailPage from './PharmacyDetailPage'
 import PharmacyDocumentsTab from '../components/pharmacies/tabs/PharmacyDocumentsTab'
+import PharmacyEquipmentTab from '../components/pharmacies/tabs/PharmacyEquipmentTab'
+import PharmacyGeneralTab from '../components/pharmacies/tabs/PharmacyGeneralTab'
 import PharmacyITTab from '../components/pharmacies/tabs/PharmacyITTab'
+import PharmacyIncidentsTab from '../components/pharmacies/tabs/PharmacyIncidentsTab'
 import PharmacyPeopleTab from '../components/pharmacies/tabs/PharmacyPeopleTab'
 import PharmacyProjectsTab from '../components/pharmacies/tabs/PharmacyProjectsTab'
 
@@ -43,16 +48,18 @@ const LEGAL_LABEL = {
   cb_sl: 'C.B. + S.L.',
 }
 
-const TARGET_TABS = ['it', 'people', 'projects', 'documents']
-const LEGACY_ACTIONS = ['edit', 'new-person', 'edit-person', 'new-it', 'edit-it', 'view-it']
 const TABS = [
   { key: 'general', label: 'Datos generales', icon: BuildingStorefrontIcon },
   { key: 'equipment', label: 'Equipamiento', icon: WrenchScrewdriverIcon },
-  { key: 'it', label: 'Equip. Informático', icon: ComputerDesktopIcon },
+  { key: 'it', label: 'Equip. informático', icon: ComputerDesktopIcon },
   { key: 'people', label: 'Personas', icon: UsersIcon },
+  { key: 'incidents', label: 'Incidencias', icon: ExclamationTriangleIcon },
   { key: 'projects', label: 'Proyectos', icon: FolderOpenIcon },
   { key: 'documents', label: 'Documentos', icon: DocumentTextIcon },
 ]
+
+const KNOWN_TABS = new Set(TABS.map(tab => tab.key))
+const LEGACY_ACTIONS = new Set(['new-person', 'edit-person', 'new-it', 'edit-it', 'view-it'])
 
 function buildSupportSearch(context = {}) {
   const next = new URLSearchParams()
@@ -70,73 +77,85 @@ function storageKey(pharmacyId) {
   return `viteka:pharmacy-tab:${pharmacyId}`
 }
 
+function normalizeRequestedTab(rawRequestedTab, rememberedTab) {
+  if (KNOWN_TABS.has(rawRequestedTab)) return rawRequestedTab
+  if (KNOWN_TABS.has(rememberedTab)) return rememberedTab
+  return 'general'
+}
+
 export default function PharmacyOperationsDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const toast = useToast()
+  const { profile } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const rawRequestedTab = searchParams.get('tab')
   const legacyRequested = searchParams.get('legacy') === '1'
   const legacyAction = searchParams.get('action') || ''
-
   const rememberedTab = useMemo(() => {
     if (typeof window === 'undefined') return ''
     return window.sessionStorage.getItem(storageKey(id)) || ''
   }, [id])
+  const requestedTab = normalizeRequestedTab(rawRequestedTab, rememberedTab)
+  const shouldShowLegacy = (legacyRequested || LEGACY_ACTIONS.has(legacyAction))
+    && ['it', 'people'].includes(requestedTab)
 
-  const requestedTab = rawRequestedTab || rememberedTab || 'people'
-  const shouldShowLegacy = requestedTab === 'general'
-    || requestedTab === 'equipment'
-    || (legacyRequested && LEGACY_ACTIONS.includes(legacyAction) && !TARGET_TABS.includes(requestedTab))
-    || (legacyRequested && ['new-person', 'edit-person', 'new-it', 'edit-it', 'view-it'].includes(legacyAction))
-
-  const { pharmacy, loading, error } = usePharmacy(id)
+  const { pharmacy, equipment, loading, error, refetch } = usePharmacy(id)
   const peopleApi = usePharmacyPersons(id)
   const documentsApi = usePharmacyDocuments(id)
   const itApi = usePharmacyIT(id)
   const { projects } = useProjects()
+  const ticketsApi = useSupportTickets(profile)
 
   const filteredProjects = useMemo(
     () => (projects || []).filter(project => project.pharmacy_id === id),
     [id, projects],
   )
 
+  const filteredTickets = useMemo(
+    () => (ticketsApi.tickets || []).filter(ticket => ticket.pharmacy_id === id),
+    [id, ticketsApi.tickets],
+  )
+
   const tabCounts = useMemo(() => ({
     it: itApi.devices?.length || 0,
     people: peopleApi.persons?.length || 0,
+    incidents: filteredTickets.length,
     projects: filteredProjects.length,
     documents: documentsApi.documents?.length || 0,
-  }), [documentsApi.documents, filteredProjects.length, itApi.devices, peopleApi.persons])
+  }), [
+    documentsApi.documents,
+    filteredProjects.length,
+    filteredTickets.length,
+    itApi.devices,
+    peopleApi.persons,
+  ])
 
   useEffect(() => {
-    if (!TARGET_TABS.includes(requestedTab)) return
     if (typeof window !== 'undefined') {
       window.sessionStorage.setItem(storageKey(id), requestedTab)
     }
   }, [id, requestedTab])
 
   useEffect(() => {
-    if (rawRequestedTab || !TARGET_TABS.includes(requestedTab)) return
+    if (rawRequestedTab === requestedTab) return
     const next = new URLSearchParams(searchParams)
     next.set('tab', requestedTab)
     setSearchParams(next, { replace: true })
   }, [rawRequestedTab, requestedTab, searchParams, setSearchParams])
 
-  useEffect(() => {
-    if (!TARGET_TABS.includes(requestedTab) || !legacyRequested || legacyAction) return
-    const next = new URLSearchParams(searchParams)
-    next.delete('legacy')
-    next.delete('action')
-    next.delete('person')
-    setSearchParams(next, { replace: true })
-  }, [legacyAction, legacyRequested, requestedTab, searchParams, setSearchParams])
-
-  function openModernTab(tabKey) {
+  function openModernTab(tabKey, extras = {}) {
     const next = new URLSearchParams(searchParams)
     next.set('tab', tabKey)
     next.delete('legacy')
     next.delete('action')
     next.delete('person')
+
+    Object.entries(extras).forEach(([key, value]) => {
+      if (value === null || value === undefined || value === '') return
+      next.set(key, String(value))
+    })
+
     setSearchParams(next, { replace: true })
   }
 
@@ -146,7 +165,7 @@ export default function PharmacyOperationsDetailPage() {
     next.set('legacy', '1')
     Object.entries(extras).forEach(([key, value]) => {
       if (value === null || value === undefined || value === '') next.delete(key)
-      else next.set(key, value)
+      else next.set(key, String(value))
     })
     navigate(`/farmacias/${id}?${next.toString()}`)
   }
@@ -164,7 +183,11 @@ export default function PharmacyOperationsDetailPage() {
   }
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center"><div className="h-10 w-10 animate-spin rounded-full border-4 border-teal-600 border-t-transparent" /></div>
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-teal-600 border-t-transparent" />
+      </div>
+    )
   }
 
   if (error || !pharmacy) {
@@ -177,7 +200,9 @@ export default function PharmacyOperationsDetailPage() {
     )
   }
 
-  const locationLine = [pharmacy.city, PROVINCE_LABEL[pharmacy.province] || pharmacy.province].filter(Boolean).join(', ')
+  const locationLine = [pharmacy.city, PROVINCE_LABEL[pharmacy.province] || pharmacy.province]
+    .filter(Boolean)
+    .join(', ')
 
   return (
     <div className="page-wrapper space-y-4">
@@ -186,13 +211,23 @@ export default function PharmacyOperationsDetailPage() {
           <div className="px-3 py-3 md:px-5">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex min-w-0 items-start gap-3">
-                <button type="button" onClick={() => navigate(-1)} className="mt-0.5 rounded-xl p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" aria-label="Volver">
+                <button
+                  type="button"
+                  onClick={() => navigate(-1)}
+                  className="mt-0.5 rounded-xl p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Volver"
+                >
                   <ArrowLeftIcon className="h-5 w-5" />
                 </button>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="truncate text-lg font-extrabold text-slate-950 md:text-xl">{pharmacy.pharmacy_name}</h1>
-                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ${pharmacy.is_active === false ? 'bg-slate-50 text-slate-500 ring-slate-200' : 'bg-emerald-50 text-emerald-700 ring-emerald-100'}`}>
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ${
+                      pharmacy.is_active === false
+                        ? 'bg-slate-50 text-slate-500 ring-slate-200'
+                        : 'bg-emerald-50 text-emerald-700 ring-emerald-100'
+                    }`}
+                    >
                       {pharmacy.is_active === false ? 'Inactiva' : 'Activa'}
                     </span>
                   </div>
@@ -205,10 +240,18 @@ export default function PharmacyOperationsDetailPage() {
               </div>
 
               <div className="flex flex-wrap gap-2 lg:justify-end">
-                <button type="button" onClick={() => openSupportTicket({ subject: `Nueva incidencia en ${pharmacy.pharmacy_name}` })} className="btn-secondary text-xs">
+                <button
+                  type="button"
+                  onClick={() => openModernTab('incidents', { action: 'create-ticket' })}
+                  className="btn-secondary text-xs"
+                >
                   <PlusIcon className="h-4 w-4" /> Crear ticket
                 </button>
-                <button type="button" onClick={() => openLegacyTab('general', { action: 'edit' })} className="btn-primary text-xs">
+                <button
+                  type="button"
+                  onClick={() => openModernTab('general', { action: 'edit' })}
+                  className="btn-primary text-xs"
+                >
                   <PencilSquareIcon className="h-4 w-4" /> Editar datos
                 </button>
               </div>
@@ -223,12 +266,23 @@ export default function PharmacyOperationsDetailPage() {
                   <button
                     key={tab.key}
                     type="button"
-                    onClick={() => tab.key === 'general' || tab.key === 'equipment' ? openLegacyTab(tab.key) : openModernTab(tab.key)}
-                    className={`inline-flex min-h-[40px] shrink-0 items-center justify-center gap-1.5 border-b-2 px-3 py-2 text-[11px] font-bold leading-tight whitespace-nowrap transition-colors sm:min-h-0 sm:justify-start sm:py-2.5 sm:text-xs ${isActive ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'}`}
+                    onClick={() => openModernTab(tab.key)}
+                    className={`inline-flex min-h-[40px] shrink-0 items-center justify-center gap-1.5 border-b-2 px-3 py-2 text-[11px] font-bold leading-tight whitespace-nowrap transition-colors sm:min-h-0 sm:justify-start sm:py-2.5 sm:text-xs ${
+                      isActive
+                        ? 'border-teal-600 text-teal-700'
+                        : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'
+                    }`}
                   >
                     <Icon className="h-3.5 w-3.5" />
                     <span>{tab.label}</span>
-                    {Number.isFinite(count) && count > 0 ? <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-extrabold ${isActive ? 'bg-teal-100 text-teal-800' : 'bg-slate-100 text-slate-500'}`}>{count}</span> : null}
+                    {Number.isFinite(count) && count > 0 ? (
+                      <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-extrabold ${
+                        isActive ? 'bg-teal-100 text-teal-800' : 'bg-slate-100 text-slate-500'
+                      }`}
+                      >
+                        {count}
+                      </span>
+                    ) : null}
                   </button>
                 )
               })}
@@ -237,6 +291,23 @@ export default function PharmacyOperationsDetailPage() {
         </div>
 
         <div className="px-3 py-4 md:px-5 md:py-5">
+          {requestedTab === 'general' ? (
+            <PharmacyGeneralTab
+              pharmacy={pharmacy}
+              onSaved={refetch}
+              startEditing={legacyAction === 'edit'}
+            />
+          ) : null}
+
+          {requestedTab === 'equipment' ? (
+            <PharmacyEquipmentTab
+              pharmacy={pharmacy}
+              equipment={equipment}
+              onSaved={refetch}
+              startEditing={legacyAction === 'edit'}
+            />
+          ) : null}
+
           {requestedTab === 'it' ? (
             <PharmacyITTab
               devices={itApi.devices}
@@ -276,6 +347,21 @@ export default function PharmacyOperationsDetailPage() {
               })}
               onPortalAccess={person => toast(`Acceso portal pendiente para ${person.name || 'esta persona'}`, 'success')}
               toast={toast}
+            />
+          ) : null}
+
+          {requestedTab === 'incidents' ? (
+            <PharmacyIncidentsTab
+              profile={profile}
+              pharmacy={pharmacy}
+              tickets={filteredTickets}
+              loading={ticketsApi.loading}
+              onCreateTicket={async payload => {
+                await ticketsApi.createTicket(payload)
+                toast('Ticket creado correctamente', 'success')
+              }}
+              onUpdateTicket={ticketsApi.updateTicket}
+              startCreating={legacyAction === 'create-ticket'}
             />
           ) : null}
 

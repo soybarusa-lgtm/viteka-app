@@ -21,7 +21,6 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const PharmaciesPage = lazy(() => import('./pages/PharmaciesPage'))
 const PharmacyDetailPage = lazy(() => import('./pages/PharmacyOperationsDetailPage'))
 const NewPharmacyPage = lazy(() => import('./pages/NewPharmacyPage'))
-const PharmacyEditPage = lazy(() => import('./pages/PharmacyEditPage'))
 const PeoplePage = lazy(() => import('./pages/PeoplePage'))
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
 const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'))
@@ -58,7 +57,7 @@ function LegacyPharmacyRedirect({ toEdit = false }) {
   const { id } = useParams()
   return (
     <Navigate
-      to={toEdit ? `/farmacias/${id}/editar` : `/farmacias/${id}`}
+      to={toEdit ? `/farmacias/${id}?tab=general&action=edit` : `/farmacias/${id}`}
       replace
     />
   )
@@ -178,7 +177,7 @@ export default function App() {
             <Route path="farmacias" element={<LazyRoute><PharmaciesPage /></LazyRoute>} />
             <Route path="farmacias/nueva" element={<LazyRoute><NewPharmacyPage /></LazyRoute>} />
             <Route path="farmacias/:id" element={<LazyRoute><PharmacyDetailPage /></LazyRoute>} />
-            <Route path="farmacias/:id/editar" element={<LazyRoute><PharmacyEditPage /></LazyRoute>} />
+            <Route path="farmacias/:id/editar" element={<LegacyPharmacyRedirect toEdit />} />
             <Route path="personas" element={<LazyRoute><PeoplePage /></LazyRoute>} />
             <Route path="incidencias" element={<Navigate to="/soporte/dashboard" replace />} />
             <Route path="proyectos" element={<LazyRoute><ProjectsPage /></LazyRoute>} />

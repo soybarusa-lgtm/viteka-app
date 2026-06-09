@@ -478,10 +478,10 @@ function RowActionsMenu({ pharmacy }) {
   const actions = [
     { label: 'Editar datos', icon: PencilSquareIcon, to: `/farmacias/${pharmacy.id}?tab=general&action=edit` },
     { label: 'Editar equipamiento', icon: WrenchScrewdriverIcon, to: `/farmacias/${pharmacy.id}?tab=equipment&action=edit` },
-    { label: 'Crear equipo informático', icon: ComputerDesktopIcon, to: `/farmacias/${pharmacy.id}?tab=it&action=new-it` },
-    { label: 'Crear persona', icon: UsersIcon, to: `/farmacias/${pharmacy.id}?tab=people&action=new-person` },
+    { label: 'Crear equipo informático', icon: ComputerDesktopIcon, to: `/farmacias/${pharmacy.id}?tab=it&legacy=1&action=new-it` },
+    { label: 'Crear persona', icon: UsersIcon, to: `/farmacias/${pharmacy.id}?tab=people&legacy=1&action=new-person` },
     { label: 'Crear proyecto', icon: FolderOpenIcon, to: `/proyectos?pharmacy_id=${pharmacy.id}&create=1&type=commercial` },
-    { label: 'Subir documentos', icon: DocumentTextIcon, to: `/documentos?open=1` },
+    { label: 'Subir documentos', icon: DocumentTextIcon, to: `/farmacias/${pharmacy.id}?tab=documents` },
   ]
 
   useEffect(() => {
