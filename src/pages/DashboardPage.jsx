@@ -1,81 +1,52 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import {
-  ArrowPathIcon,
+  AdjustmentsHorizontalIcon,
   ArrowRightIcon,
+  BellIcon,
+  BuildingOffice2Icon,
   CalendarDaysIcon,
   ChartBarIcon,
-  ClipboardDocumentListIcon,
+  ChartPieIcon,
+  ChevronDownIcon,
   ClockIcon,
+  ClipboardDocumentListIcon,
   ExclamationTriangleIcon,
   LifebuoyIcon,
+  MagnifyingGlassIcon,
   Squares2X2Icon,
   TicketIcon,
+  UserCircleIcon,
   UserGroupIcon,
 } from '@heroicons/react/24/outline'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useDashboard } from '../hooks/useDashboard'
 import { useOperationalDashboard } from '../hooks/useOperationalDashboard'
-import { formatShortDate, getPriorityMeta, getStatusMeta, normalizeKey, statusToneClasses } from '../lib/operationalDashboardStatus'
-
-const CHART_BAR_TONE = {
-  teal: 'bg-teal-500',
-  amber: 'bg-amber-500',
-  orange: 'bg-orange-500',
-  blue: 'bg-sky-500',
-  red: 'bg-rose-500',
-  gray: 'bg-slate-400',
-}
-
-const LANE_META = {
-  queue: {
-    title: 'Entrada',
-    caption: 'Nuevo trabajo y pendientes por arrancar',
-    badge: 'bg-slate-900 text-white',
-    panel: 'border-slate-200 bg-white',
-  },
-  progress: {
-    title: 'En marcha',
-    caption: 'Tareas y tickets que ya se están moviendo',
-    badge: 'bg-sky-600 text-white',
-    panel: 'border-sky-100 bg-sky-50/40',
-  },
-  attention: {
-    title: 'Riesgo / espera',
-    caption: 'Bloqueos, esperas o prioridades altas',
-    badge: 'bg-rose-600 text-white',
-    panel: 'border-rose-100 bg-rose-50/40',
-  },
-}
-
-const TICKET_SORT_COLUMNS = [
-  { key: 'urgency', label: 'Urgencia' },
-  { key: 'date', label: 'Fecha' },
-  { key: 'pharmacy', label: 'Farmacia' },
-  { key: 'assignee', label: 'Encargado' },
-  { key: 'group', label: 'Grupo' },
-]
-
-const PRIORITY_BADGE_CLASSES = {
-  redStrong: 'bg-red-100 text-red-800 ring-red-200',
-  red: 'bg-rose-50 text-rose-700 ring-rose-100',
-  orange: 'bg-orange-50 text-orange-700 ring-orange-100',
-  blue: 'bg-sky-50 text-sky-700 ring-sky-100',
-  gray: 'bg-slate-100 text-slate-600 ring-slate-200',
-}
-
-function formatUpdateTime(value) {
-  if (!value) return '--:--'
-  return value.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-}
+import { usePharmacies } from '../hooks/usePharmacies'
+import { formatShortDate, normalizeKey } from '../lib/operationalDashboardStatus'
 
 function formatTodayLabel() {
-  return new Date().toLocaleDateString('es-ES', {
-    weekday: 'long',
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  })
+  return new Date().toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
+}
+
+function displayName(profile, session) {
+  const meta = session?.user?.user_metadata || {}
+  const value = profile?.full_name || profile?.name || meta.full_name || meta.name || meta.display_name || session?.user?.email || 'usuario'
+  return String(value).trim().split(/\s+/)[0] || 'usuario'
+}
+
+function relativeTime(value) {
+  if (!value) return 'Sin fecha'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Sin fecha'
+  const diffHours = Math.round((Date.now() - date.getTime()) / 36e5)
+  if (diffHours < 24) return `hace ${Math.max(1, diffHours)} h`
+  const diffDays = Math.round(diffHours / 24)
+  return `hace ${diffDays} d${diffDays === 1 ? 'Ã­a' : 'Ã­as'}`
+}
+
+function sameDay(a, b) {
+  return a.toDateString() === b.toDateString()
 }
 
 function titleCase(value) {
@@ -84,612 +55,175 @@ function titleCase(value) {
   return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase()
 }
 
-function nameFromEmail(email) {
-  const localPart = String(email || '').split('@')[0]
-  const firstToken = localPart.split(/[._-]/).find(Boolean)
-  return titleCase(firstToken)
-}
-
-function profileDisplayName(profile, session) {
-  const metadata = session?.user?.user_metadata || {}
-  const fullName = profile?.full_name
-    || profile?.name
-    || metadata.full_name
-    || metadata.name
-    || metadata.display_name
-    || metadata.first_name
-    || metadata.given_name
-    || nameFromEmail(profile?.email || session?.user?.email)
-    || 'usuario'
-
-  return String(fullName).trim().split(/\s+/)[0] || 'usuario'
-}
-
-function formatRelativeTime(value) {
-  if (!value) return 'Sin fecha'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Sin fecha'
-
-  const diffMs = Date.now() - date.getTime()
-  const diffMinutes = Math.max(1, Math.round(diffMs / 60000))
-  if (diffMinutes < 60) return `hace ${diffMinutes} min`
-
-  const diffHours = Math.round(diffMinutes / 60)
-  if (diffHours < 24) return `hace ${diffHours} h`
-
-  const diffDays = Math.round(diffHours / 24)
-  if (diffDays < 8) return `hace ${diffDays} día${diffDays === 1 ? '' : 's'}`
-
-  return formatShortDate(value)
-}
-
-function filterByStatus(items, status) {
-  if (!status) return items
-  return items.filter(item => normalizeKey(item.status) === status)
-}
-
-function totalCount(items) {
-  return items.reduce((sum, item) => sum + item.count, 0)
-}
-
-function countStatuses(summary, keys) {
-  const normalizedKeys = keys.map(normalizeKey)
-  return summary
-    .filter(item => normalizedKeys.includes(normalizeKey(item.key)))
-    .reduce((sum, item) => sum + item.count, 0)
-}
-
-function ticketDate(item) {
-  return item.createdAt || item.raw?.created_at || item.updatedAt || item.raw?.updated_at || ''
-}
-
-function ticketDateTime(item) {
-  const date = new Date(ticketDate(item)).getTime()
-  return Number.isNaN(date) ? null : date
-}
-
-function ticketGroup(item) {
-  const raw = item.raw || {}
-  return raw.group_name
-    || raw.support_group
-    || raw.group
-    || raw.queue
-    || raw.team
-    || raw.department
-    || raw.area
-    || item.product
-    || item.type
-    || 'Sin grupo'
-}
-
-function ticketUrgencyScore(item) {
-  const priority = getPriorityMeta(item.priority)
-  const status = normalizeKey(item.status)
-  const statusBoost = {
-    blocked: 60,
-    esperando_proveedor: 45,
-    esperando_cliente: 40,
-    in_progress: 15,
-    en_progreso: 15,
-    nuevo: 10,
-    abierto: 10,
-    open: 10,
-  }[status] || 0
-
-  return (priority.weight * 100) + statusBoost
-}
-
-function ticketSortValue(item, key) {
-  if (key === 'urgency') return ticketUrgencyScore(item)
-  if (key === 'date') {
-    return ticketDateTime(item)
-  }
-  if (key === 'pharmacy') return normalizeKey(item.pharmacyName)
-  if (key === 'assignee') return normalizeKey(item.assignedTo || 'Sin asignar')
-  if (key === 'group') return normalizeKey(ticketGroup(item))
-  return ''
-}
-
-function compareTicketSort(a, b, sort) {
-  const aValue = ticketSortValue(a, sort.key)
-  const bValue = ticketSortValue(b, sort.key)
-  const direction = sort.direction === 'asc' ? 1 : -1
-
-  if (sort.key === 'date') {
-    if (aValue === null && bValue !== null) return 1
-    if (aValue !== null && bValue === null) return -1
-  }
-
-  if (typeof aValue === 'number' && typeof bValue === 'number' && aValue !== bValue) {
-    return (aValue - bValue) * direction
-  }
-
-  if (typeof aValue === 'string' && typeof bValue === 'string') {
-    const textCompare = aValue.localeCompare(bValue, 'es')
-    if (textCompare) return textCompare * direction
-  }
-
-  const urgencyCompare = ticketUrgencyScore(b) - ticketUrgencyScore(a)
-  if (urgencyCompare) return urgencyCompare
-
-  const aDate = ticketSortValue(a, 'date')
-  const bDate = ticketSortValue(b, 'date')
-  if (aDate === null && bDate !== null) return 1
-  if (aDate !== null && bDate === null) return -1
-  return (aDate || 0) - (bDate || 0)
-}
-
-function isUrgentItem(item) {
-  const priority = normalizeKey(item.priority)
-  const status = normalizeKey(item.status)
-  return ['urgent', 'urgente', 'critical', 'critica'].includes(priority)
-    || status === 'blocked'
-    || status === 'esperando_cliente'
-    || status === 'esperando_proveedor'
-}
-
-function laneKeyFromStatus(status) {
+function statusLabel(status) {
   const key = normalizeKey(status)
-  if (['blocked', 'esperando_cliente', 'esperando_proveedor'].includes(key)) return 'attention'
-  if (['in_progress', 'en_progreso'].includes(key)) return 'progress'
-  return 'queue'
+  if (['en_progreso', 'in_progress'].includes(key)) return 'En curso'
+  if (['esperando_cliente', 'esperando_proveedor'].includes(key)) return 'En espera'
+  if (['blocked', 'bloqueado'].includes(key)) return 'Bloqueado'
+  if (['completed', 'closed', 'cerrado'].includes(key)) return 'Cerrado'
+  if (['pending', 'nuevo', 'abierto'].includes(key)) return 'Pendiente'
+  return status || 'Sin estado'
 }
 
-function boardPriority(item) {
-  const priority = normalizeKey(item.priority)
-  const status = normalizeKey(item.status)
-  if (status === 'blocked') return 120
-  if (status === 'esperando_proveedor') return 115
-  if (status === 'esperando_cliente') return 105
-  if (['urgent', 'urgente', 'critical', 'critica'].includes(priority)) return 100
-  if (['high', 'alto', 'alta'].includes(priority)) return 80
-  if (['in_progress', 'en_progreso'].includes(status)) return 60
-  if (status === 'pending' || status === 'nuevo') return 50
-  return 20
+function toneClass(tone) {
+  return ({
+    indigo: 'bg-indigo-50 text-indigo-600 ring-indigo-100',
+    sky: 'bg-sky-50 text-sky-600 ring-sky-100',
+    amber: 'bg-amber-50 text-amber-600 ring-amber-100',
+    rose: 'bg-rose-50 text-rose-600 ring-rose-100',
+    emerald: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
+    violet: 'bg-violet-50 text-violet-600 ring-violet-100',
+    slate: 'bg-slate-50 text-slate-700 ring-slate-200',
+  }[tone] || 'bg-slate-50 text-slate-700 ring-slate-200')
 }
 
-function decorateBoardItems(items, type, scope) {
-  return items.map(item => ({
-    ...item,
-    type,
-    scope,
-    tone: getStatusMeta(item.status).tone,
-    laneKey: isUrgentItem(item) ? 'attention' : laneKeyFromStatus(item.status),
-  }))
-}
-
-function itemContext(item, type) {
-  if (type === 'task') {
-    const dueLabel = item.dueDate ? `Vence ${formatShortDate(item.dueDate)}` : 'Sin vencimiento'
-    return item.pharmacyName ? `${item.pharmacyName} · ${dueLabel}` : dueLabel
-  }
-
-  if (type === 'project') return item.pharmacy_name || 'Sin farmacia vinculada'
-  if (item.pharmacyName && item.product) return `${item.pharmacyName} · ${item.product}`
-  return item.pharmacyName || item.product || 'Sin contexto adicional'
-}
-
-function SmartLink({ to, className = '', children }) {
-  if (!to) return <span className={className}>{children}</span>
-  if (to.startsWith('#')) return <a href={to} className={className}>{children}</a>
-  return <Link to={to} className={className}>{children}</Link>
-}
-
-function MetricTile({ label, value, hint, to, Icon, tone = 'slate' }) {
-  const toneClasses = {
-    teal: 'bg-teal-50 text-teal-700 ring-teal-100',
-    amber: 'bg-amber-50 text-amber-700 ring-amber-100',
-    rose: 'bg-rose-50 text-rose-700 ring-rose-100',
-    blue: 'bg-sky-50 text-sky-700 ring-sky-100',
-    slate: 'bg-slate-100 text-slate-700 ring-slate-200',
-  }[tone] || 'bg-slate-100 text-slate-700 ring-slate-200'
-
+function Card({ title, subtitle, action, children, className = '' }) {
   return (
-    <SmartLink
-      to={to}
-      className="group flex min-h-[112px] flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md"
-    >
+    <section className={`rounded-[18px] border border-slate-200 bg-white shadow-sm ${className}`}>
+      <header className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3">
+        <div>
+          <h2 className="text-[15px] font-extrabold text-slate-950">{title}</h2>
+          {subtitle ? <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p> : null}
+        </div>
+        {action}
+      </header>
+      <div className="p-3">{children}</div>
+    </section>
+  )
+}
+
+function Kpi({ label, value, hint, Icon, tone = 'indigo', to }) {
+  const body = (
+    <div className="flex h-full flex-col justify-between rounded-[18px] border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-bold text-slate-800">{label}</p>
-        <span className={`inline-flex rounded-lg p-2 ring-1 ${toneClasses}`}>
-          <Icon className="h-4 w-4" />
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">{label}</p>
+          <p className="mt-2 text-[34px] font-black leading-none tracking-tight text-slate-950">{value}</p>
+          <p className="mt-1 text-xs text-slate-500">{hint}</p>
+        </div>
+        <span className={`inline-flex rounded-2xl p-2.5 ring-1 ${toneClass(tone)}`}>
+          <Icon className="h-5 w-5" />
         </span>
       </div>
-      <div>
-        <p className="text-3xl font-black tracking-tight text-slate-950">{value}</p>
-        <p className="mt-1 text-xs leading-5 text-slate-500">{hint}</p>
-      </div>
-    </SmartLink>
-  )
-}
-
-function DashboardStatCard({ label, value, hint, to, onClick, Icon, tone = 'slate', selected = false }) {
-  const toneClasses = {
-    teal: 'bg-teal-50 text-teal-700 ring-teal-100',
-    amber: 'bg-amber-50 text-amber-700 ring-amber-100',
-    rose: 'bg-rose-50 text-rose-700 ring-rose-100',
-    blue: 'bg-sky-50 text-sky-700 ring-sky-100',
-    slate: 'bg-slate-100 text-slate-700 ring-slate-200',
-    violet: 'bg-violet-50 text-violet-700 ring-violet-100',
-  }[tone] || 'bg-slate-100 text-slate-700 ring-slate-200'
-
-  const card = (
-    <div className={`flex h-full flex-col justify-between rounded-2xl border px-4 py-3 transition ${
-      selected ? 'border-teal-300 bg-teal-50/70 shadow-md' : 'border-slate-200 bg-white shadow-sm'
-    } ${to || onClick ? 'group hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md' : ''}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">{label}</p>
-          <p className="mt-2 text-3xl font-black tracking-tight text-slate-950">{value}</p>
-        </div>
-        {Icon ? (
-          <span className={`inline-flex rounded-xl p-2 ring-1 ${toneClasses}`}>
-            <Icon className="h-4 w-4" />
-          </span>
-        ) : null}
-      </div>
-      <p className="mt-2 text-xs leading-5 text-slate-500">{hint}</p>
     </div>
   )
-
-  if (onClick) {
-    return (
-      <button type="button" onClick={onClick} className="text-left">
-        {card}
-      </button>
-    )
-  }
-
-  return (
-    <SmartLink to={to} className="block h-full">
-      {card}
-    </SmartLink>
-  )
+  return to ? <Link to={to}>{body}</Link> : body
 }
 
-function EmptyState({ text }) {
+function DataTable({ columns, rows, emptyText }) {
+  if (!rows.length) {
+    return <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">{emptyText}</div>
+  }
   return (
-    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-6 text-center text-sm text-slate-400">
-      {text}
+    <div className="overflow-hidden rounded-xl border border-slate-200">
+      <table className="min-w-full text-left text-sm">
+        <thead className="bg-slate-50 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+          <tr>{columns.map(column => <th key={column.key} className="px-3 py-3 font-bold">{column.label}</th>)}</tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100 bg-white">
+          {rows.map((row, index) => (
+            <tr key={row.id || index} className="transition hover:bg-slate-50/70">
+              {columns.map(column => <td key={column.key} className="px-3 py-3 align-middle">{column.render(row)}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
 
-function WorkItemRow({ item, type }) {
-  const statusMeta = getStatusMeta(item.status)
-  const to = type === 'support'
-    ? `/soporte/tickets/${item.id}`
-    : type === 'project'
-      ? `/proyectos/${item.id}`
-      : item.projectId
-        ? `/proyectos/${item.projectId}`
-        : '/proyectos'
+function Donut({ title, items }) {
+  const total = items.reduce((sum, item) => sum + item.count, 0) || 1
+  const colors = ['#4f7cff', '#8b9ac5', '#f59e0b', '#f97316', '#ef4444', '#22c55e', '#7c3aed']
+  let acc = 0
+  const stops = items.map((item, index) => {
+    const start = acc
+    acc += (item.count / total) * 100
+    return `${colors[index % colors.length]} ${start}% ${acc}%`
+  }).join(', ')
 
   return (
-    <SmartLink to={to} className="flex items-center justify-between gap-3 rounded-lg px-2 py-2 transition hover:bg-slate-50">
-      <span className="min-w-0">
-        <span className="block truncate text-sm font-bold text-slate-900">{item.title || item.name || 'Sin título'}</span>
-        <span className="mt-0.5 block truncate text-xs text-slate-500">{itemContext(item, type)}</span>
-      </span>
-      <span className="flex shrink-0 items-center gap-2">
-        <span className={`hidden rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 sm:inline-flex ${statusToneClasses(statusMeta.tone)}`}>
-          {item.statusLabel || statusMeta.label}
-        </span>
-        <ArrowRightIcon className="h-3.5 w-3.5 text-slate-300" />
-      </span>
-    </SmartLink>
-  )
-}
-
-function CompactList({ title, caption, items, type, emptyText, to, limit = 5 }) {
-  const visibleItems = items.slice(0, limit)
-
-  return (
-    <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <header className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3">
-        <div>
-          <h2 className="text-sm font-extrabold text-slate-950">{title}</h2>
-          {caption ? <p className="mt-0.5 text-xs text-slate-500">{caption}</p> : null}
-        </div>
-        {to ? (
-          <SmartLink to={to} className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 hover:text-teal-900">
-            Ver todo <ArrowRightIcon className="h-3.5 w-3.5" />
-          </SmartLink>
-        ) : null}
-      </header>
-
-      <div className="divide-y divide-slate-100 p-2">
-        {visibleItems.length ? visibleItems.map(item => (
-          <WorkItemRow key={`${type}-${item.id}`} item={item} type={type} />
-        )) : (
-          <div className="p-2"><EmptyState text={emptyText} /></div>
-        )}
+    <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-extrabold text-slate-950">{title}</h3>
       </div>
-    </section>
-  )
-}
-
-function StatusPanel({ title, caption, items, activeStatus, onStatusClick, onClear }) {
-  const total = totalCount(items)
-
-  return (
-    <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <header className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3">
-        <div>
-          <h2 className="text-sm font-extrabold text-slate-950">{title}</h2>
-          <p className="mt-0.5 text-xs text-slate-500">{caption}</p>
+      <div className="mt-4 grid gap-4 lg:grid-cols-[120px_minmax(0,1fr)]">
+        <div className="flex items-center justify-center">
+          <div
+            className="h-28 w-28 rounded-full"
+            style={{
+              background: `conic-gradient(${stops})`,
+              WebkitMask: 'radial-gradient(circle, transparent 0 46%, #000 47% 100%)',
+              mask: 'radial-gradient(circle, transparent 0 46%, #000 47% 100%)',
+            }}
+          />
         </div>
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600">{total}</span>
-          {activeStatus ? (
-            <button type="button" onClick={onClear} className="text-xs font-bold text-teal-700 hover:underline">
-              Limpiar
-            </button>
-          ) : null}
-        </div>
-      </header>
-
-      <div className="space-y-2 p-3">
-        {items.length ? items.map(item => {
-          const percent = total ? Math.max(6, Math.round((item.count / total) * 100)) : 0
-          const isActive = activeStatus === item.key
-          return (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => onStatusClick(item.key)}
-              className={`w-full rounded-lg border px-3 py-2 text-left transition ${isActive ? 'border-teal-200 bg-teal-50' : 'border-slate-200 bg-slate-50/70 hover:bg-white'}`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${statusToneClasses(item.tone)}`}>{item.label}</span>
-                <span className="text-sm font-black text-slate-800">{item.count}</span>
-              </div>
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
-                <div className={`h-full rounded-full ${CHART_BAR_TONE[item.tone] || CHART_BAR_TONE.gray}`} style={{ width: `${percent}%` }} />
-              </div>
-            </button>
-          )
-        }) : (
-          <EmptyState text="Sin elementos activos en esta cola." />
-        )}
-      </div>
-    </section>
-  )
-}
-
-function ProjectStatusPanel({ projects, statuses, loading }) {
-  const total = statuses.reduce((sum, item) => sum + item.count, 0)
-
-  return (
-    <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <header className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3">
-        <div>
-          <h2 className="text-sm font-extrabold text-slate-950">Proyectos</h2>
-          <p className="mt-0.5 text-xs text-slate-500">Estado de cartera y últimos proyectos abiertos.</p>
-        </div>
-        <Link to="/proyectos" className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 hover:text-teal-900">
-          Abrir <ArrowRightIcon className="h-3.5 w-3.5" />
-        </Link>
-      </header>
-
-      <div className="space-y-3 p-3">
-        {loading ? (
-          <EmptyState text="Cargando proyectos..." />
-        ) : (
-          <>
-            <div className="space-y-2">
-              {statuses.length ? statuses.map(item => {
-                const percent = total ? Math.max(6, Math.round((item.count / total) * 100)) : 0
-                return (
-                  <div key={item.label} className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-700">{item.label}</span>
-                      <span className="font-black text-slate-900">{item.count}</span>
-                    </div>
-                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
-                      <div className={`h-full rounded-full ${item.color || 'bg-slate-400'}`} style={{ width: `${percent}%` }} />
-                    </div>
-                  </div>
-                )
-              }) : (
-                <EmptyState text="Sin datos de estado de proyectos." />
-              )}
+        <div className="space-y-2">
+          {items.map((item, index) => (
+            <div key={item.label} className="flex items-center justify-between gap-3 text-xs">
+              <span className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors[index % colors.length] }} />
+                <span className="font-medium text-slate-600">{item.label}</span>
+              </span>
+              <span className="font-semibold text-slate-900">{item.count} <span className="text-slate-400">({Math.round((item.count / total) * 100)}%)</span></span>
             </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
 
-            <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white">
-              {projects.slice(0, 4).length ? projects.slice(0, 4).map(project => (
-                <WorkItemRow key={project.id} item={{ ...project, title: project.name }} type="project" />
-              )) : (
-                <div className="p-3"><EmptyState text="No hay proyectos recientes en esta vista." /></div>
-              )}
+function Bars({ title, items }) {
+  const max = Math.max(...items.map(item => item.value), 1)
+  return (
+    <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="text-sm font-extrabold text-slate-950">{title}</h3>
+      <div className="mt-4 space-y-3">
+        {items.map(item => (
+          <div key={item.label} className="grid grid-cols-[110px_minmax(0,1fr)_40px] items-center gap-3 text-xs">
+            <span className="truncate text-slate-600">{item.label}</span>
+            <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-indigo-500" style={{ width: `${Math.max(8, Math.round((item.value / max) * 100))}%` }} />
             </div>
-          </>
-        )}
+            <span className="text-right font-semibold text-slate-900">{item.value}</span>
+          </div>
+        ))}
       </div>
     </section>
   )
 }
 
-function BoardItemCard({ item }) {
-  const to = item.type === 'support'
-    ? `/soporte/tickets/${item.id}`
-    : item.projectId
-      ? `/proyectos/${item.projectId}`
-      : '/proyectos'
+function Line({ title, created, closed }) {
+  const width = 320
+  const height = 140
+  const max = Math.max(...created, ...closed, 1)
+  const padX = 16
+  const padY = 14
+  const innerWidth = width - padX * 2
+  const innerHeight = height - padY * 2
+  const points = series => series.map((value, index) => {
+    const x = padX + (innerWidth / Math.max(series.length - 1, 1)) * index
+    const y = padY + innerHeight - ((value / max) * innerHeight)
+    return `${x},${y}`
+  }).join(' ')
 
   return (
-    <SmartLink to={to} className="block rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm transition hover:border-teal-200 hover:bg-teal-50/30">
-      <div className="flex items-center gap-2">
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.12em] ${item.type === 'task' ? 'bg-slate-900 text-white' : 'bg-teal-600 text-white'}`}>
-          {item.type === 'task' ? 'Tarea' : 'Ticket'}
-        </span>
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">
-          {item.scope === 'mine' ? 'Mío' : 'Equipo'}
-        </span>
+    <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-extrabold text-slate-950">{title}</h3>
+        <div className="flex items-center gap-4 text-[11px] font-medium text-slate-500">
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-indigo-500" /> Creados</span>
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Cerrados</span>
+        </div>
       </div>
-      <p className="mt-2 line-clamp-2 text-sm font-bold text-slate-900">{item.title}</p>
-      <p className="mt-1 truncate text-xs text-slate-500">{itemContext(item, item.type)}</p>
-    </SmartLink>
-  )
-}
-
-function BoardLane({ laneKey, items }) {
-  const lane = LANE_META[laneKey]
-  const visibleItems = items.slice(0, 4)
-
-  return (
-    <section className={`rounded-xl border p-3 shadow-sm ${lane.panel}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em] ${lane.badge}`}>
-            {lane.title}
-          </span>
-          <p className="mt-2 text-xs text-slate-500">{lane.caption}</p>
-        </div>
-        <span className="rounded-full bg-white px-2 py-0.5 text-xs font-black text-slate-600 ring-1 ring-slate-200">{items.length}</span>
+      <svg viewBox={`0 0 ${width} ${height}`} className="mt-3 h-36 w-full">
+        <polyline fill="none" stroke="#4f7cff" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" points={points(created)} />
+        <polyline fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" points={points(closed)} />
+      </svg>
+      <div className="mt-1 grid grid-cols-7 text-center text-[11px] text-slate-400">
+        {['Lun', 'Mar', 'MiÃ©', 'Jue', 'Vie', 'SÃ¡b', 'Dom'].map(day => <span key={day}>{day}</span>)}
       </div>
-
-      <div className="mt-3 space-y-2">
-        {visibleItems.length ? visibleItems.map(item => <BoardItemCard key={`${laneKey}-${item.type}-${item.id}-${item.scope}`} item={item} />) : (
-          <EmptyState text="Sin elementos." />
-        )}
-      </div>
-    </section>
-  )
-}
-
-function RecentActivity({ items }) {
-  return (
-    <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <header className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3">
-        <div>
-          <h2 className="text-sm font-extrabold text-slate-950">Actividad reciente</h2>
-          <p className="mt-0.5 text-xs text-slate-500">Últimos movimientos de tickets, tareas y proyectos.</p>
-        </div>
-      </header>
-      <div className="divide-y divide-slate-100 p-2">
-        {items.length ? items.map(item => (
-          <SmartLink key={`${item.type}-${item.id}-${item.date}`} to={item.to} className="flex items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-slate-50">
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black ring-1 ${
-              item.type === 'Ticket' ? 'bg-teal-50 text-teal-700 ring-teal-100' : item.type === 'Proyecto' ? 'bg-sky-50 text-sky-700 ring-sky-100' : 'bg-slate-100 text-slate-700 ring-slate-200'
-            }`}>
-              {item.type.charAt(0)}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm text-slate-700"><b>{item.type}</b> · {item.title}</span>
-              <span className="block truncate text-xs text-slate-400">{item.meta || 'Sin contexto'} · {formatRelativeTime(item.date)}</span>
-            </span>
-          </SmartLink>
-        )) : (
-          <div className="p-2"><EmptyState text="Todavía no hay actividad reciente." /></div>
-        )}
-      </div>
-    </section>
-  )
-}
-
-function SortHeaderButton({ column, sort, onSort }) {
-  const isActive = sort.key === column.key
-  const defaultDirection = column.key === 'urgency' ? 'desc' : 'asc'
-  const nextDirection = isActive ? (sort.direction === 'asc' ? 'desc' : 'asc') : defaultDirection
-
-  return (
-    <button
-      type="button"
-      onClick={() => onSort({ key: column.key, direction: nextDirection })}
-      className={`inline-flex items-center gap-1 text-left text-[11px] font-extrabold uppercase tracking-[0.12em] transition ${isActive ? 'text-teal-700' : 'text-slate-400 hover:text-slate-700'}`}
-    >
-      {column.label}
-      <span className="text-[10px]">{isActive ? (sort.direction === 'asc' ? '↑' : '↓') : '↕'}</span>
-    </button>
-  )
-}
-
-function PendingTicketsTable({ tickets, sort, onSort }) {
-  return (
-    <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <header className="flex flex-col gap-2 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h2 className="text-sm font-extrabold text-slate-950">Tickets pendientes de resolver</h2>
-          <p className="mt-0.5 text-xs text-slate-500">
-            Orden inicial por urgencia y después por fecha. Pulsa una cabecera para cambiar el criterio.
-          </p>
-        </div>
-        <Link to="/soporte/tickets" className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 hover:text-teal-900">
-          Ver soporte <ArrowRightIcon className="h-3.5 w-3.5" />
-        </Link>
-      </header>
-
-      {tickets.length ? (
-        <div className="max-h-[460px] overflow-auto">
-          <table className="min-w-[920px] w-full text-left text-sm">
-            <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 backdrop-blur">
-              <tr>
-                <th className="px-4 py-3 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Ticket</th>
-                {TICKET_SORT_COLUMNS.map(column => (
-                  <th key={column.key} className="px-3 py-3">
-                    <SortHeaderButton column={column} sort={sort} onSort={onSort} />
-                  </th>
-                ))}
-                <th className="px-3 py-3 text-right text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Abrir</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {tickets.map(ticket => {
-                const priority = getPriorityMeta(ticket.priority)
-                const status = getStatusMeta(ticket.status)
-                const date = ticketDate(ticket)
-                const priorityClasses = PRIORITY_BADGE_CLASSES[priority.tone] || PRIORITY_BADGE_CLASSES.gray
-
-                return (
-                  <tr key={ticket.id} className="bg-white transition hover:bg-teal-50/30">
-                    <td className="max-w-[280px] px-4 py-3">
-                      <Link to={`/soporte/tickets/${ticket.id}`} className="block truncate font-extrabold text-slate-950 hover:text-teal-700">
-                        {ticket.publicNumber ? `#${ticket.publicNumber} · ` : ''}{ticket.title}
-                      </Link>
-                      <p className="mt-1 truncate text-xs text-slate-400">{ticket.product || ticket.type || 'Sin producto indicado'}</p>
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="flex flex-wrap gap-1.5">
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${priorityClasses}`}>
-                          {priority.label}
-                        </span>
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${statusToneClasses(status.tone)}`}>
-                          {ticket.statusLabel || status.label}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 text-xs font-semibold text-slate-600">
-                      <span className="block">{date ? formatShortDate(date) : 'Sin fecha'}</span>
-                      <span className="mt-0.5 block font-normal text-slate-400">{formatRelativeTime(date)}</span>
-                    </td>
-                    <td className="max-w-[170px] px-3 py-3">
-                      <span className="block truncate font-semibold text-slate-700">{ticket.pharmacyName || 'Sin farmacia'}</span>
-                    </td>
-                    <td className="max-w-[160px] px-3 py-3">
-                      <span className={`block truncate font-semibold ${ticket.assignedTo ? 'text-slate-700' : 'text-rose-600'}`}>
-                        {ticket.assignedTo || 'Sin asignar'}
-                      </span>
-                    </td>
-                    <td className="max-w-[150px] px-3 py-3">
-                      <span className="block truncate text-slate-600">{ticketGroup(ticket)}</span>
-                    </td>
-                    <td className="px-3 py-3 text-right">
-                      <Link to={`/soporte/tickets/${ticket.id}`} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700" aria-label={`Abrir ticket ${ticket.title}`}>
-                        <ArrowRightIcon className="h-4 w-4" />
-                      </Link>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="p-3">
-          <EmptyState text="No hay tickets pendientes de resolver." />
-        </div>
-      )}
     </section>
   )
 }
@@ -697,370 +231,325 @@ function PendingTicketsTable({ tickets, sort, onSort }) {
 export default function DashboardPage() {
   const { profile, session } = useAuth()
   const { data: dashboardData, loading: dashboardLoading, error: dashboardError } = useDashboard(profile?.company_id)
-  const {
-    loading,
-    warning,
-    lastUpdated,
-    taskStatusSummary,
-    supportStatusSummary,
-    myPendingTasks,
-    generalPendingTasks,
-    myPendingSupport,
-    generalPendingSupport,
-    reload,
-  } = useOperationalDashboard()
+  const { pharmacies = [] } = usePharmacies(profile?.company_id)
+  const { loading, warning, lastUpdated, myPendingTasks, generalPendingTasks, myPendingSupport, generalPendingSupport, reload } = useOperationalDashboard()
 
-  const [taskStatusFilter, setTaskStatusFilter] = useState('')
-  const [supportStatusFilter, setSupportStatusFilter] = useState('')
-  const [ticketSort, setTicketSort] = useState({ key: 'urgency', direction: 'desc' })
-  const [taskFocus, setTaskFocus] = useState('all')
-  const dashboardUserName = useMemo(() => profileDisplayName(profile, session), [profile, session])
+  const [selectedPharmacy, setSelectedPharmacy] = useState('all')
+  const [selectedModule, setSelectedModule] = useState('all')
+  const [selectedStatus, setSelectedStatus] = useState('all')
+  const [selectedResponsible, setSelectedResponsible] = useState('all')
+  const [selectedRange, setSelectedRange] = useState('7d')
+
+  const dashboardUserName = useMemo(() => displayName(profile, session), [profile, session])
   const todayLabel = useMemo(() => formatTodayLabel(), [])
 
   const allTasks = useMemo(() => [...myPendingTasks, ...generalPendingTasks], [generalPendingTasks, myPendingTasks])
   const allSupport = useMemo(() => [...myPendingSupport, ...generalPendingSupport], [generalPendingSupport, myPendingSupport])
-  const sortedPendingTickets = useMemo(
-    () => [...allSupport].sort((a, b) => compareTicketSort(a, b, ticketSort)),
-    [allSupport, ticketSort],
-  )
+  const allProjects = useMemo(() => dashboardData?.periodProjects || [], [dashboardData?.periodProjects])
+  const pharmacyNameById = useMemo(() => Object.fromEntries(pharmacies.map(pharmacy => [String(pharmacy.id), pharmacy.pharmacy_name])), [pharmacies])
 
-  const filteredTasks = useMemo(() => ({
-    mine: filterByStatus(myPendingTasks, taskStatusFilter),
-    general: filterByStatus(generalPendingTasks, taskStatusFilter),
-  }), [generalPendingTasks, myPendingTasks, taskStatusFilter])
+  const pharmacyOptions = useMemo(() => [{ value: 'all', label: 'Todas las farmacias' }, ...pharmacies.map(pharmacy => ({ value: String(pharmacy.id), label: pharmacy.pharmacy_name }))], [pharmacies])
+  const responsibleOptions = useMemo(() => {
+    const names = [...new Set([...allTasks.map(item => item.assignedTo).filter(Boolean), ...allSupport.map(item => item.assignedTo).filter(Boolean)])].sort((a, b) => a.localeCompare(b, 'es'))
+    return [{ value: 'all', label: 'Todos' }, ...names.map(name => ({ value: name, label: name }))]
+  }, [allSupport, allTasks])
 
-  const filteredSupport = useMemo(() => ({
-    mine: filterByStatus(myPendingSupport, supportStatusFilter),
-    general: filterByStatus(generalPendingSupport, supportStatusFilter),
-  }), [generalPendingSupport, myPendingSupport, supportStatusFilter])
+  const moduleOptions = [
+    { value: 'all', label: 'Todos los mÃ³dulos' },
+    { value: 'tickets', label: 'Tickets' },
+    { value: 'projects', label: 'Proyectos' },
+    { value: 'tasks', label: 'Tareas' },
+  ]
 
-  const boardItems = useMemo(() => ([
-    ...decorateBoardItems(filteredTasks.mine, 'task', 'mine'),
-    ...decorateBoardItems(filteredTasks.general, 'task', 'team'),
-    ...decorateBoardItems(filteredSupport.mine, 'support', 'mine'),
-    ...decorateBoardItems(filteredSupport.general, 'support', 'team'),
-  ]).sort((a, b) => boardPriority(b) - boardPriority(a)), [filteredSupport.general, filteredSupport.mine, filteredTasks.general, filteredTasks.mine])
+  const statusOptions = [
+    { value: 'all', label: 'Todos los estados' },
+    { value: 'nuevo', label: 'Nuevo' },
+    { value: 'abierto', label: 'Abierto' },
+    { value: 'en_progreso', label: 'En progreso' },
+    { value: 'esperando_cliente', label: 'Esperando cliente' },
+    { value: 'esperando_proveedor', label: 'Esperando proveedor' },
+    { value: 'pending', label: 'Pendiente' },
+    { value: 'in_progress', label: 'En curso' },
+    { value: 'blocked', label: 'Bloqueado' },
+    { value: 'completed', label: 'Finalizado' },
+  ]
 
-  const rawBoardItems = useMemo(() => ([
-    ...decorateBoardItems(myPendingTasks, 'task', 'mine'),
-    ...decorateBoardItems(generalPendingTasks, 'task', 'team'),
-    ...decorateBoardItems(myPendingSupport, 'support', 'mine'),
-    ...decorateBoardItems(generalPendingSupport, 'support', 'team'),
-  ]).sort((a, b) => boardPriority(b) - boardPriority(a)), [generalPendingSupport, generalPendingTasks, myPendingSupport, myPendingTasks])
+  const rangeDays = selectedRange === '30d' ? 30 : selectedRange === '90d' ? 90 : 7
+  const selectedPharmacyName = selectedPharmacy === 'all' ? 'Todas' : (pharmacyNameById[selectedPharmacy] || 'Todas')
 
-  const metrics = useMemo(() => {
-    const supportTotal = allSupport.length
-    const taskTotal = allTasks.length
-    const supportOpen = countStatuses(supportStatusSummary, ['nuevo', 'abierto', 'open', 'pending', 'active', 'en_progreso', 'in_progress'])
-    const supportWaiting = countStatuses(supportStatusSummary, ['esperando_cliente', 'esperando_proveedor'])
-    const supportUnassigned = allSupport.filter(item => !item.assignedTo).length
-    const attentionCount = rawBoardItems.filter(item => item.laneKey === 'attention').length
-    const progressCount = rawBoardItems.filter(item => item.laneKey === 'progress').length
-    const mineTotal = myPendingTasks.length + myPendingSupport.length
+  const filteredTasks = useMemo(() => allTasks.filter(item => {
+    const pharmacyOk = selectedPharmacy === 'all' || String(item.raw?.pharmacy_id || '') === selectedPharmacy || item.pharmacyName === selectedPharmacyName
+    const responsibleOk = selectedResponsible === 'all' || item.assignedTo === selectedResponsible
+    const statusOk = selectedStatus === 'all' || normalizeKey(item.status) === normalizeKey(selectedStatus)
+    const moduleOk = selectedModule === 'all' || selectedModule === 'tasks'
+    return pharmacyOk && responsibleOk && statusOk && moduleOk
+  }), [allTasks, selectedModule, selectedPharmacy, selectedPharmacyName, selectedResponsible, selectedStatus])
 
-    return {
-      supportTotal,
-      taskTotal,
-      supportOpen: supportOpen || supportTotal,
-      supportWaiting,
-      supportUnassigned,
-      attentionCount,
-      progressCount,
-      mineTotal,
-    }
-  }, [allSupport, allTasks, rawBoardItems, supportStatusSummary, myPendingSupport.length, myPendingTasks.length])
+  const filteredSupport = useMemo(() => allSupport.filter(item => {
+    const pharmacyOk = selectedPharmacy === 'all' || String(item.raw?.pharmacy_id || '') === selectedPharmacy || item.pharmacyName === selectedPharmacyName
+    const responsibleOk = selectedResponsible === 'all' || item.assignedTo === selectedResponsible
+    const statusOk = selectedStatus === 'all' || normalizeKey(item.status) === normalizeKey(selectedStatus)
+    const moduleOk = selectedModule === 'all' || selectedModule === 'tickets'
+    return pharmacyOk && responsibleOk && statusOk && moduleOk
+  }), [allSupport, selectedModule, selectedPharmacy, selectedPharmacyName, selectedResponsible, selectedStatus])
 
-  const boardLanes = useMemo(() => ({
-    queue: boardItems.filter(item => item.laneKey === 'queue'),
-    progress: boardItems.filter(item => item.laneKey === 'progress'),
-    attention: boardItems.filter(item => item.laneKey === 'attention'),
-  }), [boardItems])
+  const filteredProjects = useMemo(() => allProjects.filter(project => {
+    const projectPharmacyId = String(project.pharmacy_id || project.pharmacyId || project.pharmacy?.id || '')
+    const projectPharmacyName = project.pharmacy_name || project.pharmacy?.pharmacy_name || ''
+    const pharmacyOk = selectedPharmacy === 'all' || projectPharmacyId === selectedPharmacy || projectPharmacyName === selectedPharmacyName
+    const moduleOk = selectedModule === 'all' || selectedModule === 'projects'
+    const statusOk = selectedStatus === 'all' || normalizeKey(project.status) === normalizeKey(selectedStatus)
+    return pharmacyOk && moduleOk && statusOk
+  }), [allProjects, selectedModule, selectedPharmacy, selectedPharmacyName, selectedStatus])
 
-  const urgentTasks = useMemo(() => {
-    const dashboardUrgent = [
-      ...(dashboardData?.overdueTasks || []),
-      ...(dashboardData?.todayTasks || []),
-    ].map(task => ({
-      ...task,
-      title: task.title,
-      dueDate: task.due_date,
-      projectId: task.project_id,
-      pharmacyName: task.pharmacy_name,
-    }))
-
-    return dashboardUrgent.length ? dashboardUrgent : allTasks.slice(0, 8)
-  }, [allTasks, dashboardData])
-
-  const recentActivity = useMemo(() => {
-    const supportItems = allSupport.map(item => ({
-      id: item.id,
-      type: 'Ticket',
-      title: item.title,
-      meta: item.pharmacyName || item.product,
-      date: item.updatedAt || item.createdAt,
-      to: `/soporte/tickets/${item.id}`,
-    }))
-    const taskItems = allTasks.map(item => ({
-      id: item.id,
-      type: 'Tarea',
-      title: item.title,
-      meta: item.pharmacyName || item.assignedTo,
-      date: item.updatedAt || item.createdAt || item.dueDate,
-      to: item.projectId ? `/proyectos/${item.projectId}` : '/proyectos',
-    }))
-    const projectItems = (dashboardData?.periodProjects || []).map(project => ({
-      id: project.id,
-      type: 'Proyecto',
-      title: project.name,
-      meta: project.pharmacy_name,
-      date: project.created_at,
-      to: `/proyectos/${project.id}`,
-    }))
-
-    return [...supportItems, ...taskItems, ...projectItems]
-      .filter(item => item.date)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 8)
-  }, [allSupport, allTasks, dashboardData])
-
-  const activeProjects = dashboardLoading ? '—' : (dashboardData?.projectsActive ?? 0)
-  const pendingTasks = dashboardLoading ? (metrics.taskTotal || '—') : (dashboardData?.tasksPending ?? metrics.taskTotal)
-  const todayTaskCount = dashboardData?.todayTasks?.length || 0
-  const overdueTaskCount = dashboardData?.overdueTasks?.length || 0
-  const unassignedTaskCount = [...allTasks].filter(item => !item.assignedTo).length
-  const dashboardWarnings = [
-    warning ? 'Algunos datos operativos no se pudieron cargar del todo. Se muestra la mejor información disponible.' : '',
-    dashboardError ? `Proyectos: ${dashboardError}` : '',
-  ].filter(Boolean)
-
-  const ticketSummaryCards = useMemo(() => {
-    const order = [
-      'nuevo',
-      'abierto',
-      'en_progreso',
-      'esperando_cliente',
-      'esperando_proveedor',
+  const activityRows = useMemo(() => {
+    const rows = [
+      ...filteredSupport.map(item => ({ id: item.id, type: 'Ticket', title: item.title, meta: item.pharmacyName || item.product, date: item.updatedAt || item.createdAt, to: `/soporte/tickets/${item.id}` })),
+      ...filteredTasks.map(item => ({ id: item.id, type: 'Tarea', title: item.title, meta: item.pharmacyName || item.assignedTo, date: item.updatedAt || item.createdAt || item.dueDate, to: item.projectId ? `/proyectos/${item.projectId}` : '/proyectos' })),
+      ...filteredProjects.map(project => ({ id: project.id, type: 'Proyecto', title: project.name, meta: project.pharmacy_name, date: project.created_at, to: `/proyectos/${project.id}` })),
     ]
-    const summaryByKey = new Map((supportStatusSummary || []).map(item => [normalizeKey(item.key), item]))
-    return order
-      .map(key => summaryByKey.get(key))
-      .filter(Boolean)
-      .slice(0, 5)
-  }, [supportStatusSummary])
+    return rows.filter(row => row.date).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5)
+  }, [filteredProjects, filteredSupport, filteredTasks])
 
-  const projectSummaryCards = useMemo(() => {
-    const summaryByLabel = new Map((dashboardData?.projectsByStatus || []).map(item => [normalizeKey(item.label), item]))
+  const priorityRows = useMemo(() => [...filteredSupport, ...filteredTasks].sort((a, b) => {
+    const score = value => ({ urgent: 4, urgente: 4, critical: 4, alta: 3, high: 3, medium: 2, medio: 2, media: 2, low: 1, baja: 1, bajo: 1 }[normalizeKey(value)] || 2)
+    const diff = score(b.priority) - score(a.priority)
+    if (diff) return diff
+    return new Date(b.updatedAt || b.createdAt || b.dueDate || 0).getTime() - new Date(a.updatedAt || a.createdAt || a.dueDate || 0).getTime()
+  }).slice(0, 5), [filteredSupport, filteredTasks])
+
+  const unassignedRows = useMemo(() => [...filteredSupport, ...filteredTasks].filter(item => !item.assignedTo).slice(0, 5), [filteredSupport, filteredTasks])
+
+  const teamRows = useMemo(() => {
+    const map = new Map()
+    const touch = (name, item) => {
+      if (!name) return
+      const current = map.get(name) || { name, assigned: 0, progress: 0, overdue: 0, fresh: 0 }
+      current.assigned += 1
+      if (['in_progress', 'en_progreso'].includes(normalizeKey(item.status))) current.progress += 1
+      const due = item.dueDate || item.raw?.due_date
+      if (due && new Date(due).getTime() < Date.now()) current.overdue += 1
+      const stamp = item.updatedAt || item.createdAt || item.raw?.updated_at || item.raw?.created_at
+      if (stamp && Date.now() - new Date(stamp).getTime() < 1000 * 60 * 60 * 24 * 3) current.fresh += 1
+      map.set(name, current)
+    }
+    filteredTasks.forEach(item => touch(item.assignedTo, item))
+    filteredSupport.forEach(item => touch(item.assignedTo, item))
+    return [...map.values()].sort((a, b) => b.assigned - a.assigned).slice(0, 5)
+  }, [filteredSupport, filteredTasks])
+
+  const riskyProjects = useMemo(() => filteredProjects.filter(project => ['blocked', 'pending', 'in_progress'].includes(normalizeKey(project.status))).slice(0, 5), [filteredProjects])
+
+  const pharmacyActivity = useMemo(() => {
+    const counts = new Map()
+    const add = name => { if (name) counts.set(name, (counts.get(name) || 0) + 1) }
+    filteredTasks.forEach(item => add(item.pharmacyName || pharmacyNameById[String(item.raw?.pharmacy_id || '')] || 'Sin farmacia'))
+    filteredSupport.forEach(item => add(item.pharmacyName || pharmacyNameById[String(item.raw?.pharmacy_id || '')] || 'Sin farmacia'))
+    filteredProjects.forEach(project => add(project.pharmacy_name || pharmacyNameById[String(project.pharmacy_id || project.pharmacyId || '')] || 'Sin farmacia'))
+    return [...counts.entries()].map(([pharmacy, count]) => ({ pharmacy, count })).sort((a, b) => b.count - a.count).slice(0, 5)
+  }, [filteredProjects, filteredSupport, filteredTasks, pharmacyNameById])
+
+  const ticketStatusItems = useMemo(() => {
+    const rows = [...filteredSupport, ...filteredTasks]
+    return ['En curso', 'Pendiente', 'En espera', 'Bloqueado', 'Cerrado'].map(label => ({ label, count: rows.filter(item => statusLabel(item.status) === label).length })).filter(item => item.count > 0)
+  }, [filteredSupport, filteredTasks])
+
+  const ticketPriorityItems = useMemo(() => {
+    const rows = [...filteredSupport, ...filteredTasks]
     return [
-      { key: 'active', label: 'Activos', hint: 'En marcha o en progreso', tone: 'teal', icon: Squares2X2Icon },
-      { key: 'pending', label: 'Pendientes', hint: 'Aún no arrancados', tone: 'amber', icon: ClockIcon },
-      { key: 'blocked', label: 'Bloqueados', hint: 'Necesitan desbloqueo', tone: 'rose', icon: ExclamationTriangleIcon },
-      { key: 'completed', label: 'Finalizados', hint: 'Cerrados y entregados', tone: 'slate', icon: ClipboardDocumentListIcon },
-    ].map(item => ({
-      ...item,
-      count: summaryByLabel.get(normalizeKey(item.label))?.count || 0,
-    }))
-  }, [dashboardData?.projectsByStatus])
+      { label: 'Alta', count: rows.filter(item => ['urgent', 'urgente', 'critical', 'alta', 'high'].includes(normalizeKey(item.priority))).length },
+      { label: 'Media', count: rows.filter(item => ['medium', 'medio', 'media'].includes(normalizeKey(item.priority))).length },
+      { label: 'Baja', count: rows.filter(item => ['low', 'baja', 'bajo'].includes(normalizeKey(item.priority))).length },
+    ]
+  }, [filteredSupport, filteredTasks])
 
-  const taskCards = useMemo(() => ([
-    { key: 'all', label: 'Pendientes', hint: 'Todo el trabajo abierto', value: metrics.taskTotal, tone: 'slate', icon: ClipboardDocumentListIcon },
-    { key: 'today', label: 'Hoy', hint: 'Vencen o entran hoy', value: todayTaskCount, tone: 'teal', icon: CalendarDaysIcon },
-    { key: 'overdue', label: 'Vencidas', hint: 'Piden prioridad', value: overdueTaskCount, tone: 'rose', icon: ExclamationTriangleIcon },
-    { key: 'mine', label: 'Mías', hint: 'Asignadas a ti', value: myPendingTasks.length, tone: 'blue', icon: UserGroupIcon },
-    { key: 'team', label: 'Equipo', hint: 'Pendientes del grupo', value: generalPendingTasks.length, tone: 'amber', icon: LifebuoyIcon },
-    { key: 'unassigned', label: 'Sin asignar', hint: 'Aún no tienen responsable', value: unassignedTaskCount, tone: 'violet', icon: TicketIcon },
-  ]), [generalPendingTasks.length, metrics.taskTotal, myPendingTasks.length, overdueTaskCount, todayTaskCount, unassignedTaskCount])
+  const ticketServiceItems = useMemo(() => {
+    const counts = new Map()
+    filteredSupport.forEach(item => counts.set(item.product || 'Otros', (counts.get(item.product || 'Otros') || 0) + 1))
+    return [...counts.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value).slice(0, 6)
+  }, [filteredSupport])
 
-  const visibleTaskItems = useMemo(() => {
-    const source = taskFocus === 'today'
-      ? (dashboardData?.todayTasks || [])
-      : taskFocus === 'overdue'
-        ? (dashboardData?.overdueTasks || [])
-        : taskFocus === 'mine'
-          ? myPendingTasks
-          : taskFocus === 'team'
-            ? generalPendingTasks
-            : taskFocus === 'unassigned'
-              ? allTasks.filter(item => !item.assignedTo)
-              : allTasks
+  const weeklyCreated = useMemo(() => {
+    const series = Array.from({ length: rangeDays }, () => 0)
+    const items = [...filteredSupport, ...filteredTasks, ...filteredProjects]
+    items.forEach(item => {
+      const stamp = item.createdAt || item.created_at || item.updatedAt || item.updated_at
+      if (!stamp) return
+      const diffDays = Math.floor((Date.now() - new Date(stamp).getTime()) / 86400000)
+      const index = rangeDays - 1 - diffDays
+      if (index >= 0 && index < series.length) series[index] += 1
+    })
+    return series
+  }, [filteredProjects, filteredSupport, filteredTasks, rangeDays])
 
-    return source.slice(0, 8)
-  }, [allTasks, dashboardData?.overdueTasks, dashboardData?.todayTasks, generalPendingTasks, myPendingTasks, taskFocus])
+  const weeklyClosed = useMemo(() => {
+    const series = Array.from({ length: rangeDays }, () => 0)
+    filteredProjects.forEach(project => {
+      if (!['completed', 'closed', 'cerrado'].includes(normalizeKey(project.status))) return
+      const stamp = project.updated_at || project.created_at || project.createdAt
+      if (!stamp) return
+      const diffDays = Math.floor((Date.now() - new Date(stamp).getTime()) / 86400000)
+      const index = rangeDays - 1 - diffDays
+      if (index >= 0 && index < series.length) series[index] += 1
+    })
+    return series
+  }, [filteredProjects, rangeDays])
+
+  const metrics = {
+    assignedMine: myPendingTasks.length + myPendingSupport.length,
+    unassigned: [...filteredSupport, ...filteredTasks].filter(item => !item.assignedTo).length,
+    inProgress: [...filteredSupport, ...filteredTasks].filter(item => ['in_progress', 'en_progreso'].includes(normalizeKey(item.status))).length,
+    waiting: [...filteredSupport, ...filteredTasks].filter(item => ['esperando_cliente', 'esperando_proveedor'].includes(normalizeKey(item.status))).length,
+    pending: filteredTasks.length + filteredSupport.length,
+    overdue: filteredTasks.filter(item => item.dueDate && new Date(item.dueDate).getTime() < Date.now()).length,
+    highPriority: [...filteredSupport, ...filteredTasks].filter(item => ['urgent', 'urgente', 'critical', 'alta', 'high'].includes(normalizeKey(item.priority))).length,
+    closedWeek: filteredProjects.filter(project => ['completed', 'closed', 'cerrado'].includes(normalizeKey(project.status))).length,
+  }
 
   if (loading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-7 w-7 animate-spin rounded-full border-4 border-teal-600 border-t-transparent" />
-      </div>
-    )
+    return <div className="flex h-64 items-center justify-center"><div className="h-7 w-7 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" /></div>
   }
 
   return (
-    <div className="page-wrapper space-y-3 pb-8">
-      <section className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <div className="page-wrapper space-y-4 px-3 py-4 sm:px-5 lg:px-6">
+      <section className="rounded-[20px] border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <p className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.16em] text-teal-700">
-              <Squares2X2Icon className="h-4 w-4" /> Panel de información
-            </p>
-            <h1 className="mt-1 flex flex-wrap items-baseline gap-x-2 font-display text-2xl tracking-tight text-slate-950">
-              <span className="font-black">Hola {dashboardUserName}</span>
-              <span className="text-[1.25em] font-black leading-none text-slate-900">|</span>
-              <span className="font-light text-slate-600">{todayLabel}</span>
-            </h1>
-            <p className="mt-1 max-w-3xl text-sm text-slate-500">
-              Tickets, proyectos y tareas en una sola pantalla para decidir qué atender primero.
-            </p>
+            <p className="inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400"><Squares2X2Icon className="h-4 w-4" /> Panel de informaciÃ³n</p>
+            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">Dashboard</h1>
+            <p className="mt-1 text-sm text-slate-500">Bienvenido, {dashboardUserName}</p>
           </div>
+          <div className="flex items-center gap-3">
+            <button type="button" className="rounded-full border border-slate-200 p-2.5 text-slate-500 transition hover:bg-slate-50"><MagnifyingGlassIcon className="h-5 w-5" /></button>
+            <button type="button" className="relative rounded-full border border-slate-200 p-2.5 text-slate-500 transition hover:bg-slate-50"><BellIcon className="h-5 w-5" /><span className="absolute right-1 top-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">3</span></button>
+            <div className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-600"><UserCircleIcon className="h-7 w-7" /></div>
+              <div className="text-left"><p className="text-sm font-semibold text-slate-800">{dashboardUserName}</p><p className="text-xs text-slate-500">{profile?.role || 'TÃ©cnico'}</p></div>
+              <ChevronDownIcon className="h-4 w-4 text-slate-400" />
+            </div>
+          </div>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600">
-              Actualizado: {formatUpdateTime(lastUpdated)}
-            </span>
-            <button type="button" onClick={reload} className="btn-primary !px-3 !py-2 !text-xs">
-              <ArrowPathIcon className="h-3.5 w-3.5" /> Actualizar
-            </button>
-          </div>
+        <div className="mt-5 grid gap-3 xl:grid-cols-[1.1fr_0.85fr_0.85fr_0.85fr_0.85fr_auto]">
+          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">Farmacia</span><select value={selectedPharmacy} onChange={event => setSelectedPharmacy(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100">{pharmacyOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">MÃ³dulo</span><select value={selectedModule} onChange={event => setSelectedModule(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"><option value="all">Todos los mÃ³dulos</option><option value="tickets">Tickets</option><option value="projects">Proyectos</option><option value="tasks">Tareas</option></select></label>
+          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">Estado</span><select value={selectedStatus} onChange={event => setSelectedStatus(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100">{statusOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">Responsable</span><select value={selectedResponsible} onChange={event => setSelectedResponsible(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100">{responsibleOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">Periodo</span><select value={selectedRange} onChange={event => setSelectedRange(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"><option value="7d">Ãšltimos 7 dÃ­as</option><option value="30d">Ãšltimos 30 dÃ­as</option><option value="90d">Ãšltimos 90 dÃ­as</option></select></label>
+          <div className="flex items-end"><button type="button" onClick={reload} className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50"><AdjustmentsHorizontalIcon className="h-4 w-4" /> Personalizar</button></div>
         </div>
       </section>
 
-      {dashboardWarnings.length ? (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm">
-          <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0" />
-          <div className="space-y-1">
-            {dashboardWarnings.map(message => <p key={message}>{message}</p>)}
-          </div>
-        </div>
-      ) : null}
+      {warning || dashboardError ? <div className="flex items-start gap-3 rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm"><ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0" /><div className="space-y-1">{warning ? <p>Algunos datos operativos no se pudieron cargar del todo. Se muestra la mejor informaciÃ³n disponible.</p> : null}{dashboardError ? <p>Proyectos: {dashboardError}</p> : null}</div></div> : null}
 
-      <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400">Tickets</p>
-            <h2 className="mt-1 text-base font-black text-slate-950">Estado de tickets</h2>
-          </div>
-          <Link to="/soporte/tickets" className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 hover:text-teal-900">
-            Abrir tickets <ArrowRightIcon className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          {ticketSummaryCards.map(item => (
-            <DashboardStatCard
-              key={item.key}
-              label={item.label}
-              value={item.count}
-              hint="Acceso directo a este estado"
-              to={`/soporte/tickets?status=${item.key}`}
-              Icon={TicketIcon}
-              tone={item.tone}
-            />
-          ))}
-        </div>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
+        <Kpi label="Asignados a mÃ­" value={metrics.assignedMine} hint="Activos" Icon={UserGroupIcon} tone="indigo" to="/soporte/tickets" />
+        <Kpi label="Sin asignar" value={metrics.unassigned} hint="Tickets" Icon={ClipboardDocumentListIcon} tone="amber" to="/soporte/tickets?status=nuevo" />
+        <Kpi label="En curso" value={metrics.inProgress} hint="Trabajo activo" Icon={ClockIcon} tone="sky" to="/soporte/tickets?status=en_progreso" />
+        <Kpi label="En espera" value={metrics.waiting} hint="Bloqueados" Icon={ExclamationTriangleIcon} tone="rose" to="/soporte/tickets?status=esperando_cliente" />
+        <Kpi label="Pendientes" value={metrics.pending} hint="Tickets" Icon={TicketIcon} tone="slate" to="/soporte/tickets" />
+        <Kpi label="Vencidos" value={metrics.overdue} hint="Tareas" Icon={CalendarDaysIcon} tone="rose" to="/proyectos" />
+        <Kpi label="Alta prioridad" value={metrics.highPriority} hint="Urgentes" Icon={ExclamationTriangleIcon} tone="amber" to="/soporte/tickets" />
+        <Kpi label="Cerrados esta semana" value={metrics.closedWeek} hint="Proyectos" Icon={ChartBarIcon} tone="emerald" to="/proyectos" />
       </section>
 
-      <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400">Proyectos</p>
-            <h2 className="mt-1 text-base font-black text-slate-950">Estado de cartera</h2>
-          </div>
-          <Link to="/proyectos" className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 hover:text-teal-900">
-            Abrir proyectos <ArrowRightIcon className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {projectSummaryCards.map(item => (
-            <DashboardStatCard
-              key={item.key}
-              label={item.label}
-              value={item.count}
-              hint="Acceso directo a esta cartera"
-              to={`/proyectos?status=${item.key}`}
-              Icon={item.icon}
-              tone={item.tone}
-            />
-          ))}
-        </div>
+      <section className="grid gap-3 xl:grid-cols-3">
+        <Card title="Mis prioridades" subtitle="Lo que deberÃ­amos atacar primero" action={<Link to="/soporte/tickets" className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-900">Ver todas <ArrowRightIcon className="h-3.5 w-3.5" /></Link>}>
+          <DataTable
+            emptyText="No hay elementos prioritarios con estos filtros."
+            columns={[
+              { key: 'title', label: 'TÃ­tulo', render: row => (<div><p className="font-semibold text-slate-900">{row.title}</p><p className="mt-1 text-[11px] text-slate-500">{row.product || row.type || 'Sin tipo'}</p></div>) },
+              { key: 'pharmacy', label: 'Farmacia', render: row => <span className="text-slate-600">{row.pharmacyName || pharmacyNameById[String(row.raw?.pharmacy_id || '')] || 'Sin farmacia'}</span> },
+              { key: 'type', label: 'Tipo', render: row => <span className="text-slate-600">{row.product || row.type || 'Tarea'}</span> },
+              { key: 'status', label: 'Estado', render: row => <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">{statusLabel(row.status)}</span> },
+              { key: 'priority', label: 'Prioridad', render: row => <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">{row.priority || 'Media'}</span> },
+              { key: 'due', label: 'Vence', render: row => <span className="text-slate-600">{formatShortDate(row.dueDate || row.raw?.due_date || row.updatedAt || row.createdAt)}</span> },
+            ]}
+            rows={priorityRows}
+          />
+        </Card>
+
+        <Card title="Sin asignar" subtitle="Pendientes que todavÃ­a no tienen responsable" action={<Link to="/soporte/tickets" className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-900">Ver todas <ArrowRightIcon className="h-3.5 w-3.5" /></Link>}>
+          <DataTable
+            emptyText="No hay elementos sin asignar."
+            columns={[
+              { key: 'title', label: 'TÃ­tulo', render: row => (<div><p className="font-semibold text-slate-900">{row.title}</p><p className="mt-1 text-[11px] text-slate-500">{row.product || row.type || 'Sin tipo'}</p></div>) },
+              { key: 'pharmacy', label: 'Farmacia', render: row => <span className="text-slate-600">{row.pharmacyName || pharmacyNameById[String(row.raw?.pharmacy_id || '')] || 'Sin farmacia'}</span> },
+              { key: 'module', label: 'MÃ³dulo', render: row => <span className="text-slate-600">{row.product || row.type || 'Tarea'}</span> },
+              { key: 'date', label: 'Creado hace', render: row => <span className="text-slate-600">{relativeTime(row.createdAt || row.raw?.created_at || row.updatedAt || row.raw?.updated_at)}</span> },
+              { key: 'action', label: 'AcciÃ³n', render: row => <span className="rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600">Asignar</span> },
+            ]}
+            rows={unassignedRows}
+          />
+        </Card>
+
+        <Card title="Carga del equipo" subtitle="Resumen de los responsables mÃ¡s activos" action={<Link to="/personas" className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-900">Ver recursos <ArrowRightIcon className="h-3.5 w-3.5" /></Link>}>
+          <DataTable
+            emptyText="TodavÃ­a no hay datos suficientes para la carga del equipo."
+            columns={[
+              { key: 'name', label: 'TÃ©cnico', render: row => <div className="flex items-center gap-2"><div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-600">{row.name.charAt(0)}</div><span className="font-semibold text-slate-900">{row.name}</span></div> },
+              { key: 'assigned', label: 'Asignados', render: row => <span className="font-semibold text-slate-900">{row.assigned}</span> },
+              { key: 'progress', label: 'En curso', render: row => <span className="font-semibold text-slate-900">{row.progress}</span> },
+              { key: 'overdue', label: 'Vencidos', render: row => <span className="font-semibold text-rose-600">{row.overdue}</span> },
+              { key: 'fresh', label: 'Sin actualizar', render: row => <span className="font-semibold text-slate-900">{row.fresh}</span> },
+            ]}
+            rows={teamRows}
+          />
+        </Card>
       </section>
 
-      <section className="grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-        <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400">Tareas</p>
-              <h2 className="mt-1 text-base font-black text-slate-950">Resumen operativo</h2>
-            </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">{pendingTasks} pendientes</span>
-          </div>
+      <section className="grid gap-3 xl:grid-cols-3">
+        <Card title="Proyectos en riesgo" subtitle="Cartera con mÃ¡s atenciÃ³n" action={<Link to="/proyectos" className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-900">Ver todas <ArrowRightIcon className="h-3.5 w-3.5" /></Link>}>
+          <DataTable
+            emptyText="No hay proyectos en riesgo con el filtro actual."
+            columns={[
+              { key: 'name', label: 'Proyecto', render: row => <span className="font-semibold text-slate-900">{row.name}</span> },
+              { key: 'pharmacy', label: 'Farmacia', render: row => <span className="text-slate-600">{row.pharmacy_name || 'Sin farmacia'}</span> },
+              { key: 'status', label: 'Progreso', render: row => <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">{statusLabel(row.status)}</span> },
+              { key: 'risk', label: 'Riesgo', render: row => <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">Alto</span> },
+              { key: 'due', label: 'Fin previsto', render: row => <span className="text-slate-600">{formatShortDate(row.expected_close_date || row.created_at)}</span> },
+            ]}
+            rows={riskyProjects}
+          />
+        </Card>
 
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {taskCards.map(card => (
-              <DashboardStatCard
-                key={card.key}
-                label={card.label}
-                value={card.value}
-                hint={card.hint}
-                onClick={() => setTaskFocus(card.key)}
-                Icon={card.icon}
-                tone={card.tone}
-                selected={taskFocus === card.key}
-              />
-            ))}
-          </div>
+        <Card title="Farmacias con mÃ¡s actividad" subtitle="DÃ³nde estamos moviendo mÃ¡s trabajo" action={<Link to="/farmacias" className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-900">Ver todas <ArrowRightIcon className="h-3.5 w-3.5" /></Link>}>
+          <DataTable
+            emptyText="No hay actividad suficiente para ordenar farmacias."
+            columns={[
+              { key: 'pharmacy', label: 'Farmacia', render: row => <div className="flex items-center gap-2"><div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-[11px] font-bold text-emerald-700"><BuildingOffice2Icon className="h-4 w-4" /></div><span className="font-semibold text-slate-900">{row.pharmacy}</span></div> },
+              { key: 'count', label: 'Actividad', render: row => <span className="font-semibold text-slate-900">{row.count}</span> },
+            ]}
+            rows={pharmacyActivity}
+          />
+        </Card>
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-sm font-black text-slate-950">
-                  {taskFocus === 'today' ? 'Tareas de hoy'
-                    : taskFocus === 'overdue' ? 'Tareas vencidas'
-                      : taskFocus === 'mine' ? 'Mis tareas'
-                        : taskFocus === 'team' ? 'Tareas del equipo'
-                          : taskFocus === 'unassigned' ? 'Tareas sin asignar'
-                            : 'Todas las tareas pendientes'}
-                </p>
-                <p className="text-xs text-slate-500">Toca una caja para cambiar el foco y ver el detalle relevante.</p>
-              </div>
-              <button type="button" onClick={() => setTaskFocus('all')} className="text-xs font-bold text-teal-700 hover:underline">
-                Ver todas
-              </button>
-            </div>
+        <Card title="Ãšltimas actualizaciones" subtitle="Lo mÃ¡s reciente del panel" action={<Link to="/proyectos" className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-900">Ver todas <ArrowRightIcon className="h-3.5 w-3.5" /></Link>}>
+          <div className="space-y-3">
+            {activityRows.length ? activityRows.map(item => (
+              <Link key={`${item.type}-${item.id}`} to={item.to} className="flex items-start gap-3 rounded-xl border border-slate-200 px-3 py-3 transition hover:bg-slate-50">
+                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ring-1 ${item.type === 'Ticket' ? 'bg-indigo-50 text-indigo-700 ring-indigo-100' : item.type === 'Proyecto' ? 'bg-sky-50 text-sky-700 ring-sky-100' : 'bg-slate-100 text-slate-700 ring-slate-200'}`}>{item.type.charAt(0)}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-slate-700"><b>{item.type}</b> Â· {item.title}</span>
+                  <span className="block truncate text-xs text-slate-400">{item.meta || 'Sin contexto'} Â· {relativeTime(item.date)}</span>
+                </span>
+              </Link>
+            )) : <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">Sin actividad reciente.</div>}
+          </div>
+        </Card>
+      </section>
 
-            <div className="mt-3 divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white">
-              {visibleTaskItems.length ? visibleTaskItems.map(item => (
-                <WorkItemRow key={`task-${item.id}-${item.projectId || 'x'}`} item={item} type="task" />
-              )) : (
-                <div className="p-3"><EmptyState text="No hay tareas para este foco." /></div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400">Accesos rápidos</p>
-              <h2 className="mt-1 text-base font-black text-slate-950">Crear o ir directo</h2>
-            </div>
-          </div>
-          <div className="mt-3 grid gap-3">
-            <Link to="/soporte/tickets?create=1" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-teal-200 hover:bg-teal-50/40">
-              <LifebuoyIcon className="h-5 w-5 text-teal-700" />
-              <p className="mt-2 text-sm font-black text-slate-950">Crear ticket</p>
-              <p className="mt-1 text-xs leading-5 text-slate-500">Registrar una incidencia o solicitud de soporte.</p>
-            </Link>
-            <Link to="/proyectos?create=1" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-teal-200 hover:bg-teal-50/40">
-              <CalendarDaysIcon className="h-5 w-5 text-teal-700" />
-              <p className="mt-2 text-sm font-black text-slate-950">Crear proyecto</p>
-              <p className="mt-1 text-xs leading-5 text-slate-500">Abrir un nuevo trabajo de comercial, soporte, formación o instalaciones.</p>
-            </Link>
-            <Link to="/farmacias" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-teal-200 hover:bg-teal-50/40">
-              <Squares2X2Icon className="h-5 w-5 text-teal-700" />
-              <p className="mt-2 text-sm font-black text-slate-950">Ir a farmacias</p>
-              <p className="mt-1 text-xs leading-5 text-slate-500">Consultar fichas, personas, equipamiento y documentos.</p>
-            </Link>
-          </div>
-        </section>
+      <section className="grid gap-3 xl:grid-cols-4">
+        <Donut title="Tickets por estado" items={ticketStatusItems} />
+        <Donut title="Tickets por prioridad" items={ticketPriorityItems} />
+        <Bars title="Tickets por servicio" items={ticketServiceItems} />
+        <Line title="EvoluciÃ³n semanal" created={weeklyCreated} closed={weeklyClosed} />
       </section>
     </div>
   )
 }
+
+
+
+
+
