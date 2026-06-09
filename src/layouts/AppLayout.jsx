@@ -34,9 +34,12 @@ const BASE_NAV = [
 
 export default function AppLayout({ session, profile }) {
   const navigate = useNavigate()
+  const [pinned, setPinned] = useState(false)
+  const [hovered, setHovered] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [launcherOpen, setLauncherOpen] = useState(false)
 
+  const isOpen = pinned || hovered
   const navItems = canAccessConfig(profile)
     ? [...BASE_NAV, { to: '/configuracion/general', label: 'Configuracion', Icon: Cog6ToothIcon }]
     : BASE_NAV
@@ -49,10 +52,10 @@ export default function AppLayout({ session, profile }) {
   const closeLauncher = useCallback(() => setLauncherOpen(false), [])
 
   const navLinkClass = ({ isActive }) =>
-    `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
       isActive
-        ? 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-sm'
-        : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+        ? 'bg-teal-50 text-teal-800 ring-1 ring-teal-200'
+        : 'text-gray-600 hover:bg-teal-50 hover:text-teal-800'
     }`
 
   return (
@@ -115,47 +118,91 @@ export default function AppLayout({ session, profile }) {
       )}
 
       <aside
-        className="hidden md:flex w-[250px] shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white/95 shadow-[8px_0_26px_rgba(15,23,42,0.04)]"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        className={`hidden md:flex flex-col bg-white/95 border-r border-teal-900/10 shadow-[8px_0_26px_rgba(7,26,29,0.04)] shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${
+          isOpen ? 'w-56' : 'w-14'
+        }`}
       >
-        <div className="relative flex items-center gap-3 border-b border-slate-100 px-4 py-4">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500" />
-          <img
-            src="/brand/logo-full-color.svg"
-            alt="Viteka"
-            className="h-11 w-auto max-w-[150px] object-contain"
-          />
+        <div className="relative flex items-center px-3 py-3 border-b border-teal-900/10 min-h-[4rem]">
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal-700 via-green-400 to-cyan-400" />
+          <div className={`flex items-center ${isOpen ? 'flex-1' : 'w-full justify-center'}`}>
+            {isOpen ? (
+              <img
+                src="/brand/logo-full-color.svg"
+                alt="Viteka"
+                className="h-12 w-auto max-w-[148px] object-contain transition-opacity duration-200 opacity-100"
+              />
+            ) : (
+              <img
+                src="/brand/logo-icon-colr.svg"
+                alt="Viteka"
+                className="h-8 w-8 object-contain"
+              />
+            )}
+          </div>
+
+          {isOpen && (
+            <button
+              onClick={() => setPinned(p => !p)}
+              title={pinned ? 'Desanclar menú' : 'Anclar menú abierto'}
+              className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-teal-700 hover:bg-teal-50 transition-colors"
+            >
+              {pinned
+                ? <ChevronLeftIcon className="w-4 h-4" />
+                : <ChevronRightIcon className="w-4 h-4 text-teal-500" />
+              }
+            </button>
+          )}
         </div>
 
         <nav className="flex-1 px-2 py-3 space-y-1">
           <button
             type="button"
             onClick={() => setLauncherOpen(true)}
-            className="mb-3 flex w-full items-center gap-3 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:opacity-95"
+            title={!isOpen ? 'Acceso rápido' : undefined}
+            className="mb-3 flex w-full items-center gap-3 rounded-lg bg-teal-700 px-2 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-teal-800"
           >
             <SquaresPlusIcon className="w-5 h-5 shrink-0" />
-            Acceso rápido
+            <span className={`truncate transition-all duration-200 ${isOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'}`}>
+              Acceso rápido
+            </span>
           </button>
           {navItems.map(({ to, label, Icon }) => (
             <NavLink
               key={to}
               to={to}
               end={to === '/'}
+              title={!isOpen ? label : undefined}
               className={navLinkClass}
             >
               <Icon className="w-5 h-5 shrink-0" />
-              <span className="truncate">{label}</span>
+              <span className={`truncate transition-all duration-200 ${
+                isOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'
+              }`}>
+                {label}
+              </span>
             </NavLink>
           ))}
         </nav>
 
-        <div className="space-y-2 border-t border-slate-100 px-3 py-3">
-          <p className="px-2 text-xs text-slate-400 truncate">{session?.user?.email}</p>
+        <div className="px-2 py-3 border-t border-teal-900/10 space-y-1">
+          <div className={`overflow-hidden transition-all duration-200 ${
+            isOpen ? 'max-h-8 opacity-100 mb-1' : 'max-h-0 opacity-0'
+          }`}>
+            <p className="px-2 py-1 text-xs text-gray-400 truncate">{session?.user?.email}</p>
+          </div>
           <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-red-50 hover:text-red-600"
+            title={!isOpen ? 'Cerrar sesión' : undefined}
+            className="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
           >
             <ArrowRightOnRectangleIcon className="w-5 h-5 shrink-0" />
-            Cerrar sesión
+            <span className={`transition-all duration-200 ${
+              isOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'
+            }`}>
+              Cerrar sesión
+            </span>
           </button>
         </div>
       </aside>

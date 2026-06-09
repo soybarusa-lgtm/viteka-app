@@ -42,7 +42,7 @@ function relativeTime(value) {
   const diffHours = Math.round((Date.now() - date.getTime()) / 36e5)
   if (diffHours < 24) return `hace ${Math.max(1, diffHours)} h`
   const diffDays = Math.round(diffHours / 24)
-  return `hace ${diffDays} d${diffDays === 1 ? 'Ã­a' : 'Ã­as'}`
+  return `hace ${diffDays} d${diffDays === 1 ? 'ía' : 'ías'}`
 }
 
 function sameDay(a, b) {
@@ -67,12 +67,12 @@ function statusLabel(status) {
 
 function toneClass(tone) {
   return ({
-    indigo: 'bg-indigo-50 text-indigo-600 ring-indigo-100',
+    indigo: 'bg-teal-50 text-teal-600 ring-teal-100',
     sky: 'bg-sky-50 text-sky-600 ring-sky-100',
     amber: 'bg-amber-50 text-amber-600 ring-amber-100',
     rose: 'bg-rose-50 text-rose-600 ring-rose-100',
     emerald: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
-    violet: 'bg-violet-50 text-violet-600 ring-violet-100',
+    violet: 'bg-teal-50 text-teal-600 ring-teal-100',
     slate: 'bg-slate-50 text-slate-700 ring-slate-200',
   }[tone] || 'bg-slate-50 text-slate-700 ring-slate-200')
 }
@@ -94,7 +94,7 @@ function Card({ title, subtitle, action, children, className = '' }) {
 
 function Kpi({ label, value, hint, Icon, tone = 'indigo', to }) {
   const body = (
-    <div className="flex h-full flex-col justify-between rounded-[18px] border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md">
+    <div className="flex h-full flex-col justify-between rounded-[18px] border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">{label}</p>
@@ -184,7 +184,7 @@ function Bars({ title, items }) {
           <div key={item.label} className="grid grid-cols-[110px_minmax(0,1fr)_40px] items-center gap-3 text-xs">
             <span className="truncate text-slate-600">{item.label}</span>
             <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full rounded-full bg-indigo-500" style={{ width: `${Math.max(8, Math.round((item.value / max) * 100))}%` }} />
+              <div className="h-full rounded-full bg-teal-500" style={{ width: `${Math.max(8, Math.round((item.value / max) * 100))}%` }} />
             </div>
             <span className="text-right font-semibold text-slate-900">{item.value}</span>
           </div>
@@ -213,7 +213,7 @@ function Line({ title, created, closed }) {
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-extrabold text-slate-950">{title}</h3>
         <div className="flex items-center gap-4 text-[11px] font-medium text-slate-500">
-          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-indigo-500" /> Creados</span>
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-teal-500" /> Creados</span>
           <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Cerrados</span>
         </div>
       </div>
@@ -222,7 +222,7 @@ function Line({ title, created, closed }) {
         <polyline fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" points={points(closed)} />
       </svg>
       <div className="mt-1 grid grid-cols-7 text-center text-[11px] text-slate-400">
-        {['Lun', 'Mar', 'MiÃ©', 'Jue', 'Vie', 'SÃ¡b', 'Dom'].map(day => <span key={day}>{day}</span>)}
+        {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(day => <span key={day}>{day}</span>)}
       </div>
     </section>
   )
@@ -255,7 +255,7 @@ export default function DashboardPage() {
   }, [allSupport, allTasks])
 
   const moduleOptions = [
-    { value: 'all', label: 'Todos los mÃ³dulos' },
+    { value: 'all', label: 'Todos los módulos' },
     { value: 'tickets', label: 'Tickets' },
     { value: 'projects', label: 'Proyectos' },
     { value: 'tasks', label: 'Tareas' },
@@ -407,7 +407,7 @@ export default function DashboardPage() {
   }
 
   if (loading) {
-    return <div className="flex h-64 items-center justify-center"><div className="h-7 w-7 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" /></div>
+    return <div className="flex h-64 items-center justify-center"><div className="h-7 w-7 animate-spin rounded-full border-4 border-teal-500 border-t-transparent" /></div>
   }
 
   return (
@@ -415,7 +415,7 @@ export default function DashboardPage() {
       <section className="rounded-[20px] border border-slate-200 bg-white px-5 py-4 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <p className="inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400"><Squares2X2Icon className="h-4 w-4" /> Panel de informaciÃ³n</p>
+            <p className="inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400"><Squares2X2Icon className="h-4 w-4" /> Panel de información</p>
             <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">Dashboard</h1>
             <p className="mt-1 text-sm text-slate-500">Bienvenido, {dashboardUserName}</p>
           </div>
@@ -424,26 +424,26 @@ export default function DashboardPage() {
             <button type="button" className="relative rounded-full border border-slate-200 p-2.5 text-slate-500 transition hover:bg-slate-50"><BellIcon className="h-5 w-5" /><span className="absolute right-1 top-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">3</span></button>
             <div className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-600"><UserCircleIcon className="h-7 w-7" /></div>
-              <div className="text-left"><p className="text-sm font-semibold text-slate-800">{dashboardUserName}</p><p className="text-xs text-slate-500">{profile?.role || 'TÃ©cnico'}</p></div>
+              <div className="text-left"><p className="text-sm font-semibold text-slate-800">{dashboardUserName}</p><p className="text-xs text-slate-500">{profile?.role || 'Técnico'}</p></div>
               <ChevronDownIcon className="h-4 w-4 text-slate-400" />
             </div>
           </div>
         </div>
 
         <div className="mt-5 grid gap-3 xl:grid-cols-[1.1fr_0.85fr_0.85fr_0.85fr_0.85fr_auto]">
-          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">Farmacia</span><select value={selectedPharmacy} onChange={event => setSelectedPharmacy(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100">{pharmacyOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">MÃ³dulo</span><select value={selectedModule} onChange={event => setSelectedModule(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"><option value="all">Todos los mÃ³dulos</option><option value="tickets">Tickets</option><option value="projects">Proyectos</option><option value="tasks">Tareas</option></select></label>
-          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">Estado</span><select value={selectedStatus} onChange={event => setSelectedStatus(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100">{statusOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">Responsable</span><select value={selectedResponsible} onChange={event => setSelectedResponsible(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100">{responsibleOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">Periodo</span><select value={selectedRange} onChange={event => setSelectedRange(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"><option value="7d">Ãšltimos 7 dÃ­as</option><option value="30d">Ãšltimos 30 dÃ­as</option><option value="90d">Ãšltimos 90 dÃ­as</option></select></label>
-          <div className="flex items-end"><button type="button" onClick={reload} className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50"><AdjustmentsHorizontalIcon className="h-4 w-4" /> Personalizar</button></div>
+          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">Farmacia</span><select value={selectedPharmacy} onChange={event => setSelectedPharmacy(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100">{pharmacyOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">Módulo</span><select value={selectedModule} onChange={event => setSelectedModule(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100"><option value="all">Todos los módulos</option><option value="tickets">Tickets</option><option value="projects">Proyectos</option><option value="tasks">Tareas</option></select></label>
+          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">Estado</span><select value={selectedStatus} onChange={event => setSelectedStatus(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100">{statusOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">Responsable</span><select value={selectedResponsible} onChange={event => setSelectedResponsible(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100">{responsibleOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">Periodo</span><select value={selectedRange} onChange={event => setSelectedRange(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100"><option value="7d">Últimos 7 días</option><option value="30d">Últimos 30 días</option><option value="90d">Últimos 90 días</option></select></label>
+          <div className="flex items-end"><button type="button" onClick={reload} className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-teal-200 hover:bg-teal-50"><AdjustmentsHorizontalIcon className="h-4 w-4" /> Personalizar</button></div>
         </div>
       </section>
 
-      {warning || dashboardError ? <div className="flex items-start gap-3 rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm"><ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0" /><div className="space-y-1">{warning ? <p>Algunos datos operativos no se pudieron cargar del todo. Se muestra la mejor informaciÃ³n disponible.</p> : null}{dashboardError ? <p>Proyectos: {dashboardError}</p> : null}</div></div> : null}
+      {warning || dashboardError ? <div className="flex items-start gap-3 rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm"><ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0" /><div className="space-y-1">{warning ? <p>Algunos datos operativos no se pudieron cargar del todo. Se muestra la mejor información disponible.</p> : null}{dashboardError ? <p>Proyectos: {dashboardError}</p> : null}</div></div> : null}
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
-        <Kpi label="Asignados a mÃ­" value={metrics.assignedMine} hint="Activos" Icon={UserGroupIcon} tone="indigo" to="/soporte/tickets" />
+        <Kpi label="Asignados a mí" value={metrics.assignedMine} hint="Activos" Icon={UserGroupIcon} tone="indigo" to="/soporte/tickets" />
         <Kpi label="Sin asignar" value={metrics.unassigned} hint="Tickets" Icon={ClipboardDocumentListIcon} tone="amber" to="/soporte/tickets?status=nuevo" />
         <Kpi label="En curso" value={metrics.inProgress} hint="Trabajo activo" Icon={ClockIcon} tone="sky" to="/soporte/tickets?status=en_progreso" />
         <Kpi label="En espera" value={metrics.waiting} hint="Bloqueados" Icon={ExclamationTriangleIcon} tone="rose" to="/soporte/tickets?status=esperando_cliente" />
@@ -454,14 +454,14 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-3 xl:grid-cols-3">
-        <Card title="Mis prioridades" subtitle="Lo que deberÃ­amos atacar primero" action={<Link to="/soporte/tickets" className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-900">Ver todas <ArrowRightIcon className="h-3.5 w-3.5" /></Link>}>
+        <Card title="Mis prioridades" subtitle="Lo que deberíamos atacar primero" action={<Link to="/soporte/tickets" className="inline-flex items-center gap-1 text-xs font-bold text-teal-600 hover:text-teal-900">Ver todas <ArrowRightIcon className="h-3.5 w-3.5" /></Link>}>
           <DataTable
             emptyText="No hay elementos prioritarios con estos filtros."
             columns={[
-              { key: 'title', label: 'TÃ­tulo', render: row => (<div><p className="font-semibold text-slate-900">{row.title}</p><p className="mt-1 text-[11px] text-slate-500">{row.product || row.type || 'Sin tipo'}</p></div>) },
+              { key: 'title', label: 'Título', render: row => (<div><p className="font-semibold text-slate-900">{row.title}</p><p className="mt-1 text-[11px] text-slate-500">{row.product || row.type || 'Sin tipo'}</p></div>) },
               { key: 'pharmacy', label: 'Farmacia', render: row => <span className="text-slate-600">{row.pharmacyName || pharmacyNameById[String(row.raw?.pharmacy_id || '')] || 'Sin farmacia'}</span> },
               { key: 'type', label: 'Tipo', render: row => <span className="text-slate-600">{row.product || row.type || 'Tarea'}</span> },
-              { key: 'status', label: 'Estado', render: row => <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">{statusLabel(row.status)}</span> },
+              { key: 'status', label: 'Estado', render: row => <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-700">{statusLabel(row.status)}</span> },
               { key: 'priority', label: 'Prioridad', render: row => <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">{row.priority || 'Media'}</span> },
               { key: 'due', label: 'Vence', render: row => <span className="text-slate-600">{formatShortDate(row.dueDate || row.raw?.due_date || row.updatedAt || row.createdAt)}</span> },
             ]}
@@ -469,25 +469,25 @@ export default function DashboardPage() {
           />
         </Card>
 
-        <Card title="Sin asignar" subtitle="Pendientes que todavÃ­a no tienen responsable" action={<Link to="/soporte/tickets" className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-900">Ver todas <ArrowRightIcon className="h-3.5 w-3.5" /></Link>}>
+        <Card title="Sin asignar" subtitle="Pendientes que todavía no tienen responsable" action={<Link to="/soporte/tickets" className="inline-flex items-center gap-1 text-xs font-bold text-teal-600 hover:text-teal-900">Ver todas <ArrowRightIcon className="h-3.5 w-3.5" /></Link>}>
           <DataTable
             emptyText="No hay elementos sin asignar."
             columns={[
-              { key: 'title', label: 'TÃ­tulo', render: row => (<div><p className="font-semibold text-slate-900">{row.title}</p><p className="mt-1 text-[11px] text-slate-500">{row.product || row.type || 'Sin tipo'}</p></div>) },
+              { key: 'title', label: 'Título', render: row => (<div><p className="font-semibold text-slate-900">{row.title}</p><p className="mt-1 text-[11px] text-slate-500">{row.product || row.type || 'Sin tipo'}</p></div>) },
               { key: 'pharmacy', label: 'Farmacia', render: row => <span className="text-slate-600">{row.pharmacyName || pharmacyNameById[String(row.raw?.pharmacy_id || '')] || 'Sin farmacia'}</span> },
-              { key: 'module', label: 'MÃ³dulo', render: row => <span className="text-slate-600">{row.product || row.type || 'Tarea'}</span> },
+              { key: 'module', label: 'Módulo', render: row => <span className="text-slate-600">{row.product || row.type || 'Tarea'}</span> },
               { key: 'date', label: 'Creado hace', render: row => <span className="text-slate-600">{relativeTime(row.createdAt || row.raw?.created_at || row.updatedAt || row.raw?.updated_at)}</span> },
-              { key: 'action', label: 'AcciÃ³n', render: row => <span className="rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600">Asignar</span> },
+              { key: 'action', label: 'Acción', render: row => <span className="rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600">Asignar</span> },
             ]}
             rows={unassignedRows}
           />
         </Card>
 
-        <Card title="Carga del equipo" subtitle="Resumen de los responsables mÃ¡s activos" action={<Link to="/personas" className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-900">Ver recursos <ArrowRightIcon className="h-3.5 w-3.5" /></Link>}>
+        <Card title="Carga del equipo" subtitle="Resumen de los responsables más activos" action={<Link to="/personas" className="inline-flex items-center gap-1 text-xs font-bold text-teal-600 hover:text-teal-900">Ver recursos <ArrowRightIcon className="h-3.5 w-3.5" /></Link>}>
           <DataTable
-            emptyText="TodavÃ­a no hay datos suficientes para la carga del equipo."
+            emptyText="Todavía no hay datos suficientes para la carga del equipo."
             columns={[
-              { key: 'name', label: 'TÃ©cnico', render: row => <div className="flex items-center gap-2"><div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-600">{row.name.charAt(0)}</div><span className="font-semibold text-slate-900">{row.name}</span></div> },
+              { key: 'name', label: 'Técnico', render: row => <div className="flex items-center gap-2"><div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-600">{row.name.charAt(0)}</div><span className="font-semibold text-slate-900">{row.name}</span></div> },
               { key: 'assigned', label: 'Asignados', render: row => <span className="font-semibold text-slate-900">{row.assigned}</span> },
               { key: 'progress', label: 'En curso', render: row => <span className="font-semibold text-slate-900">{row.progress}</span> },
               { key: 'overdue', label: 'Vencidos', render: row => <span className="font-semibold text-rose-600">{row.overdue}</span> },
@@ -499,13 +499,13 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-3 xl:grid-cols-3">
-        <Card title="Proyectos en riesgo" subtitle="Cartera con mÃ¡s atenciÃ³n" action={<Link to="/proyectos" className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-900">Ver todas <ArrowRightIcon className="h-3.5 w-3.5" /></Link>}>
+        <Card title="Proyectos en riesgo" subtitle="Cartera con más atención" action={<Link to="/proyectos" className="inline-flex items-center gap-1 text-xs font-bold text-teal-600 hover:text-teal-900">Ver todas <ArrowRightIcon className="h-3.5 w-3.5" /></Link>}>
           <DataTable
             emptyText="No hay proyectos en riesgo con el filtro actual."
             columns={[
               { key: 'name', label: 'Proyecto', render: row => <span className="font-semibold text-slate-900">{row.name}</span> },
               { key: 'pharmacy', label: 'Farmacia', render: row => <span className="text-slate-600">{row.pharmacy_name || 'Sin farmacia'}</span> },
-              { key: 'status', label: 'Progreso', render: row => <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">{statusLabel(row.status)}</span> },
+              { key: 'status', label: 'Progreso', render: row => <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-700">{statusLabel(row.status)}</span> },
               { key: 'risk', label: 'Riesgo', render: row => <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">Alto</span> },
               { key: 'due', label: 'Fin previsto', render: row => <span className="text-slate-600">{formatShortDate(row.expected_close_date || row.created_at)}</span> },
             ]}
@@ -513,7 +513,7 @@ export default function DashboardPage() {
           />
         </Card>
 
-        <Card title="Farmacias con mÃ¡s actividad" subtitle="DÃ³nde estamos moviendo mÃ¡s trabajo" action={<Link to="/farmacias" className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-900">Ver todas <ArrowRightIcon className="h-3.5 w-3.5" /></Link>}>
+        <Card title="Farmacias con más actividad" subtitle="Dónde estamos moviendo más trabajo" action={<Link to="/farmacias" className="inline-flex items-center gap-1 text-xs font-bold text-teal-600 hover:text-teal-900">Ver todas <ArrowRightIcon className="h-3.5 w-3.5" /></Link>}>
           <DataTable
             emptyText="No hay actividad suficiente para ordenar farmacias."
             columns={[
@@ -524,14 +524,14 @@ export default function DashboardPage() {
           />
         </Card>
 
-        <Card title="Ãšltimas actualizaciones" subtitle="Lo mÃ¡s reciente del panel" action={<Link to="/proyectos" className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-900">Ver todas <ArrowRightIcon className="h-3.5 w-3.5" /></Link>}>
+        <Card title="Últimas actualizaciones" subtitle="Lo más reciente del panel" action={<Link to="/proyectos" className="inline-flex items-center gap-1 text-xs font-bold text-teal-600 hover:text-teal-900">Ver todas <ArrowRightIcon className="h-3.5 w-3.5" /></Link>}>
           <div className="space-y-3">
             {activityRows.length ? activityRows.map(item => (
               <Link key={`${item.type}-${item.id}`} to={item.to} className="flex items-start gap-3 rounded-xl border border-slate-200 px-3 py-3 transition hover:bg-slate-50">
-                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ring-1 ${item.type === 'Ticket' ? 'bg-indigo-50 text-indigo-700 ring-indigo-100' : item.type === 'Proyecto' ? 'bg-sky-50 text-sky-700 ring-sky-100' : 'bg-slate-100 text-slate-700 ring-slate-200'}`}>{item.type.charAt(0)}</span>
+                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ring-1 ${item.type === 'Ticket' ? 'bg-teal-50 text-teal-700 ring-teal-100' : item.type === 'Proyecto' ? 'bg-sky-50 text-sky-700 ring-sky-100' : 'bg-slate-100 text-slate-700 ring-slate-200'}`}>{item.type.charAt(0)}</span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-slate-700"><b>{item.type}</b> Â· {item.title}</span>
-                  <span className="block truncate text-xs text-slate-400">{item.meta || 'Sin contexto'} Â· {relativeTime(item.date)}</span>
+                  <span className="block truncate text-sm font-semibold text-slate-700"><b>{item.type}</b> · {item.title}</span>
+                  <span className="block truncate text-xs text-slate-400">{item.meta || 'Sin contexto'} · {relativeTime(item.date)}</span>
                 </span>
               </Link>
             )) : <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">Sin actividad reciente.</div>}
@@ -543,7 +543,7 @@ export default function DashboardPage() {
         <Donut title="Tickets por estado" items={ticketStatusItems} />
         <Donut title="Tickets por prioridad" items={ticketPriorityItems} />
         <Bars title="Tickets por servicio" items={ticketServiceItems} />
-        <Line title="EvoluciÃ³n semanal" created={weeklyCreated} closed={weeklyClosed} />
+        <Line title="Evolución semanal" created={weeklyCreated} closed={weeklyClosed} />
       </section>
     </div>
   )
