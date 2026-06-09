@@ -419,10 +419,9 @@ export default function DashboardPage() {
             <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">Dashboard</h1>
             <p className="mt-1 text-sm text-slate-500">Bienvenido, {dashboardUserName}</p>
           </div>
-          <div className="flex items-center gap-3">
-            <button type="button" className="rounded-full border border-slate-200 p-2.5 text-slate-500 transition hover:bg-slate-50"><MagnifyingGlassIcon className="h-5 w-5" /></button>
+          <div className="flex items-center gap-2.5">
             <button type="button" className="relative rounded-full border border-slate-200 p-2.5 text-slate-500 transition hover:bg-slate-50"><BellIcon className="h-5 w-5" /><span className="absolute right-1 top-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">3</span></button>
-            <div className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-2">
+            <div className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-600"><UserCircleIcon className="h-7 w-7" /></div>
               <div className="text-left"><p className="text-sm font-semibold text-slate-800">{dashboardUserName}</p><p className="text-xs text-slate-500">{profile?.role || 'Técnico'}</p></div>
               <ChevronDownIcon className="h-4 w-4 text-slate-400" />
@@ -430,13 +429,32 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 xl:grid-cols-[1.1fr_0.85fr_0.85fr_0.85fr_0.85fr_auto]">
-          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">Farmacia</span><select value={selectedPharmacy} onChange={event => setSelectedPharmacy(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100">{pharmacyOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">Módulo</span><select value={selectedModule} onChange={event => setSelectedModule(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100"><option value="all">Todos los módulos</option><option value="tickets">Tickets</option><option value="projects">Proyectos</option><option value="tasks">Tareas</option></select></label>
-          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">Estado</span><select value={selectedStatus} onChange={event => setSelectedStatus(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100">{statusOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">Responsable</span><select value={selectedResponsible} onChange={event => setSelectedResponsible(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100">{responsibleOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-          <label className="flex flex-col gap-1.5"><span className="text-[11px] font-bold text-slate-500">Periodo</span><select value={selectedRange} onChange={event => setSelectedRange(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100"><option value="7d">Últimos 7 días</option><option value="30d">Últimos 30 días</option><option value="90d">Últimos 90 días</option></select></label>
-          <div className="flex items-end"><button type="button" onClick={reload} className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-teal-200 hover:bg-teal-50"><AdjustmentsHorizontalIcon className="h-4 w-4" /> Personalizar</button></div>
+        <div className="mt-3 grid gap-2 xl:grid-cols-[1.05fr_0.8fr_0.8fr_0.8fr_0.8fr_auto]">
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Farmacia</span>
+            <select value={selectedPharmacy} onChange={event => setSelectedPharmacy(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100">{pharmacyOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Módulo</span>
+            <select value={selectedModule} onChange={event => setSelectedModule(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100"><option value="all">Todos los módulos</option><option value="tickets">Tickets</option><option value="projects">Proyectos</option><option value="tasks">Tareas</option></select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Estado</span>
+            <select value={selectedStatus} onChange={event => setSelectedStatus(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100">{statusOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Responsable</span>
+            <select value={selectedResponsible} onChange={event => setSelectedResponsible(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100">{responsibleOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Periodo</span>
+            <select value={selectedRange} onChange={event => setSelectedRange(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100"><option value="7d">Últimos 7 días</option><option value="30d">Últimos 30 días</option><option value="90d">Últimos 90 días</option></select>
+          </label>
+          <div className="flex items-end">
+            <button type="button" onClick={reload} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-teal-200 hover:bg-teal-50">
+              <AdjustmentsHorizontalIcon className="h-4 w-4" /> Personalizar
+            </button>
+          </div>
         </div>
       </section>
 
