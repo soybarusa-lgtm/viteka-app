@@ -67,10 +67,7 @@ html {
 }
 
 body {
-  background:
-    linear-gradient(180deg, rgba(244, 249, 248, 0.94), rgba(244, 249, 248, 1)),
-    radial-gradient(circle at 85% 0%, rgba(34, 211, 238, 0.12), transparent 32%),
-    radial-gradient(circle at 0% 15%, rgba(139, 195, 74, 0.10), transparent 28%);
+  background: #f8fafc;
   color: var(--v-black);
 }
 
@@ -92,23 +89,18 @@ h3,
 }
 
 .brand-app-shell {
-  background:
-    linear-gradient(180deg, rgba(244, 249, 248, 0.98) 0%, #eef6f4 100%),
-    radial-gradient(circle at 90% 8%, rgba(34, 211, 238, 0.14), transparent 28%),
-    radial-gradient(circle at 12% 0%, rgba(139, 195, 74, 0.12), transparent 24%);
+  background: #f8fafc;
 }
 
 .brand-main {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(244, 249, 248, 0.72)),
-    linear-gradient(90deg, rgba(0, 105, 92, 0.035), transparent 36%);
+  background: #f8fafc;
 }
 
 .card {
   background: var(--v-white);
   border: 1px solid var(--v-border);
-  border-radius: 12px;
-  box-shadow: 0 8px 20px rgba(7, 26, 29, 0.035);
+  border-radius: 8px;
+  box-shadow: none;
 }
 
 :where(.btn-primary, .btn-secondary, .btn-danger, .btn-ghost) {
@@ -211,11 +203,9 @@ h3,
 }
 
 .login-halo {
+  display: none;
   position: absolute;
-  border-radius: 9999px;
-  filter: blur(90px);
   pointer-events: none;
-  opacity: 0.9;
 }
 
 .login-halo-1 {

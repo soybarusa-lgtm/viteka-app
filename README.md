@@ -1,16 +1,51 @@
-# React + Vite
+# Viteka App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicación interna para gestionar la operación profesional de Viteka: farmacias, proyectos, soporte, personas, documentación y configuración.
 
-Currently, two official plugins are available:
+## Interfaz actual
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+La app usa una estructura de workspace inspirada en herramientas de gestión como Plane:
 
-## React Compiler
+- Resumen operativo con cola de trabajo, métricas, módulos y actividad reciente.
+- Planificación con ciclos, módulos, vistas guardadas y páginas operativas.
+- Proyectos con lista, tablero, calendario, tareas, hitos y comunicaciones.
+- Soporte interno y portal cliente para tickets y seguimiento.
+- Directorio de farmacias, personas, equipamiento y documentación.
+- Configuración de equipo, permisos, solicitudes y auditoría.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Desarrollo local
 
-## Expanding the ESLint configuration
+```bash
+npm install
+npm run dev
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Variables necesarias:
+
+```bash
+VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+```
+
+## Scripts
+
+```bash
+npm run dev
+npm run build
+npm run lint
+npm run preview
+```
+
+## Rutas principales
+
+- `/` resumen operativo.
+- `/planificacion` ciclos, módulos, vistas y páginas.
+- `/proyectos` cartera de proyectos.
+- `/farmacias` directorio de farmacias.
+- `/personas` contactos y responsables.
+- `/soporte/dashboard` centro de soporte.
+- `/soporte/tickets` bandeja de tickets.
+- `/documentos` biblioteca corporativa.
+- `/configuracion/general` configuración interna.
+
+Los alias `/gestion` y `/roadmap` redirigen a `/planificacion`.

@@ -165,6 +165,7 @@ export default function PharmacyDocumentsTab({ pharmacyId, companyId, documentsA
 
   useEffect(() => {
     const keys = Object.keys(groupedDocuments)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpenSections(prev => {
       const next = { ...prev }
       keys.forEach(key => {

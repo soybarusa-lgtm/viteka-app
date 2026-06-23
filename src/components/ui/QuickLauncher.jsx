@@ -5,6 +5,7 @@ import {
   DocumentTextIcon,
   FolderOpenIcon,
   PlusIcon,
+  RectangleGroupIcon,
   SquaresPlusIcon,
   UsersIcon,
   XMarkIcon,
@@ -39,6 +40,7 @@ const CREATE_ACTIONS = [
 const NAV_ACTIONS = [
   { to: '/farmacias', label: 'Farmacias', detail: 'Directorio y filtros', Icon: BuildingStorefrontIcon },
   { to: '/personas', label: 'Personas', detail: 'Contactos y responsables', Icon: UsersIcon },
+  { to: '/planificacion', label: 'Planificación', detail: 'Ciclos, módulos y vistas', Icon: RectangleGroupIcon },
   { to: '/proyectos', label: 'Proyectos', detail: 'Pipelines, calendario y tareas', Icon: FolderOpenIcon },
   { to: '/soporte/dashboard', label: 'Soporte', detail: 'Incidencias, tickets y seguimiento', Icon: LifebuoyIcon },
   { to: '/documentos', label: 'Documentación', detail: 'Biblioteca corporativa', Icon: DocumentTextIcon },
@@ -97,7 +99,7 @@ export default function QuickLauncher({ open, onClose }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="quick-launcher-title"
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-white/70 bg-white p-5 shadow-2xl sm:p-6"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-slate-200 bg-white p-5 shadow-2xl sm:p-6"
       >
         <header className="flex items-start justify-between gap-4">
           <div>
@@ -119,9 +121,9 @@ export default function QuickLauncher({ open, onClose }) {
               key={to}
               to={to}
               onClick={onClose}
-              className="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 transition hover:-translate-y-0.5 hover:border-teal-200 hover:bg-white hover:shadow-md"
+              className="group flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/70 p-4 transition hover:-translate-y-0.5 hover:border-teal-200 hover:bg-white hover:shadow-md"
             >
-              <span className={`inline-flex rounded-xl p-2.5 ring-1 ${tone}`}><Icon className="h-5 w-5" /></span>
+              <span className={`inline-flex rounded-lg p-2.5 ring-1 ${tone}`}><Icon className="h-5 w-5" /></span>
               <span className="min-w-0">
                 <span className="flex items-center gap-1.5 font-display text-sm font-extrabold text-slate-900">
                   <PlusIcon className="h-3.5 w-3.5 text-teal-700" /> {label}
@@ -136,7 +138,7 @@ export default function QuickLauncher({ open, onClose }) {
           <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400">Ir a un módulo</p>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             {NAV_ACTIONS.map(({ to, label, detail, Icon }) => (
-              <Link key={to} to={to} onClick={onClose} className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-3 transition hover:border-slate-200 hover:bg-slate-50">
+              <Link key={to} to={to} onClick={onClose} className="flex items-center gap-3 rounded-lg border border-transparent px-3 py-3 transition hover:border-slate-200 hover:bg-slate-50">
                 <Icon className="h-5 w-5 shrink-0 text-teal-700" />
                 <span className="min-w-0">
                   <span className="block text-sm font-bold text-slate-800">{label}</span>
@@ -147,7 +149,7 @@ export default function QuickLauncher({ open, onClose }) {
           </div>
         </div>
 
-        <footer className="mt-5 flex items-center gap-2 rounded-xl bg-teal-50 px-3 py-2.5 text-xs text-teal-800">
+        <footer className="mt-5 flex items-center gap-2 rounded-lg bg-teal-50 px-3 py-2.5 text-xs text-teal-800">
           <SquaresPlusIcon className="h-4 w-4 shrink-0" />
           Incidencias ya dispone de un portal conectado para equipo interno y clientes.
         </footer>
