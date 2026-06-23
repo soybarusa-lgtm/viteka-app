@@ -3,7 +3,6 @@ import {
   ComputerDesktopIcon,
   ExclamationTriangleIcon,
   PlusIcon,
-  ServerIcon,
   ShieldCheckIcon,
   WifiIcon,
 } from '@heroicons/react/24/outline'
@@ -105,6 +104,7 @@ export default function PharmacyITTab({
   }, [visibleDevices])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpenSections(prev => {
       const next = { ...prev }
       groups.forEach(group => {

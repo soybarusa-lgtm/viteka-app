@@ -42,6 +42,7 @@ export default function SupportTicketCreateDrawer({ open, onClose, onCreate, pre
 
   useEffect(() => {
     if (!open) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm(buildInitialForm(prefill))
     setError('')
   }, [open, prefill])
@@ -71,6 +72,7 @@ export default function SupportTicketCreateDrawer({ open, onClose, onCreate, pre
 
   useEffect(() => {
     if (!open || !form.pharmacy_id) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setContacts([])
       return
     }

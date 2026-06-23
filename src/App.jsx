@@ -24,6 +24,7 @@ const NewPharmacyPage = lazy(() => import('./pages/NewPharmacyPage'))
 const PeoplePage = lazy(() => import('./pages/PeoplePage'))
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
 const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'))
+const PlanningPage = lazy(() => import('./pages/PlanningPage'))
 const DocumentsPage = lazy(() => import('./pages/DocumentsPage'))
 const ConfigLayout = lazy(() => import('./components/configuracion/ConfigLayout'))
 const ConfigGeneralPage = lazy(() => import('./pages/configuracion/ConfigGeneralPage'))
@@ -180,6 +181,9 @@ export default function App() {
             <Route path="farmacias/:id/editar" element={<LegacyPharmacyRedirect toEdit />} />
             <Route path="personas" element={<LazyRoute><PeoplePage /></LazyRoute>} />
             <Route path="incidencias" element={<Navigate to="/soporte/dashboard" replace />} />
+            <Route path="gestion" element={<Navigate to="/planificacion" replace />} />
+            <Route path="roadmap" element={<Navigate to="/planificacion" replace />} />
+            <Route path="planificacion" element={<LazyRoute><PlanningPage /></LazyRoute>} />
             <Route path="proyectos" element={<LazyRoute><ProjectsPage /></LazyRoute>} />
             <Route path="proyectos/:id" element={<LazyRoute><ProjectDetailPage /></LazyRoute>} />
             <Route path="documentos" element={<LazyRoute><DocumentsPage profile={profile} /></LazyRoute>} />

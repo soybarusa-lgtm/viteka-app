@@ -28,7 +28,6 @@ import {
   fmtDate,
   getDivision,
   getPipeline,
-  getPriority,
   getStage,
   getStatus,
   isOverdue,
@@ -40,13 +39,6 @@ const DIVISION_ICONS = {
   support: LifebuoyIcon,
   training: AcademicCapIcon,
   installation: WrenchScrewdriverIcon,
-}
-
-function isWonProject(project, division) {
-  return division.id === 'commercial' && (
-    project.pipeline_stage === 'cerrado'
-    || project.status === 'completed'
-  )
 }
 
 function ProjectList({ projects, onOpen }) {
@@ -204,6 +196,7 @@ export default function ProjectsPage() {
     if (!requestedStatus) return
     const allowed = ['all', 'active', 'in_progress', 'pending', 'blocked', 'completed']
     if (!allowed.includes(requestedStatus) || status === requestedStatus) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatus(requestedStatus)
   }, [searchParams, status])
 

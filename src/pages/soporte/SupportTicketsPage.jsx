@@ -71,6 +71,7 @@ export default function SupportTicketsPage() {
 
   useEffect(() => {
     if (!requestedStatus || !STATUS_QUERY_VALUES.has(requestedStatus) || status === requestedStatus) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatus(requestedStatus)
   }, [requestedStatus, status])
 
